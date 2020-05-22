@@ -176,8 +176,7 @@ namespace RSXmlCombinerGUI.ViewModels
 
             var dialogs = Locator.Current.GetService<IDialogServices>();
             string fileName = await dialogs
-                .SaveFileDialog("Save Project As", DialogServices.ProjectFileFilters, projectFile)
-                .ConfigureAwait(false);
+                .SaveFileDialog("Save Project As", DialogServices.ProjectFileFilters, projectFile);
 
             if (!string.IsNullOrEmpty(fileName))
             {

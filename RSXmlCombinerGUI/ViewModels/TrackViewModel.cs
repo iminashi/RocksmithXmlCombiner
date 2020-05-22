@@ -19,6 +19,8 @@ using System.Threading.Tasks;
 
 using XmlUtils;
 
+#pragma warning disable RCS1090 // Call 'ConfigureAwait(false)'.
+
 namespace RSXmlCombinerGUI.ViewModels
 {
     public sealed class TrackViewModel : ViewModelBase
@@ -165,7 +167,8 @@ namespace RSXmlCombinerGUI.ViewModels
         private async Task AddArrangementImpl(ArrangementType arrangementType)
         {
             var dialogs = Locator.Current.GetService<IDialogServices>();
-            string[] files = await dialogs.OpenFileDialog("Select RS2014 Arrangement", DialogServices.RocksmithXmlFileFilters).ConfigureAwait(false);
+            string[] files = await dialogs
+                .OpenFileDialog("Select RS2014 Arrangement", DialogServices.RocksmithXmlFileFilters);
 
             if (files.Length > 0)
             {
@@ -211,7 +214,8 @@ namespace RSXmlCombinerGUI.ViewModels
         private async Task OpenAudioImpl()
         {
             var dialogs = Locator.Current.GetService<IDialogServices>();
-            var files = await dialogs.OpenFileDialog("Select Audio File", DialogServices.AudioFileFiltersOpen).ConfigureAwait(false);
+            var files = await dialogs
+                .OpenFileDialog("Select Audio File", DialogServices.AudioFileFiltersOpen);
 
             if (files.Length > 0)
                 AudioFile = files[0];
