@@ -19,21 +19,30 @@
   <DockPanel>
     
     <Panel DockPanel.Dock="Top">
-      <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
-        <!-- Add Track Button -->
-        <Button HorizontalAlignment="Left"
-                VerticalAlignment="Center"
-                Margin="15, 15, 15, 0"
-                FontSize="18"
-                Command="{Binding AddTrack}"
-                Content="Add Track..."/>
-        <!-- Import Button -->
-        <Button HorizontalAlignment="Left"
-                VerticalAlignment="Center"
-                Margin="0, 15, 15, 0"
-                FontSize="18"
-                Command="{Binding ToolkitImport}"
-                Content="Import..."/>
+      <StackPanel HorizontalAlignment="Left">
+        <StackPanel Orientation="Horizontal">
+          <!-- Add Track Button -->
+          <Button HorizontalAlignment="Left"
+                  VerticalAlignment="Center"
+                  Margin="15, 15, 15, 0"
+                  FontSize="18"
+                  Command="{Binding AddTrack}"
+                  Content="Add Track..."/>
+          <!-- Import Button -->
+          <Button HorizontalAlignment="Left"
+                  VerticalAlignment="Center"
+                  Margin="0, 15, 15, 0"
+                  FontSize="18"
+                  Command="{Binding ToolkitImport}"
+                  Content="Import..."/>
+        </StackPanel>
+          <!-- Common Tones Button -->
+          <Button VerticalAlignment="Center"
+                  HorizontalAlignment="Center"
+                  Content="Edit Common Tones"
+                  FontSize="18"
+                  Margin="15, 5, 15, 0"
+                  Command="{Binding $parent[Window].DataContext.EditGlobalTones}"/>
       </StackPanel>
 
       <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
@@ -61,15 +70,6 @@
                 HotKey="Ctrl+S"/>
       </StackPanel>
     </Panel>
-
-    <StackPanel DockPanel.Dock="Top" HorizontalAlignment="Left">
-      <!-- Common Tones Button -->
-      <Button VerticalAlignment="Center"
-              Content="Edit Common Tones"
-              FontSize="18"
-              Margin="15, 5, 15, 0"
-              Command="{Binding $parent[Window].DataContext.EditGlobalTones}"/>
-    </StackPanel>
 
     <!-- Status Bar Message -->
     <Border DockPanel.Dock="Bottom" Padding="5" Background="#fafafa">
