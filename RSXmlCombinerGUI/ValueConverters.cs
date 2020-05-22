@@ -1,4 +1,5 @@
 ﻿using Avalonia.Data.Converters;
+using Avalonia.Media;
 
 using RSXmlCombinerGUI.Models;
 using RSXmlCombinerGUI.ViewModels;
@@ -71,6 +72,15 @@ namespace RSXmlCombinerGUI
                     return arr.BaseTone;
                 else
                     return string.Empty;
+            });
+
+        public static readonly IValueConverter ToneReplacementsToWarningColor = new FuncValueConverter<Dictionary<string, string>, ISolidColorBrush>(
+            v =>
+            {
+                if (v.Count == 0 || v.Any(kv => string.IsNullOrEmpty(kv.Value)))
+                    return Brushes.Red;
+                else
+                    return Brushes.LightGreen;
             });
     }
 }

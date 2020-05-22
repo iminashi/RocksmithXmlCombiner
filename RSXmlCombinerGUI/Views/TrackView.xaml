@@ -33,6 +33,9 @@
       <Setter Property="Button.Background" Value="DarkRed"/>
       <Setter Property="Button.Foreground" Value="White"/>
     </Style>
+    <Style Selector="ComboBox">
+      <Setter Property="Background" Value="White"/>
+    </Style>
   </UserControl.Styles>
   
   <Border BorderBrush="LightSlateGray"
@@ -40,7 +43,7 @@
           CornerRadius="10"
           Padding="5"
           Margin="5"
-          Background="#f8f8f8">
+          Background="GhostWhite">
     <DockPanel Margin="5, 0, 0, 0">
       
       <StackPanel Orientation="Horizontal" DockPanel.Dock="Top">
@@ -151,7 +154,8 @@
           <Button Content="Tones" Width="100"
                   IsVisible="{Binding !#leadHackPanel.IsVisible}"
                   Command="{Binding $parent[Window].DataContext.EditReplacementTones}"
-                  CommandParameter="{Binding LeadArrangement}"/>
+                  CommandParameter="{Binding LeadArrangement}"
+                  Background="{Binding LeadArrangement.ToneReplacements, Converter={x:Static local:ValueConverters.ToneReplacementsToWarningColor}}"/>
         </StackPanel>
 
         <!-- Rhythm Part -->
@@ -197,7 +201,8 @@
           <Button Content="Tones" Width="100"
                   IsVisible="{Binding !#rhythmHackPanel.IsVisible}"
                   Command="{Binding $parent[Window].DataContext.EditReplacementTones}"
-                  CommandParameter="{Binding RhythmArrangement}"/>
+                  CommandParameter="{Binding RhythmArrangement}"
+                  Background="{Binding RhythmArrangement.ToneReplacements, Converter={x:Static local:ValueConverters.ToneReplacementsToWarningColor}}"/>
         </StackPanel>
 
         <!-- Bass Part -->
@@ -243,7 +248,8 @@
           <Button Content="Tones" Width="100"
                   Command="{Binding $parent[Window].DataContext.EditReplacementTones}"
                   CommandParameter="{Binding BassArrangement}"
-                  IsVisible="{Binding !#bassHackPanel.IsVisible}"/>
+                  IsVisible="{Binding !#bassHackPanel.IsVisible}"
+                  Background="{Binding BassArrangment.ToneReplacements, Converter={x:Static local:ValueConverters.ToneReplacementsToWarningColor}}"/>
         </StackPanel>
 
         <!-- Vocals Part -->
