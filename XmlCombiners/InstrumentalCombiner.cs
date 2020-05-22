@@ -172,26 +172,29 @@ namespace XmlCombiners
                     if (IsSameChordTemplate(combined.ChordTemplates[j], combined.ChordTemplates[i]))
                     {
                         combined.ChordTemplates.RemoveAt(i);
-                        foreach (var chord in combined.Levels[0].Chords)
+                        foreach (var level in combined.Levels)
                         {
-                            if (chord.ChordId == i)
+                            foreach (var chord in level.Chords)
                             {
-                                chord.ChordId = j;
+                                if (chord.ChordId == i)
+                                {
+                                    chord.ChordId = j;
+                                }
+                                else if (chord.ChordId > i)
+                                {
+                                    chord.ChordId--;
+                                }
                             }
-                            else if (chord.ChordId > i)
+                            foreach (var hs in level.HandShapes)
                             {
-                                chord.ChordId--;
-                            }
-                        }
-                        foreach (var hs in combined.Levels[0].HandShapes)
-                        {
-                            if (hs.ChordId == i)
-                            {
-                                hs.ChordId = j;
-                            }
-                            else if (hs.ChordId > i)
-                            {
-                                hs.ChordId--;
+                                if (hs.ChordId == i)
+                                {
+                                    hs.ChordId = j;
+                                }
+                                else if (hs.ChordId > i)
+                                {
+                                    hs.ChordId--;
+                                }
                             }
                         }
                         break;
