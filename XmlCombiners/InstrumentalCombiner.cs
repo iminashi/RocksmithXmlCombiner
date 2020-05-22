@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace XmlCombiners
@@ -19,7 +20,7 @@ namespace XmlCombiners
             CleanupToneChanges(CombinedArrangement);
 
             // Only combine phrases if there is only one DD level
-            if (CombinedArrangement.Levels.Count == 1)
+            //if (CombinedArrangement.Levels.Count == 1)
                 CombinePhrases(CombinedArrangement);
 
             CombineChords(CombinedArrangement);
@@ -103,7 +104,7 @@ namespace XmlCombiners
         {
             foreach (var phrase in song.Phrases)
             {
-                if(!phrase.Name.Equals("END", StringComparison.OrdinalIgnoreCase))
+                if(!phrase.Name.Equals("END", StringComparison.OrdinalIgnoreCase) && !phrase.Name.Equals("noguitar", StringComparison.OrdinalIgnoreCase))
                     phrase.Name = $"arr{ArrangementNumber}{phrase.Name}";
             }
         }
@@ -145,6 +146,10 @@ namespace XmlCombiners
                 {
                     if (song.Phrases[j].Name == song.Phrases[i].Name)
                     {
+                        if (song.Levels.Count > 1)
+                            Debug.Assert(song.Phrases[j].Name == "noguitar");
+
+                        // Remove the phrase at the higher position
                         song.Phrases.RemoveAt(i);
                         foreach (var pi in song.PhraseIterations)
                         {
@@ -155,6 +160,21 @@ namespace XmlCombiners
                             else if (pi.PhraseId > i)
                             {
                                 pi.PhraseId--;
+                            }
+                        }
+
+                        foreach (var nld in song.NewLinkedDiffs)
+                        {
+                            for (int p = 0; p < nld.Phrases.Count; p++)
+                            {
+                                if(nld.Phrases[p].Id == i)
+                                {
+                                    nld.Phrases[p] = new NLDPhrase(j);
+                                }
+                                else if(nld.Phrases[p].Id > i)
+                                {
+                                    nld.Phrases[p] = new NLDPhrase(nld.Phrases[p].Id - 1);
+                                }
                             }
                         }
                         break;
@@ -331,7 +351,6 @@ namespace XmlCombiners
             {
                 // No "noguitar" phrase present, reuse the end phrase 
                 song.Phrases[endPhraseId].Name = "noguitar";
-                ngPhraseId = endPhraseId;
             }
             else
             {
