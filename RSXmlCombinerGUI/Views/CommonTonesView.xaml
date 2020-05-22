@@ -11,7 +11,7 @@
   </Design.DataContext>
   
   <StackPanel Spacing="10" Margin="10" HorizontalAlignment="Center" VerticalAlignment="Center">
-    <ItemsControl Items="{Binding Arrangements}">
+    <ItemsControl x:Name="ArrangementsList">
       <ItemsControl.ItemsPanel>
         <ItemsPanelTemplate>
           <StackPanel Orientation="Horizontal" Spacing="10"/>
@@ -25,10 +25,10 @@
       </ItemsControl.ItemTemplate>
     </ItemsControl>
 
-    <Button Content="OK"
+    <Button x:Name="OkButton"
+            Content="OK"
             FontSize="20"
             HorizontalAlignment="Center"
-            Width="140"
-            Command="{Binding Ok}"/>
+            Width="140"/>
   </StackPanel>
 </UserControl>

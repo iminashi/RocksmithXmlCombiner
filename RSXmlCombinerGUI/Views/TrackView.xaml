@@ -61,12 +61,6 @@
         <TextBlock Classes="h1" Text="{Binding Title}"/>
       </StackPanel>
       
-      <!-- Audio File Name 
-      <TextBlock Text="{Binding AudioFile}"
-                 DockPanel.Dock="Top"
-                 Foreground="DarkGray"
-                 IsVisible="{Binding AudioFile, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>-->
-      
       <StackPanel Orientation="Horizontal">
         <!-- Delete Button -->
         <Button VerticalAlignment="Center"
@@ -81,18 +75,16 @@
         <StackPanel Classes="part">
           <TextBlock Classes="h2" HorizontalAlignment="Center">Audio</TextBlock>
           <!-- Audio File Name -->
-          <TextBlock Text="{Binding AudioFileNameShort^}" Foreground="DarkGray"
-                     IsVisible="{Binding AudioFile, Converter={x:Static ObjectConverters.IsNotNull}}"
+          <TextBlock x:Name="AudioFileText"
+                     Foreground="DarkGray"
                      ToolTip.Tip="{Binding AudioFile}"
                      MaxWidth="100"/>
-          <Button Command="{Binding OpenAudio}"
-                  Width="100"
-                  Content="{Binding AudioFile, Converter={x:Static local:ValueConverters.OpenButtonText}}"/>
+          <Button x:Name="OpenAudioButton" Width="100"/>
         </StackPanel>
 
         <!-- Trim Part -->
         <Panel Width="90">
-          <StackPanel Classes="part">
+          <StackPanel x:Name="TrimPanel" Classes="part">
             <StackPanel.IsVisible>
               <MultiBinding Converter="{x:Static local:ValueConverters.IndexToVisibility}">
                 <Binding Path="."/>
@@ -100,10 +92,10 @@
               </MultiBinding>
             </StackPanel.IsVisible>
             <TextBlock Classes="h2">Trim:</TextBlock>
-            <NumericUpDown Minimum="0"
+            <NumericUpDown x:Name="TrimAmountNumeric"
+                           Minimum="0"
                            HorizontalAlignment="Left"
                            Width="75"
-                           Value="{Binding TrimAmount}"
                            FormatString="F3"/>
             <TextBlock Margin="10, 0, 0, 0">seconds</TextBlock>
           </StackPanel>

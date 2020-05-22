@@ -61,7 +61,6 @@ namespace RSXmlCombinerGUI.ViewModels
         public IObservable<ISolidColorBrush> BassColor { get; private set; }
         public IObservable<ISolidColorBrush> VocalsColor { get; private set; }
         public IObservable<ISolidColorBrush> ShowLightsColor { get; private set; }
-        public IObservable<string?> AudioFileNameShort { get; private set; }
         public IObservable<string?> LeadFileNameShort { get; private set; }
         public IObservable<string?> RhythmFileNameShort { get; private set; }
         public IObservable<string?> BassFileNameShort { get; private set; }
@@ -116,10 +115,6 @@ namespace RSXmlCombinerGUI.ViewModels
             BassColor = CreateColorObservable(x => x.BassArrangement, Brushes.Blue);
             VocalsColor = CreateColorObservable(x => x.VocalsArrangement, Brushes.DarkRed);
             ShowLightsColor = CreateColorObservable(x => x.ShowLightsArrangement, Brushes.DarkViolet);
-
-            AudioFileNameShort = this.WhenAnyValue(x => x.AudioFile)
-                .Where(fn => !string.IsNullOrEmpty(fn))
-                .Select(Path.GetFileName);
 
             LeadFileNameShort = this.WhenAnyValue(x => x.LeadArrangement)
                 .Where(x => !(x is null))
