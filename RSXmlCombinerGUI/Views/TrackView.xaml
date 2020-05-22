@@ -249,7 +249,7 @@
                   Command="{Binding $parent[Window].DataContext.EditReplacementTones}"
                   CommandParameter="{Binding BassArrangement}"
                   IsVisible="{Binding !#bassHackPanel.IsVisible}"
-                  Background="{Binding BassArrangment.ToneReplacements, Converter={x:Static local:ValueConverters.ToneReplacementsToWarningColor}}"/>
+                  Background="{Binding BassArrangement.ToneReplacements, Converter={x:Static local:ValueConverters.ToneReplacementsToWarningColor}}"/>
         </StackPanel>
 
         <!-- Vocals Part -->
