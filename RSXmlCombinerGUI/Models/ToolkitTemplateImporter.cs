@@ -130,8 +130,7 @@ namespace RSXmlCombinerGUI.Models
 
                 foreach (var kv in foundArrangements)
                 {
-                    if(!kv.Key.IsInstrumental() || kv.Value.fileName.GetDifficultyLevels() == 1)
-                        vm.AddNewArrangement(kv.Key, kv.Value.fileName, kv.Value.baseTone);
+                    vm.AddNewArrangement(kv.Key, kv.Value.fileName, kv.Value.baseTone);
                 }
 
                 return vm;

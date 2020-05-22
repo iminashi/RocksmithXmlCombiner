@@ -61,7 +61,7 @@ namespace RSXmlCombinerGUI
                 return new[] { "ERROR" };
             });
 
-        public static readonly IMultiValueConverter HackConverter = new FuncMultiValueConverter<object, string?>(
+        public static readonly IMultiValueConverter HackConverter = new FuncMultiValueConverter<object, string>(
             v =>
             {
                 var values = v.ToArray();

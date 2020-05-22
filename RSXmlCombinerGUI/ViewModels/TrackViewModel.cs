@@ -45,8 +45,6 @@ namespace RSXmlCombinerGUI.ViewModels
         [Reactive]
         public InstrumentalArrangement? BassArrangement { get; set; }
 
-        public string? BassBaseTone => BassArrangement?.BaseTone;
-
         [Reactive]
         public string? VocalsArrangement { get; set; }
 
@@ -175,8 +173,8 @@ namespace RSXmlCombinerGUI.ViewModels
 
                 if (!XmlHelper.ValidateRootElement(fileName, arrangementType.ToXmlRootElement()))
                     Messages.OnNext("The XML file does not match the arrangement type!");
-                else if (arrangementType.IsInstrumental() && fileName.GetDifficultyLevels() != 1)
-                    Messages.OnNext("The XML file contains DD levels.");
+                //else if (arrangementType.IsInstrumental() && fileName.GetDifficultyLevels() != 1)
+                //    Messages.OnNext("The XML file contains DD levels.");
                 else
                     AddNewArrangement(arrangementType, fileName);
             }

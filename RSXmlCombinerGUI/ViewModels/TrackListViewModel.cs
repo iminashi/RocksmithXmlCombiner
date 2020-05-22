@@ -131,18 +131,25 @@ namespace RSXmlCombinerGUI.ViewModels
 
             if (fileNames.Length > 0)
             {
-                var options = new JsonSerializerOptions
+                try
                 {
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                    WriteIndented = true
-                };
+                    var options = new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                        WriteIndented = true
+                    };
 
-                // TODO: Check if all the files still exist
+                    // TODO: Check if all the files still exist
 
-                string json = File.ReadAllText(fileNames[0]);
-                var project = JsonSerializer.Deserialize<ProjectDto>(json, options);
-                SetProperties(project);
-                LoadedProjectFile = fileNames[0];
+                    string json = File.ReadAllText(fileNames[0]);
+                    var project = JsonSerializer.Deserialize<ProjectDto>(json, options);
+                    SetProperties(project);
+                    LoadedProjectFile = fileNames[0];
+                }
+                catch(JsonException)
+                {
+                    StatusMessage = "Loading project file failed";
+                }
             }
         }
 
@@ -174,14 +181,21 @@ namespace RSXmlCombinerGUI.ViewModels
 
             if (!string.IsNullOrEmpty(fileName))
             {
-                var options = new JsonSerializerOptions
+                try
                 {
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                    WriteIndented = true
-                };
+                    var options = new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                        WriteIndented = true
+                    };
 
-                var json = JsonSerializer.Serialize(new ProjectDto(this), options);
-                File.WriteAllText(fileName, json);
+                    var json = JsonSerializer.Serialize(new ProjectDto(this), options);
+                    File.WriteAllText(fileName, json);
+                }
+                catch (Exception e)
+                {
+                    StatusMessage = "Saving project file failed: " + e.Message;
+                }
             }
         }
 
@@ -226,28 +240,7 @@ namespace RSXmlCombinerGUI.ViewModels
                     var next = RS2014Song.Load(arr.FileName);
                     if (arr.ToneNames != null)
                     {
-                        foreach (var kv in arr.ToneReplacements)
-                        {
-                            if (next.ToneBase == kv.Key)
-                                next.ToneBase = kv.Value;
-                            if (next.ToneA == kv.Key)
-                                next.ToneA = kv.Value;
-                            if (next.ToneB == kv.Key)
-                                next.ToneB = kv.Value;
-                            if (next.ToneC == kv.Key)
-                                next.ToneC = kv.Value;
-                            if (next.ToneD == kv.Key)
-                                next.ToneD = kv.Value;
-
-                            if (next.Tones != null)
-                            {
-                                foreach (var tone in next.Tones)
-                                {
-                                    if (tone.Name == kv.Key)
-                                        tone.Name = kv.Value;
-                                }
-                            }
-                        }
+                        next.ReplaceToneNames(arr.ToneReplacements);
                     }
                     else
                     {
@@ -269,7 +262,7 @@ namespace RSXmlCombinerGUI.ViewModels
             var dialogs = Locator.Current.GetService<IDialogServices>();
 
             string targetFolder = await dialogs
-                .OpenFolderDialog("Select Target Folder")
+                .OpenFolderDialog("Select Target Folder");
 
             if (string.IsNullOrEmpty(targetFolder))
                 return;
@@ -364,9 +357,9 @@ namespace RSXmlCombinerGUI.ViewModels
                     {
                         if (XmlHelper.ValidateRootElement(fn, "song"))
                         {
-                            if (fn.GetDifficultyLevels() != 1)
-                                StatusMessage = $"The file {Path.GetFileName(fn)} contains DD levels.";
-                            else
+                            //if (fn.GetDifficultyLevels() != 1)
+                            //    StatusMessage = $"The file {Path.GetFileName(fn)} contains DD levels.";
+                            //else
                                 tvm.SetArrangement(RS2014Song.Load(fn), fn);
                         }
                         else if (XmlHelper.ValidateRootElement(fn, "vocals"))
@@ -461,6 +454,7 @@ namespace RSXmlCombinerGUI.ViewModels
                 }
             }
 
+            // Update the base tones of the first track
             if(Tracks.Count > 0)
             {
                 if(Tracks[0].LeadArrangement != null)

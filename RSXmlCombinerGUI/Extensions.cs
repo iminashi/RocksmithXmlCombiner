@@ -2,6 +2,7 @@
 
 using RSXmlCombinerGUI.Models;
 
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Xml;
@@ -24,6 +25,32 @@ namespace RSXmlCombinerGUI
             process.Start();
 
             return tcs.Task;
+        }
+
+        public static void ReplaceToneNames(this RS2014Song song, Dictionary<string, string> toneReplacements)
+        {
+            foreach (var kv in toneReplacements)
+            {
+                if (song.ToneBase == kv.Key)
+                    song.ToneBase = kv.Value;
+                if (song.ToneA == kv.Key)
+                    song.ToneA = kv.Value;
+                if (song.ToneB == kv.Key)
+                    song.ToneB = kv.Value;
+                if (song.ToneC == kv.Key)
+                    song.ToneC = kv.Value;
+                if (song.ToneD == kv.Key)
+                    song.ToneD = kv.Value;
+
+                if (song.Tones != null)
+                {
+                    foreach (var tone in song.Tones)
+                    {
+                        if (tone.Name == kv.Key)
+                            tone.Name = kv.Value;
+                    }
+                }
+            }
         }
 
         public static void UpdateBaseTone(this RS2014Song song, InstrumentalArrangement arr)

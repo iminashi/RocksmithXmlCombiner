@@ -12,13 +12,19 @@ namespace XmlCombiners
 
         public string ArrangementType => CombinedArrangement.Arrangement;
 
+        private int ArrangementNumber { get; set; }
+
         public void Save(string fileName, bool coercePhrases = false)
         {
             CleanupToneChanges(CombinedArrangement);
-            CombinePhrases(CombinedArrangement);
+
+            // Only combine phrases if there is only one DD level
+            if (CombinedArrangement.Levels.Count == 1)
+                CombinePhrases(CombinedArrangement);
+
             CombineChords(CombinedArrangement);
 
-            if (coercePhrases)
+            if (coercePhrases && CombinedArrangement.Levels.Count == 1)
                 CoercePhrasesAndSections(CombinedArrangement);
 
             CombinedArrangement.Save(fileName);
@@ -27,6 +33,8 @@ namespace XmlCombiners
 
         public void AddNext(RS2014Song next, float trimAmount, bool isLast = false)
         {
+            ArrangementNumber++;
+
             RemoveExtraBeats(next);
             if (!isLast)
             {
@@ -37,6 +45,8 @@ namespace XmlCombiners
             if (CombinedArrangement is null)
             {
                 CombinedArrangement = next;
+                // Remove the transcription track in case one is present
+                CombinedArrangement.TranscriptionTrack = new Level();
                 return;
             }
 
@@ -46,6 +56,14 @@ namespace XmlCombiners
             int lastMeasure = FindLastMeasure(CombinedArrangement);
             int lastChordId = CombinedArrangement.ChordTemplates.Count;
             int lastPhraseId = CombinedArrangement.Phrases.Count;
+
+            if (CombinedArrangement.Levels.Count > 1 || next.Levels.Count > 1)
+            {
+                // Make sure phrase names are unique for DD files
+                UpdatePhraseNames(next);
+                UpdateLinkedDiffs(next, lastPhraseId);
+            }
+
             UpdatePhraseIterations(next, startTime, lastPhraseId);
             UpdateBeats(next, startTime, lastMeasure);
             UpdateSections(next, startTime);
@@ -63,10 +81,16 @@ namespace XmlCombiners
             CombinedArrangement.Sections.AddRange(next.Sections);
             UpdateSectionNumbers(CombinedArrangement);
 
-            CombinedArrangement.Levels[0].Notes.AddRange(next.Levels[0].Notes);
-            CombinedArrangement.Levels[0].Chords.AddRange(next.Levels[0].Chords);
-            CombinedArrangement.Levels[0].Anchors.AddRange(next.Levels[0].Anchors);
-            CombinedArrangement.Levels[0].HandShapes.AddRange(next.Levels[0].HandShapes);
+            for (int i = 0; i < next.Levels.Count; i++)
+            {
+                if (CombinedArrangement.Levels.Count - 1 < i)
+                    CombinedArrangement.Levels.Add(new Level((sbyte)i));
+
+                CombinedArrangement.Levels[i].Notes.AddRange(next.Levels[i].Notes);
+                CombinedArrangement.Levels[i].Chords.AddRange(next.Levels[i].Chords);
+                CombinedArrangement.Levels[i].Anchors.AddRange(next.Levels[i].Anchors);
+                CombinedArrangement.Levels[i].HandShapes.AddRange(next.Levels[i].HandShapes);
+            }
 
             CombineTones(CombinedArrangement, next, startTime);
 
@@ -75,11 +99,21 @@ namespace XmlCombiners
             CombineArrangementProperties(CombinedArrangement, next);
         }
 
+        private void UpdatePhraseNames(RS2014Song song)
+        {
+            foreach (var phrase in song.Phrases)
+            {
+                if(!phrase.Name.Equals("END", StringComparison.OrdinalIgnoreCase))
+                    phrase.Name = $"arr{ArrangementNumber}{phrase.Name}";
+            }
+        }
+
         private void CleanupToneChanges(RS2014Song song)
         {
             if (song.Tones == null)
                 return;
 
+            // Remove tones not included in the four tones
             for (int i = song.Tones.Count - 1; i >= 0; i--)
             {
                 var t = song.Tones[i];
@@ -294,17 +328,24 @@ namespace XmlCombiners
             {
                 // No "noguitar" phrase present, reuse the end phrase 
                 song.Phrases[endPhraseId].Name = "noguitar";
+                ngPhraseId = endPhraseId;
             }
             else
             {
                 // If the end phrase is not the last phrase for some reason, adjust the phrase IDs
                 if (endPhraseId != song.Phrases.Count - 1)
                 {
-                    for (int i = 0; i < song.PhraseIterations.Count; i++)
+                    foreach (var phraseIter in song.PhraseIterations)
                     {
-                        if (song.PhraseIterations[i].PhraseId > endPhraseId)
+                        if (phraseIter.PhraseId > endPhraseId)
+                            phraseIter.PhraseId--;
+                    }
+                    foreach (var nld in song.NewLinkedDiffs)
+                    {
+                        for (int i = 0; i < nld.Phrases.Count; i++)
                         {
-                            song.PhraseIterations[i].PhraseId--;
+                            if (nld.Phrases[i].Id > endPhraseId)
+                                nld.Phrases[i] = new NLDPhrase(nld.Phrases[i].Id - 1);
                         }
                     }
                 }
@@ -322,6 +363,13 @@ namespace XmlCombiners
             foreach (var pi in song.PhraseIterations)
             {
                 pi.PhraseId--;
+            }
+            foreach (var nld in song.NewLinkedDiffs)
+            {
+                for (int i = 0; i < nld.Phrases.Count; i++)
+                {
+                    nld.Phrases[i] = new NLDPhrase(nld.Phrases[i].Id - 1);
+                }
             }
         }
 
@@ -342,6 +390,17 @@ namespace XmlCombiners
             {
                 pi.Time += startTime;
                 pi.PhraseId += lastPhraseId;
+            }
+        }
+
+        private void UpdateLinkedDiffs(RS2014Song song, int lastPhraseId)
+        {
+            foreach (var nld in song.NewLinkedDiffs)
+            {
+                for (int i = 0; i < nld.Phrases.Count; i++)
+                {
+                    nld.Phrases[i] = new NLDPhrase(nld.Phrases[i].Id + lastPhraseId);
+                }
             }
         }
 
@@ -377,15 +436,18 @@ namespace XmlCombiners
 
         private void UpdateNotes(RS2014Song song, float startTime)
         {
-            foreach (var note in song.Levels[0].Notes)
+            foreach (var level in song.Levels)
             {
-                note.Time += startTime;
-
-                if (note.BendValues?.Count > 0)
+                foreach (var note in level.Notes)
                 {
-                    for (int i = 0; i < note.BendValues.Count; i++)
+                    note.Time += startTime;
+
+                    if (note.BendValues?.Count > 0)
                     {
-                        note.BendValues[i] = new BendValue(note.BendValues[i].Time + startTime, note.BendValues[i].Step);
+                        for (int i = 0; i < note.BendValues.Count; i++)
+                        {
+                            note.BendValues[i] = new BendValue(note.BendValues[i].Time + startTime, note.BendValues[i].Step);
+                        }
                     }
                 }
             }
@@ -393,21 +455,24 @@ namespace XmlCombiners
 
         private void UpdateChords(RS2014Song song, float startTime, int lastChordId)
         {
-            foreach (var chord in song.Levels[0].Chords)
+            foreach (var level in song.Levels)
             {
-                chord.Time += startTime;
-                chord.ChordId += lastChordId;
-                if (chord.ChordNotes?.Count > 0)
+                foreach (var chord in level.Chords)
                 {
-                    foreach (var cn in chord.ChordNotes)
+                    chord.Time += startTime;
+                    chord.ChordId += lastChordId;
+                    if (chord.ChordNotes?.Count > 0)
                     {
-                        cn.Time += startTime;
-
-                        if (cn.BendValues?.Count > 0)
+                        foreach (var cn in chord.ChordNotes)
                         {
-                            for (int i = 0; i < cn.BendValues.Count; i++)
+                            cn.Time += startTime;
+
+                            if (cn.BendValues?.Count > 0)
                             {
-                                cn.BendValues[i] = new BendValue(cn.BendValues[i].Time + startTime, cn.BendValues[i].Step);
+                                for (int i = 0; i < cn.BendValues.Count; i++)
+                                {
+                                    cn.BendValues[i] = new BendValue(cn.BendValues[i].Time + startTime, cn.BendValues[i].Step);
+                                }
                             }
                         }
                     }
@@ -417,19 +482,25 @@ namespace XmlCombiners
 
         private void UpdateAnchors(RS2014Song song, float startTime)
         {
-            foreach (var anchor in song.Levels[0].Anchors)
+            foreach (var level in song.Levels)
             {
-                anchor.Time += startTime;
+                foreach (var anchor in level.Anchors)
+                {
+                    anchor.Time += startTime;
+                }
             }
         }
 
         private void UpdateHandShapes(RS2014Song song, float startTime, int lastChordId)
         {
-            foreach (var hs in song.Levels[0].HandShapes)
+            foreach (var level in song.Levels)
             {
-                hs.StartTime += startTime;
-                hs.EndTime += startTime;
-                hs.ChordId += lastChordId;
+                foreach (var hs in level.HandShapes)
+                {
+                    hs.StartTime += startTime;
+                    hs.EndTime += startTime;
+                    hs.ChordId += lastChordId;
+                }
             }
         }
 
