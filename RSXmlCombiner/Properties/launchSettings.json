@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "RSXmlCombiner": {
+      "commandName": "Project",
+      "commandLineArgs": "-3.158 1_Lead_RS2.xml 2_Lead_RS2.xml 3_Lead_RS2.xml"
+    }
+  }
+}

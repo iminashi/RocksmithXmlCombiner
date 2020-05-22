@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="Rocksmith2014Xml">
+      <HintPath>..\lib\Rocksmith2014Xml.dll</HintPath>
+    </Reference>
+    <Reference Include="XmlUtils">
+      <HintPath>..\lib\XmlUtils.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>

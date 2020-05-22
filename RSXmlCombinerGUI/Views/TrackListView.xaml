@@ -1,0 +1,129 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:views="clr-namespace:RSXmlCombinerGUI.Views"
+             xmlns:vm="clr-namespace:RSXmlCombinerGUI.ViewModels"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="RSXmlCombinerGUI.Views.TrackListView">
+  <Design.DataContext>
+    <vm:TrackListViewModel/>
+  </Design.DataContext>
+
+  <UserControl.Styles>
+    <Style Selector="Button">
+      <Setter Property="Button.Padding" Value="30, 5"/>
+    </Style>
+  </UserControl.Styles>
+
+  <DockPanel>
+    
+    <Panel DockPanel.Dock="Top">
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+        <!-- Add Track Button -->
+        <Button HorizontalAlignment="Left"
+                VerticalAlignment="Center"
+                Margin="15, 15, 15, 0"
+                FontSize="18"
+                Command="{Binding AddTrack}"
+                Content="Add Track..."/>
+        <!-- Import Button -->
+        <Button HorizontalAlignment="Left"
+                VerticalAlignment="Center"
+                Margin="0, 15, 15, 0"
+                FontSize="18"
+                Command="{Binding ToolkitImport}"
+                Content="Import..."/>
+      </StackPanel>
+
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+        <!-- New Button -->
+        <Button VerticalAlignment="Center"
+                Margin="15, 15, 0, 0"
+                FontSize="18"
+                Command="{Binding NewProject}"
+                Content="New Project"/>
+        
+        <!-- Load Project Button -->
+        <Button VerticalAlignment="Center"
+                FontSize="18"
+                Margin="15, 15, 0, 0"
+                Command="{Binding OpenProject}"
+                Content="Open Project..."
+                HotKey="Ctrl+O"/>
+
+        <!-- Save Project Button -->
+        <Button VerticalAlignment="Center"
+                FontSize="18"
+                Margin="15, 15, 15, 0"
+                Command="{Binding SaveProject}"
+                Content="Save Project..."
+                HotKey="Ctrl+S"/>
+      </StackPanel>
+    </Panel>
+
+    <StackPanel DockPanel.Dock="Top" HorizontalAlignment="Left">
+      <!-- Common Tones Button -->
+      <Button VerticalAlignment="Center"
+              Content="Edit Common Tones"
+              FontSize="18"
+              Margin="15, 5, 15, 0"
+              Command="{Binding $parent[Window].DataContext.EditGlobalTones}"/>
+    </StackPanel>
+
+    <!-- Status Bar Message -->
+    <Border DockPanel.Dock="Bottom" Padding="5" Background="#fafafa">
+      <TextBlock Text="{Binding StatusMessage}"/>
+    </Border>
+
+    <Panel DockPanel.Dock="Bottom" Margin="15">
+
+      <StackPanel HorizontalAlignment="Left">
+        <!-- Combine Audio Files Button -->
+        <Button VerticalAlignment="Center"
+                FontSize="20"
+                Command="{Binding CombineAudioFiles}"
+                Content="Combine Audio"/>
+
+        <!-- Audio File Combination Error Text -->
+        <TextBlock FontSize="20"
+                   Foreground="Red"
+                   Text="{Binding CombineAudioError}"
+                   HorizontalAlignment="Center"/>
+      </StackPanel>
+
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+        <!-- Combined Title Text Box -->
+        <TextBox VerticalAlignment="Center"
+                 Watermark="Combined Title"
+                 Width="200"
+                 Text="{Binding CombinedTitle}"
+                 ToolTip.Tip="Combined Title"/>
+
+        <StackPanel>
+        <!-- Coerce Phrases Check Box -->
+          <CheckBox Content="Coerce to 100 Phrases"
+                    IsChecked="{Binding CoercePhrases}"
+                    ToolTip.Tip="Will combine phrases and sections so the resulting arrangements have a max of 100 phrases and sections."/>
+          <CheckBox Content="Add Track Names to Lyrics"
+                    IsChecked="{Binding AddTrackNamesToLyrics}"
+                    Margin="0, 5, 0, 0"/>
+        </StackPanel>
+
+        <!-- Combine Arrangements Button -->
+        <Button VerticalAlignment="Center"
+                FontSize="20"
+                Content="Combine Arrangements"
+                Command="{Binding CombineArrangements}"/>
+      </StackPanel>
+    </Panel>
+    <!-- Track List -->
+    <ListBox Items="{Binding Tracks}" Margin="5" VirtualizationMode="None">
+      <ListBox.ItemTemplate>
+        <DataTemplate>
+          <views:TrackView/>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+  </DockPanel>
+</UserControl>
