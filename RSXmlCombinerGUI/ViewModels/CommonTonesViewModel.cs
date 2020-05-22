@@ -24,17 +24,26 @@ namespace RSXmlCombinerGUI.ViewModels
 
         public CommonTonesViewModel(TrackListViewModel trackList)
         {
-            string leadBase = trackList.CommonToneNames[ArrangementType.Lead][0];
-            if (string.IsNullOrEmpty(leadBase) && trackList.Tracks.Count > 0)
-                trackList.CommonToneNames[ArrangementType.Lead][0] = trackList.Tracks[0].LeadArrangement?.BaseTone ?? string.Empty;
+            var leadCommon = trackList.CommonToneNames[ArrangementType.Lead];
+            if (string.IsNullOrEmpty(leadCommon[0]) && trackList.Tracks.Count > 0)
+                leadCommon[0] = trackList.Tracks[0].LeadArrangement?.BaseTone ?? string.Empty;
 
-            string rhythmBase = trackList.CommonToneNames[ArrangementType.Rhythm][0];
-            if (string.IsNullOrEmpty(rhythmBase) && trackList.Tracks.Count > 0)
-                trackList.CommonToneNames[ArrangementType.Rhythm][0] = trackList.Tracks[0].RhythmArrangement?.BaseTone ?? string.Empty;
+            if (string.IsNullOrEmpty(leadCommon[1]))
+                leadCommon[1] = leadCommon[0];
 
-            string bassBase = trackList.CommonToneNames[ArrangementType.Bass][0];
-            if (string.IsNullOrEmpty(bassBase) && trackList.Tracks.Count > 0)
-                trackList.CommonToneNames[ArrangementType.Bass][0] = trackList.Tracks[0].BassArrangement?.BaseTone ?? string.Empty;
+            var rhythmCommon = trackList.CommonToneNames[ArrangementType.Rhythm];
+            if (string.IsNullOrEmpty(rhythmCommon[0]) && trackList.Tracks.Count > 0)
+                rhythmCommon[0] = trackList.Tracks[0].RhythmArrangement?.BaseTone ?? string.Empty;
+
+            if (string.IsNullOrEmpty(rhythmCommon[1]))
+                rhythmCommon[1] = rhythmCommon[0];
+
+            var bassCommon = trackList.CommonToneNames[ArrangementType.Bass];
+            if (string.IsNullOrEmpty(bassCommon[0]) && trackList.Tracks.Count > 0)
+                bassCommon[0] = trackList.Tracks[0].BassArrangement?.BaseTone ?? string.Empty;
+
+            if (string.IsNullOrEmpty(bassCommon[1]))
+                bassCommon[1] = bassCommon[0];
 
             Arrangements.Add(new ToneNamesViewModel(ArrangementType.Lead, trackList.CommonToneNames[ArrangementType.Lead]));
             Arrangements.Add(new ToneNamesViewModel(ArrangementType.Rhythm, trackList.CommonToneNames[ArrangementType.Rhythm]));

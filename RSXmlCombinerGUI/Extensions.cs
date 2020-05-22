@@ -4,6 +4,7 @@ using RSXmlCombinerGUI.Models;
 
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Xml;
 
@@ -51,11 +52,50 @@ namespace RSXmlCombinerGUI
                     }
                 }
             }
+
+            // Make sure that every tone name is unique
+            HashSet<string> uniqueTones = new HashSet<string>();
+            if (song.ToneB != null) uniqueTones.Add(song.ToneB);
+            if (song.ToneC != null) uniqueTones.Add(song.ToneC);
+            if (song.ToneD != null) uniqueTones.Add(song.ToneD);
+            if (song.ToneA != null) uniqueTones.Remove(song.ToneA);
+
+            song.ToneB = song.ToneC = song.ToneD = null;
+
+            char toneChar = 'B';
+            var songType = song.GetType();
+            foreach (var toneName in uniqueTones)
+            {
+                var toneProp = songType.GetProperty("Tone" + toneChar);
+                toneProp.SetValue(song, toneName);
+                toneChar++;
+            }
         }
 
         public static void UpdateBaseTone(this RS2014Song song, InstrumentalArrangement arr)
         {
             song.ToneBase = arr.BaseTone;
+        }
+
+        public static void AddTitleToLyrics(this Vocals vocals, string title, float startBeat)
+        {
+            float displayTime = 3f;
+            float startTime = startBeat;
+
+            // Ensure that the title will not overlap with existing lyrics
+            if (vocals.Count > 0 && vocals[0].Time < startTime + displayTime)
+                displayTime = startTime - vocals[0].Time - 0.1f;
+
+            // Don't add the title if it will be displayed for less than half a second
+            if (displayTime > 0.5f)
+            {
+                var words = title.Split(' ');
+                float length = displayTime / words.Length;
+                for (int wi = words.Length - 1; wi >= 0; wi--)
+                {
+                    vocals.Insert(0, new Vocal(startTime + (length * wi), length, words[wi]));
+                }
+            }
         }
 
         public static string ToXmlRootElement(this ArrangementType type)
@@ -84,7 +124,7 @@ namespace RSXmlCombinerGUI
         {
             using XmlReader reader = XmlReader.Create(fileName);
 
-            if(reader.ReadToFollowing("levels"))
+            if (reader.ReadToFollowing("levels"))
                 return int.Parse(reader.GetAttribute("count"));
 
             return -1;

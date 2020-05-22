@@ -314,14 +314,7 @@ namespace RSXmlCombinerGUI.ViewModels
 
                     if (AddTrackNamesToLyrics)
                     {
-                        // Ensure that the title will not overlap with existing lyrics
-                        float displayTime = 4f;
-                        if (next.Count > 0 && next[0].Time < displayTime)
-                            displayTime = next[0].Time - 0.1f;
-
-                        // Don't add the title if it will be displayed for less than half a second
-                        if (displayTime > 0.5f)
-                            next.Insert(0, new Vocal(0f, displayTime, $"{i + 1}. {Tracks[i].Title}+"));
+                        next.AddTitleToLyrics($"{i + 1}. {Tracks[i].Title}+", Math.Abs(Tracks[i].TrimAmount));
                     }
 
                     combiner.AddNext(next, Tracks[i].SongLength, Tracks[i].TrimAmount);
