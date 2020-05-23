@@ -2,14 +2,14 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace RSXmlCombinerGUI.Models
 {
-    public sealed class InstrumentalArrangement
+    public sealed class InstrumentalArrangement : Arrangement
     {
         private string baseTone = string.Empty;
 
-        public string FileName { get; set; } = string.Empty;
         public string BaseTone
         {
             get { return baseTone; }
@@ -18,22 +18,28 @@ namespace RSXmlCombinerGUI.Models
         }
         public List<string>? ToneNames { get; set; }
         public Dictionary<string, string> ToneReplacements { get; set; } = new Dictionary<string, string>();
-        public ArrangementType ArrangementType { get; private set; }
 
         public InstrumentalArrangement() { }
 
-        public InstrumentalArrangement(string fileName)
+        public InstrumentalArrangement(string fileName, ArrangementType arrangementType)
         {
             FileName = fileName;
+            ArrangementType = arrangementType;
 
             UpdateTones();
         }
 
+        public InstrumentalArrangement(ArrangementType arrangementType)
+        {
+            ArrangementType = arrangementType;
+        }
+
         public void UpdateTones()
         {
+            if (!File.Exists(FileName))
+                return;
+
             var song = RS2014Song.Load(FileName);
-            if(Enum.TryParse(song.Arrangement, out ArrangementType type))
-                ArrangementType = type;
 
             if(string.IsNullOrEmpty(BaseTone) && !string.IsNullOrEmpty(song.ToneBase))
                 BaseTone = song.ToneBase;

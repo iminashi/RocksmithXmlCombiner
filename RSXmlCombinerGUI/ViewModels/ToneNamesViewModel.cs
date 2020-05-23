@@ -3,6 +3,7 @@
 using RSXmlCombinerGUI.Models;
 
 using System.Collections.Generic;
+using System.Linq;
 
 namespace RSXmlCombinerGUI.ViewModels
 {
@@ -11,27 +12,28 @@ namespace RSXmlCombinerGUI.ViewModels
         [Reactive]
         public ArrangementType ArrangementType { get; set; }
 
-        public List<string> Tones { get; } = new List<string>();
+        public List<string> Tones { get; }
 
+        // Constructor for the designer
         public ToneNamesViewModel()
         {
             ArrangementType = ArrangementType.Bass;
 
-            Tones.Add("Base");
-            Tones.Add("Test A");
-            Tones.Add("Test B");
-            Tones.Add("Test C");
-            Tones.Add("Test D");
+            Tones = new List<string>
+            {
+                "Base",
+                "Test A",
+                "Test B",
+                "Test C",
+                "Test D"
+            };
         }
 
         public ToneNamesViewModel(ArrangementType arrangementType, string[] toneNames)
         {
             ArrangementType = arrangementType;
 
-            foreach (var name in toneNames)
-            {
-                Tones.Add(name);
-            }
+            Tones = toneNames.ToList();
         }
     }
 }

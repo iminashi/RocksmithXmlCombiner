@@ -36,7 +36,7 @@ namespace RSXmlCombinerGUI.ViewModels
 
         public void EditReplacementTones(InstrumentalArrangement arrangement)
         {
-            var commonTones = TrackList.CommonToneNames[arrangement.ArrangementType].AsSpan(1).ToArray();
+            var commonTones = CommonTonesRepository.GetCommonTones(arrangement.ArrangementType).AsSpan(1).ToArray();
 
             var vm = new ToneRenameViewModel(arrangement, commonTones);
 

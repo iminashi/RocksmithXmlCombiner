@@ -1,5 +1,7 @@
-﻿using Rocksmith2014Xml;
+﻿
+using Rocksmith2014Xml;
 
+using RSXmlCombinerGUI.Extensions;
 using RSXmlCombinerGUI.ViewModels;
 
 using System;
@@ -63,6 +65,7 @@ namespace RSXmlCombinerGUI.Models
                     else if (itemNode.Element(ad + "ArrangementName").Value == "Vocals"
                           || itemNode.Element(ad + "ArrangementName").Value == "ShowLights")
                     {
+                        // TODO: JVocals
                         foundArrangements.Add(arrType, (arrFn, null));
                     }
                 }
@@ -135,7 +138,7 @@ namespace RSXmlCombinerGUI.Models
                 var instArr = RS2014Song.Load(instArrFile);
                 var vm = new TrackViewModel(title, instArr.StartBeat, instArr.SongLength, TrackListViewModel);
 
-                foreach (var kv in foundArrangements)
+                foreach (var kv in foundArrangements.OrderBy(kv => kv.Key))
                 {
                     vm.AddNewArrangement(kv.Key, kv.Value.fileName, kv.Value.baseTone);
                 }

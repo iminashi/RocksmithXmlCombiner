@@ -22,6 +22,7 @@ namespace RSXmlCombinerGUI.ViewModels
         {
             OldTones[0] = "old_dist";
             ReplacementTones[0] = "new_dist";
+            CommonTones = new List<string>();
 
             Ok = ReactiveCommand.Create(() => new Dictionary<string, string>());
         }

@@ -1,0 +1,38 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:local="clr-namespace:RSXmlCombinerGUI"
+             xmlns:views="clr-namespace:RSXmlCombinerGUI.Views"
+             xmlns:vm="clr-namespace:RSXmlCombinerGUI.ViewModels"
+             xmlns:models="clr-namespace:RSXmlCombinerGUI.Models"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="RSXmlCombinerGUI.Views.ArrangementToneControlsView">
+  <Panel x:Name="ToneControls">
+    <!-- HACK -->
+    <Panel Name="HackPanel">
+      <!-- Base Tone Combo Box -->
+      <ComboBox x:Name="BaseToneCombo"
+                Width="100" Height="30"
+                Items="{Binding ToneNames}"
+                ToolTip.Tip="Base Tone"/>
+      <!-- Hack for the selected item not being displayed -->
+      <TextBlock Margin="5, 6, 0, 0" IsHitTestVisible="False" Width="75">
+        <TextBlock.Text>
+          <MultiBinding Converter="{x:Static local:ValueConverters.HackConverter}">
+            <Binding Path="#BaseToneCombo.SelectedItem"/>
+            <Binding Path="Model.BaseTone"/>
+          </MultiBinding>
+        </TextBlock.Text>
+      </TextBlock>
+    </Panel>
+    <!-- END HACK -->
+
+    <!-- Edit Replacement Tones Button -->
+    <Button x:Name="EditTonesButton"
+            Content="Tones" Width="100"
+            IsVisible="{Binding !#HackPanel.IsVisible}"
+            Command="{Binding $parent[Window].DataContext.EditReplacementTones}"
+            CommandParameter="{Binding Model}"/>
+  </Panel>
+</UserControl>

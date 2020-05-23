@@ -1,11 +1,7 @@
 ﻿using Avalonia.Data.Converters;
-using Avalonia.Media;
 
-using RSXmlCombinerGUI.Models;
 using RSXmlCombinerGUI.ViewModels;
 
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 
@@ -35,52 +31,16 @@ namespace RSXmlCombinerGUI
                 return true;
             });
 
-        /// <summary>
-        /// Converts the index of the given view model into a string.
-        /// </summary>
-        /*public static readonly IMultiValueConverter IndexToString = new FuncMultiValueConverter<object, string>(
-            v =>
-            {
-                var values = v.ToArray();
-                if (values[0] is TrackViewModel tvm && values[1] is Collection<TrackViewModel> c)
-                {
-                    return c.IndexOf(tvm) + 1 + ". ";
-                }
-
-                return "?. ";
-            });*/
-
-        public static readonly IMultiValueConverter CommonTonesForArrangementType = new FuncMultiValueConverter<object, string[]>(
-            v =>
-            {
-                var values = v.ToArray();
-                if (values[0] is InstrumentalArrangement arr && values[1] is Dictionary<ArrangementType, string[]> dict)
-                {
-                    return dict[arr.ArrangementType].AsSpan(1).ToArray();
-                }
-
-                return new[] { "ERROR" };
-            });
-
         public static readonly IMultiValueConverter HackConverter = new FuncMultiValueConverter<object, string>(
             v =>
             {
                 var values = v.ToArray();
                 if (values[0] is object || values[1] is null)
                     return string.Empty;
-                else if (values[1] is InstrumentalArrangement arr)
-                    return arr.BaseTone;
+                else if (values[1] is string str)
+                    return str;
                 else
                     return string.Empty;
-            });
-
-        public static readonly IValueConverter ToneReplacementsToWarningColor = new FuncValueConverter<Dictionary<string, string>, ISolidColorBrush>(
-            v =>
-            {
-                if (v.Count == 0 || v.Any(kv => string.IsNullOrEmpty(kv.Value)))
-                    return Brushes.Red;
-                else
-                    return Brushes.LightGreen;
             });
     }
 }

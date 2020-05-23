@@ -20,7 +20,7 @@ namespace RSXmlCombinerGUI.Views
             this.WhenActivated(disposables =>
             {
                 this.OneWayBind(ViewModel,
-                    x => x.Arrangements,
+                    x => x.ToneNames,
                     x => x.ArrangementsList.Items)
                     .DisposeWith(disposables);
 

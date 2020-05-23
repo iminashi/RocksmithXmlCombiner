@@ -19,7 +19,8 @@ namespace RSXmlCombinerGUI.Models
         {
             CombinedTitle = vm.CombinedTitle;
             CoercePhrases = vm.CoercePhrases;
-            foreach (var kv in vm.CommonToneNames)
+            AddTrackNamesToLyrics = vm.AddTrackNamesToLyrics;
+            foreach (var kv in CommonTonesRepository.GetCopy())
             {
                 CommonToneNames.Add(kv.Key.ToString(), kv.Value);
             }

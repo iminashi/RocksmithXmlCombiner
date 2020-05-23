@@ -33,17 +33,13 @@
       <Setter Property="Button.Background" Value="DarkRed"/>
       <Setter Property="Button.Foreground" Value="White"/>
     </Style>
-    <Style Selector="ComboBox">
-      <Setter Property="Background" Value="White"/>
-    </Style>
   </UserControl.Styles>
   
-  <Border BorderBrush="LightSlateGray"
-          BorderThickness="2"
-          CornerRadius="10"
+  <Border BorderBrush="SlateGray"
+          BorderThickness="3"
           Padding="5"
           Margin="5"
-          Background="GhostWhite">
+          Background="#fdfdfd">
     <DockPanel Margin="5, 0, 0, 0">
       <StackPanel Orientation="Horizontal" DockPanel.Dock="Top">
         <!-- Track Number -->
@@ -87,172 +83,20 @@
           </StackPanel>
         </Panel>
 
-        <!-- Lead Part -->
-        <StackPanel Classes="part">
-          <TextBlock Classes="h2"
-                     Text="Lead"
-                     Foreground="{Binding LeadColor^}"/>
-          <TextBlock Text="{Binding LeadFileNameShort^}" Foreground="DarkGray"
-                     IsVisible="{Binding LeadArrangement, Converter={x:Static ObjectConverters.IsNotNull}}"
-                     ToolTip.Tip="{Binding LeadArrangement.FileName}"/>
-          <Button Content="{Binding LeadArrangement, Converter={x:Static local:ValueConverters.OpenButtonText}}"
-                  Width="100"
-                  Command="{Binding AddArrangement}"
-                  CommandParameter="{x:Static models:ArrangementType.Lead}"/>
-          <!-- HACK -->
-          <Panel Name="leadHackPanel" IsVisible="{Binding LeadArrangement.ToneNames, Converter={x:Static ObjectConverters.IsNull}}">
-            <Panel.IsEnabled>
-              <MultiBinding Converter="{x:Static local:ValueConverters.IndexToVisibility}">
-                <Binding Path="."/>
-                <Binding Path="$parent[views:TrackListView].DataContext.Tracks"/>
-              </MultiBinding>
-            </Panel.IsEnabled>
-            <ComboBox Name="leadBase"
-                      Width="100" Height="30"
-                      ToolTip.Tip="Base Tone"
-                      SelectedItem="{Binding LeadArrangement.BaseTone}"
-                      IsEnabled="{Binding LeadArrangement, Converter={x:Static ObjectConverters.IsNotNull}}">
-              <ComboBox.Items>
-                <MultiBinding Converter="{x:Static local:ValueConverters.CommonTonesForArrangementType}">
-                  <Binding Path="LeadArrangement"/>
-                  <Binding Path="$parent[views:TrackListView].DataContext.CommonToneNames"/>
-                </MultiBinding>
-              </ComboBox.Items>
-            </ComboBox>
-            <TextBlock Margin="5, 6, 0, 0" IsHitTestVisible="False" Width="75">
-              <TextBlock.Text>
-                <MultiBinding Converter="{x:Static local:ValueConverters.HackConverter}">
-                  <Binding Path="#leadBase.SelectedItem"/>
-                  <Binding Path="LeadArrangement"/>
-                </MultiBinding>
-              </TextBlock.Text>
-            </TextBlock>
-          </Panel>
-          <!-- END HACK -->
-          <Button Content="Tones" Width="100"
-                  IsVisible="{Binding !#leadHackPanel.IsVisible}"
-                  Command="{Binding $parent[Window].DataContext.EditReplacementTones}"
-                  CommandParameter="{Binding LeadArrangement}"
-                  Background="{Binding LeadArrangement.ToneReplacements, Converter={x:Static local:ValueConverters.ToneReplacementsToWarningColor}}"/>
-        </StackPanel>
+        <!-- Arrangements Items Control-->
+        <ItemsControl x:Name="ArrangementsList">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Orientation="Horizontal" Spacing="10"/>
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
 
-        <!-- Rhythm Part -->
-        <StackPanel Classes="part">
-          <TextBlock Classes="h2" Text="Rhythm" Foreground="{Binding RhythmColor^}"/>
-          <TextBlock Text="{Binding RhythmFileNameShort^}" Foreground="DarkGray"
-                     IsVisible="{Binding RhythmArrangement, Converter={x:Static ObjectConverters.IsNotNull}}"
-                     ToolTip.Tip="{Binding RhythmArrangement.FileName}"/>
-          <Button Content="{Binding RhythmArrangement, Converter={x:Static local:ValueConverters.OpenButtonText}}"
-                  Width="100"
-                  Command="{Binding AddArrangement}"
-                  CommandParameter="{x:Static models:ArrangementType.Rhythm}"/>
-          <!-- HACK -->
-          <Panel Name="rhythmHackPanel" IsVisible="{Binding RhythmArrangement.ToneNames, Converter={x:Static ObjectConverters.IsNull}}">
-            <Panel.IsEnabled>
-              <MultiBinding Converter="{x:Static local:ValueConverters.IndexToVisibility}">
-                <Binding Path="."/>
-                <Binding Path="$parent[views:TrackListView].DataContext.Tracks"/>
-              </MultiBinding>
-            </Panel.IsEnabled>
-            <ComboBox Name="rhythmBase"
-                      Width="100" Height="30"
-                      ToolTip.Tip="Base Tone"
-                      SelectedItem="{Binding RhythmArrangement.BaseTone}"
-                      IsEnabled="{Binding RhythmArrangement, Converter={x:Static ObjectConverters.IsNotNull}}">
-              <ComboBox.Items>
-                <MultiBinding Converter="{x:Static local:ValueConverters.CommonTonesForArrangementType}">
-                  <Binding Path="RhythmArrangement"/>
-                  <Binding Path="$parent[views:TrackListView].DataContext.CommonToneNames"/>
-                </MultiBinding>
-              </ComboBox.Items>
-            </ComboBox>
-            <TextBlock Margin="5, 6, 0, 0" IsHitTestVisible="False" Width="75">
-              <TextBlock.Text>
-                <MultiBinding Converter="{x:Static local:ValueConverters.HackConverter}">
-                  <Binding Path="#rhythmBase.SelectedItem"/>
-                  <Binding Path="RhythmArrangement"/>
-                </MultiBinding>
-              </TextBlock.Text>
-            </TextBlock>
-          </Panel>
-          <!-- END HACK -->
-          <Button Content="Tones" Width="100"
-                  IsVisible="{Binding !#rhythmHackPanel.IsVisible}"
-                  Command="{Binding $parent[Window].DataContext.EditReplacementTones}"
-                  CommandParameter="{Binding RhythmArrangement}"
-                  Background="{Binding RhythmArrangement.ToneReplacements, Converter={x:Static local:ValueConverters.ToneReplacementsToWarningColor}}"/>
-        </StackPanel>
-
-        <!-- Bass Part -->
-        <StackPanel Classes="part">
-          <TextBlock Classes="h2" Text="Bass" Foreground="{Binding BassColor^}"/>
-          <TextBlock Text="{Binding BassFileNameShort^}" Foreground="DarkGray"
-                     IsVisible="{Binding BassArrangement, Converter={x:Static ObjectConverters.IsNotNull}}"
-                     ToolTip.Tip="{Binding BassArrangement.FileName}"/>
-          <Button Content="{Binding BassArrangement, Converter={x:Static local:ValueConverters.OpenButtonText}}"
-                  Width="100"
-                  Command="{Binding AddArrangement}"
-                  CommandParameter="{x:Static models:ArrangementType.Bass}"/>
-          <!-- HACK -->
-          <Panel Name="bassHackPanel" IsVisible="{Binding BassArrangement.ToneNames, Converter={x:Static ObjectConverters.IsNull}}">
-            <Panel.IsEnabled>
-              <MultiBinding Converter="{x:Static local:ValueConverters.IndexToVisibility}">
-                <Binding Path="."/>
-                <Binding Path="$parent[views:TrackListView].DataContext.Tracks"/>
-              </MultiBinding>
-            </Panel.IsEnabled>
-            <ComboBox Name="bassBase"
-                      Width="100" Height="30"
-                      ToolTip.Tip="Base Tone"
-                      SelectedItem="{Binding BassArrangement.BaseTone}"
-                      IsEnabled="{Binding BassArrangement, Converter={x:Static ObjectConverters.IsNotNull}}">
-              <ComboBox.Items>
-                <MultiBinding Converter="{x:Static local:ValueConverters.CommonTonesForArrangementType}">
-                  <Binding Path="BassArrangement"/>
-                  <Binding Path="$parent[views:TrackListView].DataContext.CommonToneNames"/>
-                </MultiBinding>
-              </ComboBox.Items>
-            </ComboBox>
-            <TextBlock Margin="5, 6, 0, 0" IsHitTestVisible="False" Width="75">
-              <TextBlock.Text>
-                <MultiBinding Converter="{x:Static local:ValueConverters.HackConverter}">
-                  <Binding Path="#bassBase.SelectedItem"/>
-                  <Binding Path="BassArrangement"/>
-                </MultiBinding>
-              </TextBlock.Text>
-            </TextBlock>
-          </Panel>
-          <!-- END HACK -->
-          <Button Content="Tones" Width="100"
-                  Command="{Binding $parent[Window].DataContext.EditReplacementTones}"
-                  CommandParameter="{Binding BassArrangement}"
-                  IsVisible="{Binding !#bassHackPanel.IsVisible}"
-                  Background="{Binding BassArrangement.ToneReplacements, Converter={x:Static local:ValueConverters.ToneReplacementsToWarningColor}}"/>
-        </StackPanel>
-
-        <!-- Vocals Part -->
-        <StackPanel Classes="part">
-          <TextBlock Classes="h2" Text="Vocals" Foreground="{Binding VocalsColor^}"/>
-          <TextBlock Text="{Binding VocalsFileNameShort^}" Foreground="DarkGray"
-                     IsVisible="{Binding VocalsArrangement, Converter={x:Static ObjectConverters.IsNotNull}}"
-                     ToolTip.Tip="{Binding VocalsArrangement}"/>
-          <Button Content="{Binding VocalsArrangement, Converter={x:Static local:ValueConverters.OpenButtonText}}"
-                  Width="100"
-                  Command="{Binding AddArrangement}"
-                  CommandParameter="{x:Static models:ArrangementType.Vocals}"/>
-        </StackPanel>
-
-        <!-- Show Lights Part -->
-        <StackPanel Classes="part">
-          <TextBlock Classes="h2" Text="Show Lights" Foreground="{Binding ShowLightsColor^}"/>
-          <TextBlock Text="{Binding ShowLightsFileNameShort^}" Foreground="DarkGray"
-                     IsVisible="{Binding ShowLightsArrangement, Converter={x:Static ObjectConverters.IsNotNull}}"
-                     ToolTip.Tip="{Binding ShowLightsArrangement}"/>
-          <Button Content="{Binding ShowLightsArrangement, Converter={x:Static local:ValueConverters.OpenButtonText}}"
-                  Width="100"
-                  Command="{Binding AddArrangement}"
-                  CommandParameter="{x:Static models:ArrangementType.ShowLights}"/>
-        </StackPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <views:ArrangementView/>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
       </StackPanel>
     </DockPanel>
   </Border>

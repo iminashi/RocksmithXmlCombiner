@@ -25,6 +25,9 @@
     <AvaloniaResource Include="Assets\**" />
   </ItemGroup>
   <ItemGroup>
+    <AvaloniaResource Remove="ViewModels\ArrangementViewModel.xaml" />
+    <AvaloniaResource Remove="Views\ArrangementToneControlsView.xaml" />
+    <AvaloniaResource Remove="Views\ArrangementView.xaml" />
     <AvaloniaResource Remove="Views\CommonTonesView.xaml" />
     <AvaloniaResource Remove="Views\ToneNamesView.xaml" />
     <AvaloniaResource Remove="Views\ToneRenameView.xaml" />
@@ -32,6 +35,9 @@
     <AvaloniaResource Remove="Views\TrackView.xaml" />
   </ItemGroup>
   <ItemGroup>
+    <None Remove="ViewModels\ArrangementViewModel.xaml" />
+    <None Remove="Views\ArrangementToneControlsView.xaml" />
+    <None Remove="Views\ArrangementView.xaml" />
     <None Remove="Views\CommonTonesView.xaml" />
     <None Remove="Views\ToneNamesView.xaml" />
     <None Remove="Views\ToneRenameView.xaml" />
@@ -70,6 +76,16 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Views\ArrangementView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Views\ArrangementToneControlsView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\XmlCombiners\XmlCombiners.csproj" />
   </ItemGroup>
   <ItemGroup>
@@ -83,4 +99,5 @@
   <ItemGroup>
     <Folder Include="Tools\Win\sox\" />
   </ItemGroup>
+
 </Project>

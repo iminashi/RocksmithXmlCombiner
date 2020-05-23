@@ -23,6 +23,7 @@ namespace RSXmlCombinerGUI.Views
         public Button OpenAudioButton => this.FindControl<Button>("OpenAudioButton");
         public NumericUpDown TrimAmountNumeric => this.FindControl<NumericUpDown>("TrimAmountNumeric");
         public StackPanel TrimPanel => this.FindControl<StackPanel>("TrimPanel");
+        public ItemsControl ArrangementsList => this.FindControl<ItemsControl>("ArrangementsList");
 
         public TrackView()
         {
@@ -54,6 +55,11 @@ namespace RSXmlCombinerGUI.Views
                 this.Bind(ViewModel,
                     x => x.TrimAmount,
                     x => x.TrimAmountNumeric.Value)
+                    .DisposeWith(disposables);
+
+                this.OneWayBind(ViewModel,
+                    x => x.Arrangements,
+                    x => x.ArrangementsList.Items)
                     .DisposeWith(disposables);
 
                 // If ListBox virtualization is not used

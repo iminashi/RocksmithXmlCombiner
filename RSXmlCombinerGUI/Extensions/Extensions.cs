@@ -10,7 +10,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Xml;
 
-namespace RSXmlCombinerGUI
+namespace RSXmlCombinerGUI.Extensions
 {
     public static class Extensions
     {
@@ -102,7 +102,14 @@ namespace RSXmlCombinerGUI
 
         public static string ToXmlRootElement(this ArrangementType type)
         {
-            switch (type)
+            return type switch
+            {
+                var t when t.IsInstrumental() => "song",
+                var t when t.IsVocals() => "vocals",
+                ArrangementType.ShowLights => "showlights",
+                _ => throw new System.Exception("BAD")
+            };
+            /*switch (type)
             {
                 case ArrangementType.Lead:
                 case ArrangementType.Rhythm:
@@ -114,13 +121,14 @@ namespace RSXmlCombinerGUI
                     return "showlights";
                 default:
                     return string.Empty;
-            }
+            }*/
         }
 
         public static bool IsInstrumental(this ArrangementType type)
-            => type == ArrangementType.Bass ||
-               type == ArrangementType.Lead ||
-               type == ArrangementType.Rhythm;
+            => type.Is(ArrangementType.Instrumental);
+
+        public static bool IsVocals(this ArrangementType type)
+            => type.Is(ArrangementType.VocalsArrangement);
 
         public static int GetDifficultyLevels(this string fileName)
         {
@@ -146,5 +154,8 @@ namespace RSXmlCombinerGUI
 
             return null;
         }
+
+        public static bool Is(this ArrangementType @this, ArrangementType type)
+            => (@this & type) != 0;
     }
 }

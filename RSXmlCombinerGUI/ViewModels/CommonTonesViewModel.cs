@@ -1,55 +1,60 @@
 ﻿using ReactiveUI;
 
+using RSXmlCombinerGUI.Extensions;
 using RSXmlCombinerGUI.Models;
 
 using System.Collections.Generic;
+using System.Linq;
 using System.Reactive;
 
 namespace RSXmlCombinerGUI.ViewModels
 {
     public sealed class CommonTonesViewModel : ViewModelBase
     {
-        public List<ToneNamesViewModel> Arrangements { get; } = new List<ToneNamesViewModel>();
+        public List<ToneNamesViewModel> ToneNames { get; } = new List<ToneNamesViewModel>();
 
         public ReactiveCommand<Unit, List<ToneNamesViewModel>> Ok { get; }
 
         public CommonTonesViewModel()
         {
-            Arrangements.Add(new ToneNamesViewModel());
-            Arrangements.Add(new ToneNamesViewModel());
-            Arrangements.Add(new ToneNamesViewModel());
+            ToneNames.Add(new ToneNamesViewModel());
+            ToneNames.Add(new ToneNamesViewModel());
+            ToneNames.Add(new ToneNamesViewModel());
+            ToneNames.Add(new ToneNamesViewModel(ArrangementType.Combo, new string[] { "test", "test" }));
 
-            Ok = ReactiveCommand.Create(() => Arrangements);
+            Ok = ReactiveCommand.Create(() => ToneNames);
         }
 
         public CommonTonesViewModel(TrackListViewModel trackList)
         {
-            var leadCommon = trackList.CommonToneNames[ArrangementType.Lead];
-            if (string.IsNullOrEmpty(leadCommon[0]) && trackList.Tracks.Count > 0)
-                leadCommon[0] = trackList.Tracks[0].LeadArrangement?.BaseTone ?? string.Empty;
+            var arrangementTypes = trackList
+                .Tracks
+                .SelectMany(t => t.Arrangements)
+                .Where(a => a.ArrangementType.IsInstrumental())
+                .Select(a => a.ArrangementType)
+                .OrderBy(t => t)
+                .Distinct();
 
-            if (string.IsNullOrEmpty(leadCommon[1]))
-                leadCommon[1] = leadCommon[0];
+            foreach (var arrType in arrangementTypes)
+            {
+                var commonTones = CommonTonesRepository.GetCommonTones(arrType);
 
-            var rhythmCommon = trackList.CommonToneNames[ArrangementType.Rhythm];
-            if (string.IsNullOrEmpty(rhythmCommon[0]) && trackList.Tracks.Count > 0)
-                rhythmCommon[0] = trackList.Tracks[0].RhythmArrangement?.BaseTone ?? string.Empty;
+                // If the base tone names are not set, get the names from the first track
+                var arr = trackList.Tracks[0]
+                    .Arrangements
+                    .FirstOrDefault(a => a.ArrangementType == arrType && a.Model != null);
 
-            if (string.IsNullOrEmpty(rhythmCommon[1]))
-                rhythmCommon[1] = rhythmCommon[0];
+                if(arr != null
+                    && string.IsNullOrEmpty(commonTones[0])
+                    && !string.IsNullOrEmpty(((InstrumentalArrangement)arr.Model!).BaseTone))
+                {
+                    commonTones[0] = ((InstrumentalArrangement)arr.Model!).BaseTone;
+                }
 
-            var bassCommon = trackList.CommonToneNames[ArrangementType.Bass];
-            if (string.IsNullOrEmpty(bassCommon[0]) && trackList.Tracks.Count > 0)
-                bassCommon[0] = trackList.Tracks[0].BassArrangement?.BaseTone ?? string.Empty;
+                ToneNames.Add(new ToneNamesViewModel(arrType, commonTones));
+            }
 
-            if (string.IsNullOrEmpty(bassCommon[1]))
-                bassCommon[1] = bassCommon[0];
-
-            Arrangements.Add(new ToneNamesViewModel(ArrangementType.Lead, trackList.CommonToneNames[ArrangementType.Lead]));
-            Arrangements.Add(new ToneNamesViewModel(ArrangementType.Rhythm, trackList.CommonToneNames[ArrangementType.Rhythm]));
-            Arrangements.Add(new ToneNamesViewModel(ArrangementType.Bass, trackList.CommonToneNames[ArrangementType.Bass]));
-
-            Ok = ReactiveCommand.Create(() => Arrangements);
+            Ok = ReactiveCommand.Create(() => ToneNames);
         }
     }
 }
