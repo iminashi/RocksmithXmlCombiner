@@ -120,7 +120,7 @@
       </StackPanel>
     </Panel>
     <!-- Track List -->
-    <ListBox Items="{Binding Tracks}" Margin="5">
+    <ListBox Items="{Binding Tracks}" Margin="5" VirtualizationMode="Simple">
       <ListBox.ItemTemplate>
         <DataTemplate>
           <views:TrackView/>

@@ -1,13 +1,15 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
-using Avalonia.LogicalTree;
 using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
-using Avalonia.VisualTree;
+
+using DynamicData.Binding;
 
 using ReactiveUI;
 
 using RSXmlCombinerGUI.ViewModels;
+
+using System;
 using System.IO;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
@@ -16,6 +18,7 @@ namespace RSXmlCombinerGUI.Views
 {
     public class TrackView : ReactiveUserControl<TrackViewModel>
     {
+        public TextBlock TrackNumberText => this.FindControl<TextBlock>("TrackNumberText");
         public TextBlock AudioFileText => this.FindControl<TextBlock>("AudioFileText");
         public Button OpenAudioButton => this.FindControl<Button>("OpenAudioButton");
         public NumericUpDown TrimAmountNumeric => this.FindControl<NumericUpDown>("TrimAmountNumeric");
@@ -52,8 +55,32 @@ namespace RSXmlCombinerGUI.Views
                     x => x.TrimAmount,
                     x => x.TrimAmountNumeric.Value)
                     .DisposeWith(disposables);
+
+                // If ListBox virtualization is not used
+                /*ViewModel.Parent.Tracks.ObserveCollectionChanges()
+                    .Select(_ => ViewModel.Parent.Tracks.IndexOf(ViewModel) != 0)
+                    .StartWith(ViewModel.Parent.Tracks.IndexOf(ViewModel) != 0)
+                    .BindTo(this, x => x.TrimPanel.IsVisible)
+                    .DisposeWith(disposables);
+
+                ViewModel.Parent.Tracks.ObserveCollectionChanges()
+                    .Select(_ => ViewModel.Parent.Tracks.IndexOf(ViewModel) + 1 + ". ")
+                    .StartWith(ViewModel.Parent.Tracks.IndexOf(ViewModel) + 1 + ". ")
+                    .BindTo(this, x => x.TrackNumberText.Text)
+                    .DisposeWith(disposables);*/
             });
+
             InitializeComponent();
+        }
+
+        // Correctly updates the values based on the index of the view model when ListBox virtualization is used
+        protected override void OnDataContextChanged(EventArgs e)
+        {
+            base.OnDataContextChanged(e);
+
+            int index = ViewModel.Parent.Tracks.IndexOf(ViewModel);
+            TrackNumberText.Text = index + 1 + ". ";
+            TrimPanel.IsVisible = index != 0;
         }
 
         private void InitializeComponent() => AvaloniaXamlLoader.Load(this);

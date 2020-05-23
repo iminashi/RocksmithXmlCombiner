@@ -10,12 +10,19 @@ using System.Xml.Linq;
 
 namespace RSXmlCombinerGUI.Models
 {
-    public static class ToolkitTemplateImporter
+    public sealed class ToolkitTemplateImporter
     {
+        private TrackListViewModel TrackListViewModel { get; }
+
         private static readonly XNamespace ad = "http://schemas.datacontract.org/2004/07/RocksmithToolkitLib.DLCPackage";
         private static readonly XNamespace d4p1 = "http://schemas.datacontract.org/2004/07/RocksmithToolkitLib.DLCPackage.AggregateGraph";
 
-        public static TrackViewModel? Import(string templateFile)
+        public ToolkitTemplateImporter(TrackListViewModel trackListViewModel)
+        {
+            TrackListViewModel = trackListViewModel;
+        }
+
+        public TrackViewModel? Import(string templateFile)
         {
             try
             {
@@ -68,7 +75,7 @@ namespace RSXmlCombinerGUI.Models
             }
         }
 
-        private static TrackViewModel? ImportOld(IEnumerable<XElement> arrangements, string templatePath, string title)
+        private TrackViewModel? ImportOld(IEnumerable<XElement> arrangements, string templatePath, string title)
         {
             try
             {
@@ -118,7 +125,7 @@ namespace RSXmlCombinerGUI.Models
             }
         }
 
-        private static TrackViewModel? CreateViewModel(
+        private TrackViewModel? CreateViewModel(
             string? instArrFile,
             string title,
             Dictionary<ArrangementType, (string fileName, string? baseTone)> foundArrangements)
@@ -126,7 +133,7 @@ namespace RSXmlCombinerGUI.Models
             if (instArrFile != null)
             {
                 var instArr = RS2014Song.Load(instArrFile);
-                var vm = new TrackViewModel(title, instArr.StartBeat, instArr.SongLength);
+                var vm = new TrackViewModel(title, instArr.StartBeat, instArr.SongLength, TrackListViewModel);
 
                 foreach (var kv in foundArrangements)
                 {

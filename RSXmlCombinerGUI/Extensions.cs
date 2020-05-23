@@ -1,4 +1,6 @@
-﻿using Rocksmith2014Xml;
+﻿using Avalonia.LogicalTree;
+
+using Rocksmith2014Xml;
 
 using RSXmlCombinerGUI.Models;
 
@@ -128,6 +130,21 @@ namespace RSXmlCombinerGUI
                 return int.Parse(reader.GetAttribute("count"));
 
             return -1;
+        }
+
+        public static T? GetLogicalAncestor<T>(this ILogical @this)
+            where T : class
+        {
+            var parent = @this.GetLogicalParent();
+            while(!(parent is null))
+            {
+                if(parent is T target)
+                {
+                    return target;
+                }
+            }
+
+            return null;
         }
     }
 }

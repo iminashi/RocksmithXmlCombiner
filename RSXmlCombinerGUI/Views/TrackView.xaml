@@ -45,17 +45,9 @@
           Margin="5"
           Background="GhostWhite">
     <DockPanel Margin="5, 0, 0, 0">
-      
       <StackPanel Orientation="Horizontal" DockPanel.Dock="Top">
         <!-- Track Number -->
-        <TextBlock Classes="h1">
-          <TextBlock.Text>
-            <MultiBinding Converter="{x:Static local:ValueConverters.IndexToString}">
-              <Binding Path="."/>
-              <Binding Path="$parent[views:TrackListView].DataContext.Tracks"/>
-            </MultiBinding>
-          </TextBlock.Text>
-        </TextBlock>
+        <TextBlock x:Name="TrackNumberText" Classes="h1"/>
         
         <!-- Title -->
         <TextBlock Classes="h1" Text="{Binding Title}"/>
@@ -85,12 +77,6 @@
         <!-- Trim Part -->
         <Panel Width="90">
           <StackPanel x:Name="TrimPanel" Classes="part">
-            <StackPanel.IsVisible>
-              <MultiBinding Converter="{x:Static local:ValueConverters.IndexToVisibility}">
-                <Binding Path="."/>
-                <Binding Path="$parent[views:TrackListView].DataContext.Tracks"/>
-              </MultiBinding>
-            </StackPanel.IsVisible>
             <TextBlock Classes="h2">Trim:</TextBlock>
             <NumericUpDown x:Name="TrimAmountNumeric"
                            Minimum="0"

@@ -110,7 +110,8 @@ namespace RSXmlCombinerGUI.ViewModels
 
             if (dialogResult?.Length > 0)
             {
-                var import = ToolkitTemplateImporter.Import(dialogResult[0]);
+                var importer = new ToolkitTemplateImporter(this);
+                var import = importer.Import(dialogResult[0]);
                 if (import != null)
                 {
                     var d = import.Messages.Subscribe(x => StatusMessage = x);
@@ -162,7 +163,7 @@ namespace RSXmlCombinerGUI.ViewModels
             {
                 CommonToneNames[Enum.Parse<ArrangementType>(kv.Key)] = kv.Value;
             }
-            Tracks.Load(project.Tracks.Select(t => new TrackViewModel(t)));
+            Tracks.Load(project.Tracks.Select(t => new TrackViewModel(t, this)));
             foreach (var tvm in Tracks)
             {
                 var d = tvm.Messages.Subscribe(x => StatusMessage = x);
@@ -343,7 +344,7 @@ namespace RSXmlCombinerGUI.ViewModels
                 try
                 {
                     var s = RS2014Song.Load(instArrFile);
-                    var tvm = new TrackViewModel(s.Title, s.StartBeat, s.SongLength);
+                    var tvm = new TrackViewModel(s.Title, s.StartBeat, s.SongLength, this);
 
                     foreach (var fn in fileNames)
                     {

@@ -27,6 +27,8 @@ namespace RSXmlCombinerGUI.ViewModels
     {
         public Subject<string> Messages { get; } = new Subject<string>();
 
+        public TrackListViewModel Parent { get; }
+
         [Reactive]
         public string Title { get; set; }
 
@@ -68,10 +70,11 @@ namespace RSXmlCombinerGUI.ViewModels
         public IObservable<string?> ShowLightsFileNameShort { get; private set; }
 
         // Constructor for the designer
-        public TrackViewModel() : this("Title", 10f, 200f) { }
+        public TrackViewModel() : this("Title", 10f, 200f, new TrackListViewModel()) { }
 
-        public TrackViewModel(string? title, float trimAmount, float songLength)
+        public TrackViewModel(string? title, float trimAmount, float songLength, TrackListViewModel parent)
         {
+            Parent = parent;
             Title = title ?? "N/A";
             TrimAmount = trimAmount;
             SongLength = songLength;
@@ -79,7 +82,7 @@ namespace RSXmlCombinerGUI.ViewModels
             CreateObservables();
         }
 
-        public TrackViewModel(RS2014Song arrangement, string fileName)
+        /*public TrackViewModel(RS2014Song arrangement, string fileName)
         {
             SetArrangement(arrangement, fileName);
 
@@ -88,10 +91,12 @@ namespace RSXmlCombinerGUI.ViewModels
             TrimAmount = arrangement.StartBeat;
 
             CreateObservables();
-        }
+        }*/
 
-        public TrackViewModel(TrackDto dto)
+        public TrackViewModel(TrackDto dto, TrackListViewModel parent)
         {
+            Parent = parent;
+
             Title = dto.Title;
             SongLength = dto.SongLength;
             TrimAmount = dto.TrimAmount;

@@ -38,7 +38,7 @@ namespace RSXmlCombinerGUI
         /// <summary>
         /// Converts the index of the given view model into a string.
         /// </summary>
-        public static readonly IMultiValueConverter IndexToString = new FuncMultiValueConverter<object, string>(
+        /*public static readonly IMultiValueConverter IndexToString = new FuncMultiValueConverter<object, string>(
             v =>
             {
                 var values = v.ToArray();
@@ -48,7 +48,7 @@ namespace RSXmlCombinerGUI
                 }
 
                 return "?. ";
-            });
+            });*/
 
         public static readonly IMultiValueConverter CommonTonesForArrangementType = new FuncMultiValueConverter<object, string[]>(
             v =>
