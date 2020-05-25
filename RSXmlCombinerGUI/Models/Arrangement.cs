@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace RSXmlCombinerGUI.Models
 {
-    [JsonConverter(typeof(ArrangementConverter))]
+    [JsonConverter(typeof(ArrangementJsonConverter))]
     public abstract class Arrangement : IComparable<Arrangement>
     {
         public string FileName { get; set; } = string.Empty;

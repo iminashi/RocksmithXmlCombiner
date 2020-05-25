@@ -7,7 +7,7 @@ using System.Text.Json.Serialization;
 
 namespace RSXmlCombinerGUI.Models
 {
-    public sealed class ArrangementConverter : JsonConverter<Arrangement>
+    public sealed class ArrangementJsonConverter : JsonConverter<Arrangement>
     {
         public override bool CanConvert(Type typeToConvert) =>
             typeof(Arrangement).IsAssignableFrom(typeToConvert);
