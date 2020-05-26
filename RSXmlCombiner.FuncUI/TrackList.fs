@@ -59,9 +59,6 @@ module TrackList =
         | None -> 
             { state with StatusMessage = "Please select at least one instrumental Rocksmith arrangement." }, Cmd.none
         | Some instArr ->
-            let matches rootElement fileName =
-                XmlHelper.ValidateRootElement(fileName, rootElement)
-
             let alreadyHasShowlights arrs =
                 arrs |> List.exists (fun a -> (getMetadata a).Type = ArrangementType.ShowLights)
 
@@ -69,13 +66,15 @@ module TrackList =
             let mutable trackArrangements = []
 
             for arr in arrangementFileNames do
-                if arr |> matches "song" then
+                match XmlHelper.GetRootElementName(arr) with
+                | "song" ->
                     trackArrangements <- (createInstrumental arr) :: trackArrangements
-                else if arr |> matches "vocals" then
+                | "vocals" ->
                     trackArrangements <- Other( { Name = "Vocals"; FileName = arr; Type = ArrangementType.Vocals } ) :: trackArrangements
-                else if arr |> matches "showlights" && trackArrangements |> alreadyHasShowlights |> not then
+                | "showlights" when trackArrangements |> alreadyHasShowlights |> not ->
                     trackArrangements <- Other( { Name = "Show Lights"; FileName = arr; Type = ArrangementType.ShowLights } ) :: trackArrangements
-                // else StatusMessage = "Unknown arrangement type for file {Path.GetFileName(arr)}";
+                //| "showlights" -> Cannot have more than one show lights arrangement
+                | _ -> () // StatusMessage = "Unknown arrangement type for file {Path.GetFileName(arr)}";
 
             let newTrack = {
                 Title = song.Title
@@ -120,6 +119,7 @@ module TrackList =
 
         | CombineAudioFiles targetFile ->
             if String.IsNullOrEmpty targetFile then
+                // User canceled the dialog
                 state, Cmd.none
             else
                 let message = AudioCombiner.combineAudioFiles state.tracks targetFile
@@ -271,10 +271,11 @@ module TrackList =
                                             TextBlock.text "Audio"
                                             TextBlock.classes [ "h2" ]
                                         ]
+                                        // Audio File Name
                                         TextBlock.create [
                                             TextBlock.foreground Brushes.DarkGray
                                             TextBlock.maxWidth 100.0
-                                            TextBlock.text (track.AudioFile |> Option.defaultValue "")
+                                            TextBlock.text (track.AudioFile |> Option.defaultValue "" |> Path.GetFileName)
                                             ToolTip.tip (track.AudioFile |> Option.defaultValue "")
                                         ]
                                         // Open Audio File Button
