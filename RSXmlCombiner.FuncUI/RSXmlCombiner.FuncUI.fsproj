@@ -1,0 +1,45 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Page Include="Styles.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Compile Include="Types.fs" />
+    <Compile Include="Dialogs.fs" />
+    <Compile Include="AudioCombiner.fs" />
+    <Compile Include="TrackList.fs" />
+    <Compile Include="Program.fs" />
+    <AvaloniaResource Include="**\*.xaml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Desktop" Version="0.9.10" />
+    <PackageReference Include="FSharp.SystemTextJson" Version="0.11.13" />
+    <PackageReference Include="JaggerJo.Avalonia.FuncUI" Version="0.4.0" />
+    <PackageReference Include="JaggerJo.Avalonia.FuncUI.DSL" Version="0.4.0" />
+    <PackageReference Include="JaggerJo.Avalonia.FuncUI.Elmish" Version="0.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Remove=".template.config\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Rocksmith2014Xml">
+      <HintPath>..\lib\Rocksmith2014Xml.dll</HintPath>
+    </Reference>
+    <Reference Include="XmlUtils">
+      <HintPath>..\lib\XmlUtils.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="FSharp.Core" Version="4.7.2" />
+  </ItemGroup>
+
+</Project>
