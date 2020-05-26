@@ -45,9 +45,9 @@ namespace RSXmlCombinerGUI.Extensions
                 if (song.ToneD == kv.Key)
                     song.ToneD = kv.Value;
 
-                if (song.Tones != null)
+                if (song.ToneChanges != null)
                 {
-                    foreach (var tone in song.Tones)
+                    foreach (var tone in song.ToneChanges)
                     {
                         if (tone.Name == kv.Key)
                             tone.Name = kv.Value;

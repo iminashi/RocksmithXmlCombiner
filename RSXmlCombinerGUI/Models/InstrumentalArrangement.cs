@@ -44,7 +44,7 @@ namespace RSXmlCombinerGUI.Models
             if(string.IsNullOrEmpty(BaseTone) && !string.IsNullOrEmpty(song.ToneBase))
                 BaseTone = song.ToneBase;
 
-            if (song.Tones?.Count > 0)
+            if (song.ToneChanges?.Count > 0)
             {
                 ToneNames = new List<string>();
 

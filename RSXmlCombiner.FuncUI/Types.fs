@@ -1,6 +1,7 @@
 ﻿namespace RSXmlCombiner.FuncUI
 
 module Types =
+    open System
     open Rocksmith2014Xml
 
     type ArrangementType = 
@@ -45,10 +46,15 @@ module Types =
             else ArrangementType.Unknown
 
         let toneNames =
-            if isNull song.Tones then
+            if isNull song.ToneChanges then
                 []
             else
-                song.Tones.ToArray() |> List.ofArray |> List.map (fun tone -> tone.Name)
+                [
+                    if not (String.IsNullOrEmpty song.ToneA) then yield song.ToneA
+                    if not (String.IsNullOrEmpty song.ToneB) then yield song.ToneB
+                    if not (String.IsNullOrEmpty song.ToneC) then yield song.ToneC
+                    if not (String.IsNullOrEmpty song.ToneD) then yield song.ToneD
+                ]
 
         let arr = {
             MetaData = {

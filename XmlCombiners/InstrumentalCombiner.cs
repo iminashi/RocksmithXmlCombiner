@@ -111,29 +111,29 @@ namespace XmlCombiners
 
         private void CleanupToneChanges(RS2014Song song)
         {
-            if (song.Tones == null)
+            if (song.ToneChanges is null)
                 return;
 
             // Remove tones not included in the four tones
-            for (int i = song.Tones.Count - 1; i >= 0; i--)
+            for (int i = song.ToneChanges.Count - 1; i >= 0; i--)
             {
-                var t = song.Tones[i];
+                var t = song.ToneChanges[i];
                 if (song.ToneA != t.Name &&
                     song.ToneB != t.Name &&
                     song.ToneC != t.Name &&
                     song.ToneD != t.Name)
                 {
-                    song.Tones.RemoveAt(i);
+                    song.ToneChanges.RemoveAt(i);
                 }
             }
 
             // Remove duplicate tone changes
-            for (int i = song.Tones.Count - 2; i >= 0; i--)
+            for (int i = song.ToneChanges.Count - 2; i >= 0; i--)
             {
-                var t = song.Tones[i];
-                if (t.Name == song.Tones[i + 1].Name)
+                var t = song.ToneChanges[i];
+                if (t.Name == song.ToneChanges[i + 1].Name)
                 {
-                    song.Tones.RemoveAt(i + 1);
+                    song.ToneChanges.RemoveAt(i + 1);
                 }
             }
         }
@@ -165,15 +165,15 @@ namespace XmlCombiners
 
                         foreach (var nld in song.NewLinkedDiffs)
                         {
-                            for (int p = 0; p < nld.Phrases.Count; p++)
+                            for (int p = 0; p < nld.PhraseIds.Count; p++)
                             {
-                                if(nld.Phrases[p].Id == i)
+                                if(nld.PhraseIds[p] == i)
                                 {
-                                    nld.Phrases[p] = new NLDPhrase(j);
+                                    nld.PhraseIds[p] = j;
                                 }
-                                else if(nld.Phrases[p].Id > i)
+                                else if(nld.PhraseIds[p] > i)
                                 {
-                                    nld.Phrases[p] = new NLDPhrase(nld.Phrases[p].Id - 1);
+                                    nld.PhraseIds[p]--;
                                 }
                             }
                         }
@@ -364,10 +364,10 @@ namespace XmlCombiners
                     }
                     foreach (var nld in song.NewLinkedDiffs)
                     {
-                        for (int i = 0; i < nld.Phrases.Count; i++)
+                        for (int i = 0; i < nld.PhraseIds.Count; i++)
                         {
-                            if (nld.Phrases[i].Id > endPhraseId)
-                                nld.Phrases[i] = new NLDPhrase(nld.Phrases[i].Id - 1);
+                            if (nld.PhraseIds[i] > endPhraseId)
+                                nld.PhraseIds[i]--;
                         }
                     }
                 }
@@ -388,9 +388,9 @@ namespace XmlCombiners
             }
             foreach (var nld in song.NewLinkedDiffs)
             {
-                for (int i = 0; i < nld.Phrases.Count; i++)
+                for (int i = 0; i < nld.PhraseIds.Count; i++)
                 {
-                    nld.Phrases[i] = new NLDPhrase(nld.Phrases[i].Id - 1);
+                    nld.PhraseIds[i]--;
                 }
             }
         }
@@ -419,9 +419,9 @@ namespace XmlCombiners
         {
             foreach (var nld in song.NewLinkedDiffs)
             {
-                for (int i = 0; i < nld.Phrases.Count; i++)
+                for (int i = 0; i < nld.PhraseIds.Count; i++)
                 {
-                    nld.Phrases[i] = new NLDPhrase(nld.Phrases[i].Id + lastPhraseId);
+                    nld.PhraseIds[i] += lastPhraseId;
                 }
             }
         }
@@ -560,30 +560,30 @@ namespace XmlCombiners
 
         private void CombineTones(RS2014Song combined, RS2014Song next, float startTime)
         {
-            if (combined.Tones is null)
-                combined.Tones = new ToneCollection();
-            if (next.Tones is null)
-                next.Tones = new ToneCollection();
+            if (combined.ToneChanges is null)
+                combined.ToneChanges = new ToneCollection();
+            if (next.ToneChanges is null)
+                next.ToneChanges = new ToneCollection();
 
             string? currentTone = combined.ToneBase;
-            if (combined.Tones.Count > 0)
-                currentTone = combined.Tones[^1].Name;
+            if (combined.ToneChanges.Count > 0)
+                currentTone = combined.ToneChanges[^1].Name;
 
-            if (next.Tones.Count > 0 || (next.Tones.Count == 0 && currentTone != next.ToneBase))
+            if (next.ToneChanges.Count > 0 || (next.ToneChanges.Count == 0 && currentTone != next.ToneBase))
             {
                 // Add a tone change for the base tone of the next song
                 if (next.ToneBase != null)
-                    next.Tones.Insert(0, new Tone(next.ToneBase, next.StartBeat - startTime, 0));
+                    next.ToneChanges.Insert(0, new Tone(next.ToneBase, next.StartBeat - startTime, 0));
 
-                for (int i = 0; i < next.Tones.Count; i++)
+                for (int i = 0; i < next.ToneChanges.Count; i++)
                 {
-                    var t = next.Tones[i];
-                    next.Tones[i] = new Tone(t.Name, t.Time + startTime, t.Id);
+                    var t = next.ToneChanges[i];
+                    next.ToneChanges[i] = new Tone(t.Name, t.Time + startTime, t.Id);
 
                     TryAddTone(combined, t);
                 }
 
-                combined.Tones.AddRange(next.Tones);
+                combined.ToneChanges.AddRange(next.ToneChanges);
             }
         }
 
