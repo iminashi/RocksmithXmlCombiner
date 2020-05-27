@@ -1,6 +1,7 @@
 ﻿namespace RSXmlCombiner.FuncUI
 
 module AudioCombiner =
+    open System.Text
     open System
     open System.IO
     open System.Globalization
@@ -9,14 +10,14 @@ module AudioCombiner =
 
     /// Creates the command line arguments for sox
     let private createArguments (tracks : Track list) targetFile =
-        let mutable arguments = sprintf "--multi−threaded --buffer 131072 -S \"%s\"" (tracks.Head.AudioFile |> Option.get);
+        let arguments = StringBuilder(sprintf "--multi−threaded --buffer 131072 -S \"%s\"" (tracks.Head.AudioFile |> Option.get))
         
         for t in tracks.[1..] do
             // Format example: "|sox foo.wav -p trim 5.500"
             let next = sprintf " \"|sox \\\"%s\\\" -p trim %s\"" (t.AudioFile |> Option.get) (t.TrimAmount.ToString("F3", NumberFormatInfo.InvariantInfo))
-            arguments <- arguments + next
+            arguments.Append(next) |> ignore
 
-        arguments + sprintf " \"%s\"" targetFile
+        arguments.Append(sprintf " \"%s\"" targetFile).ToString()
 
     /// Uses sox to combine the audio files of the given tracks into the target file
     let private combine (tracks : Track list) targetFile =

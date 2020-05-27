@@ -109,19 +109,6 @@ namespace RSXmlCombinerGUI.Extensions
                 ArrangementType.ShowLights => "showlights",
                 _ => throw new System.Exception("BAD")
             };
-            /*switch (type)
-            {
-                case ArrangementType.Lead:
-                case ArrangementType.Rhythm:
-                case ArrangementType.Bass:
-                    return "song";
-                case ArrangementType.Vocals:
-                    return "vocals";
-                case ArrangementType.ShowLights:
-                    return "showlights";
-                default:
-                    return string.Empty;
-            }*/
         }
 
         public static bool IsInstrumental(this ArrangementType type)

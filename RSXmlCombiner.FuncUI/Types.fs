@@ -63,7 +63,7 @@ module Types =
 
     type Track = {
         Title : string
-        TrimAmount : double
+        TrimAmount : float32
         AudioFile : string option
         SongLength : float32
         Arrangements : Arrangement list }

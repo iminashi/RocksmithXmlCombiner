@@ -51,6 +51,8 @@ module TrackList =
     | CombineAudioFiles of targetFile : string
     | SelectToolkitTemplate
     | ImportToolkitTemplate of fileNames : string[]
+    | SelectCombinationTargetFolder
+    | CombineArrangements of targetFolder : string
 
     let changeAudioFile track newFile =
         { track with AudioFile = Some(newFile) }
@@ -82,7 +84,7 @@ module TrackList =
                 Title = song.Title
                 AudioFile = None
                 SongLength = song.SongLength
-                TrimAmount = double song.StartBeat
+                TrimAmount = song.StartBeat
                 Arrangements = trackArrangements |> List.sortBy (fun a -> a.ArrangementType) }
 
             { state with Tracks = state.Tracks @ [ newTrack ] }, Cmd.none
@@ -145,11 +147,17 @@ module TrackList =
                                      Data = None }
                         arrangement :: state
 
-                    let arrangements = foundArrangements |> Map.fold foldArrangements [] 
+                    let mutable arrangements = foundArrangements |> Map.fold foldArrangements []
+
+                    // TODO: refactor
+                    if state.Tracks.Length > 0 then
+                        let templateArrs = state.Tracks.[0].Arrangements
+                        let notInc = templateArrs |> List.filter (fun t -> arrangements |> List.exists (fun a -> a.Name = t.Name) |> not)
+                        arrangements <- arrangements @ (notInc |> List.map (fun t -> { FileName = None; Name = t.Name; ArrangementType = t.ArrangementType; Data = None }))
 
                     let newTrack = {
                         Title = instArr.Title
-                        TrimAmount = double instArr.StartBeat
+                        TrimAmount = instArr.StartBeat
                         AudioFile = None
                         SongLength = instArr.SongLength
                         Arrangements = arrangements |> List.sortBy (fun a -> a.ArrangementType) }
@@ -171,6 +179,14 @@ module TrackList =
             else
                 let message = AudioCombiner.combineAudioFiles state.Tracks targetFile
                 { state with StatusMessage = message }, Cmd.none
+        
+        | SelectCombinationTargetFolder ->
+            let targetFolder = Dialogs.openFolderDialog "Select Target Folder"
+            state, Cmd.OfAsync.perform (fun _ -> targetFolder) () (fun f -> CombineArrangements f)
+
+        | CombineArrangements targetFolder ->
+            ArrangementCombiner.combineArrangements state.Tracks targetFolder state.AddTrackNamesToLyrics state.CombinationTitle state.CoercePhrases
+            { state with StatusMessage = "Arrangements combined." }, Cmd.none
 
         | SelectSaveProjectTarget ->
             let targetFile = Dialogs.saveFileDialog "Save Project As" Dialogs.projectFileFilter (Some "combo.rscproj")
@@ -207,14 +223,13 @@ module TrackList =
 
     /// Creates the view for an arrangement.
     let private arrangementTemplate (arr : Arrangement) dispatch =
-        let name = arr.Name
         let fileName = arr.FileName |> Option.defaultValue ""
         let color =
             match arr.FileName with
             | Some ->
                 match arr.ArrangementType with
                 | ArrangementType.Lead -> Brushes.Orange
-                | ArrangementType.Rhythm | ArrangementType.Combo -> Brushes.DarkGreen
+                | ArrangementType.Rhythm | ArrangementType.Combo -> Brushes.Green
                 | ArrangementType.Bass -> Brushes.LightBlue
                 | ArrangementType.Vocals | ArrangementType.JVocals -> Brushes.Yellow
                 | ArrangementType.ShowLights -> Brushes.Pink
@@ -232,7 +247,7 @@ module TrackList =
                         // Name
                         yield TextBlock.create [
                             TextBlock.classes [ "h2"]
-                            TextBlock.text name
+                            TextBlock.text arr.Name
                             TextBlock.foreground color
                         ]
                         // Short File Name
@@ -352,7 +367,7 @@ module TrackList =
                                                 TextBlock.text "Trim:"
                                             ]
                                             yield NumericUpDown.create [
-                                                NumericUpDown.value track.TrimAmount
+                                                NumericUpDown.value (track.TrimAmount |> double)
                                                 NumericUpDown.minimum 0.0
                                                 NumericUpDown.horizontalAlignment HorizontalAlignment.Left
                                                 NumericUpDown.width 75.0
@@ -538,6 +553,7 @@ module TrackList =
                                 // Combine Arrangements Button
                                 Button.create [
                                     Button.content "Combine Arrangements"
+                                    Button.onClick (fun _ -> dispatch SelectCombinationTargetFolder)
                                     Button.verticalAlignment VerticalAlignment.Center
                                     Button.fontSize 20.0
                                     Button.isEnabled (state.Tracks.Length > 1)
