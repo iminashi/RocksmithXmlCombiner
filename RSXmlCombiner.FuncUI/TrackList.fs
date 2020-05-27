@@ -16,12 +16,13 @@ module TrackList =
     open XmlUtils
     open Rocksmith2014Xml
 
-    let rand = Random()
-
     /// The state of the program. MVU model.
     type State = {
         Tracks : Track list
-        [<JsonIgnoreAttribute>]
+        CommonTones : Map<string, string[]>
+        [<JsonIgnore>]
+        Templates : Arrangement list /// Name and type of arrangements that must be found on every track.
+        [<JsonIgnore>]
         StatusMessage : string
         CombinationTitle : string
         CoercePhrases : bool
@@ -30,6 +31,8 @@ module TrackList =
     /// Initialization function.
     let init = {
         Tracks = []
+        Templates = []
+        CommonTones = Map.empty
         StatusMessage = ""
         CombinationTitle = ""
         CoercePhrases = true
@@ -44,7 +47,7 @@ module TrackList =
     | OpenProject of fileNames : string[]
     | SelectOpenProjectFile
     | SaveProject of fileName : string
-    | SelectSaveProjectTarget
+    | SelectSaveProjectFile
     | ChangeAudioFile of track : Track
     | ChangeAudioFileResult of track : Track * newFile:string[]
     | SelectTargetAudioFile
@@ -54,16 +57,57 @@ module TrackList =
     | SelectCombinationTargetFolder
     | CombineArrangements of targetFolder : string
 
-    let changeAudioFile track newFile =
-        { track with AudioFile = Some(newFile) }
+    let changeAudioFile track newFile = { track with AudioFile = Some newFile }
 
-    let createNewTrack state arrangementFileNames =
+    let createTemplate arr =
+        { Name = arr.Name; ArrangementType = arr.ArrangementType; FileName = None; Data = None }
+
+    let updateTemplates (current : Arrangement list) (arrangements : Arrangement list) =
+        let newTemplates =
+            arrangements
+            |> List.filter (fun arr -> current |> List.exists (fun temp -> arr.Name = temp.Name) |> not)
+            |> List.map createTemplate
+        current @ newTemplates
+
+    let getMissingArrangements (arrs : Arrangement list) temps =
+        temps
+        |> List.except (arrs |> Seq.map createTemplate)
+
+    let updateTrack templates track =
+        let newArrangements = 
+            track.Arrangements @ (getMissingArrangements track.Arrangements templates)
+            |> List.sortBy (fun a -> a.ArrangementType)
+
+        { track with Arrangements = newArrangements }
+
+    let updateTracks (tracks : Track list) (templates : Arrangement list) =
+        tracks
+        |> List.map (updateTrack templates)
+
+    let updateTracksAndTemplates tracks (currentTemplates : Arrangement list) newTrackarrangements =
+        let templates =
+            if currentTemplates.IsEmpty then
+                // Initialize the templates from this track
+                newTrackarrangements |> List.map createTemplate
+            else
+                updateTemplates currentTemplates newTrackarrangements
+
+        (updateTracks tracks templates), templates
+
+    let createTrack (song : RS2014Song) arrangements =
+        { Title = song.Title
+          AudioFile = None
+          SongLength = song.SongLength
+          TrimAmount = song.StartBeat
+          Arrangements = arrangements |> List.sortBy (fun a -> a.ArrangementType) }
+
+    let addNewTrack state arrangementFileNames =
         let instArrFile = arrangementFileNames |> Array.tryFind (fun a -> XmlHelper.ValidateRootElement(a, "song"))
         match instArrFile with
         | None -> 
             { state with StatusMessage = "Please select at least one instrumental Rocksmith arrangement." }, Cmd.none
         | Some instArr ->
-            let alreadyHasShowlights arrs =
+            let alreadyHasShowlights (arrs : Arrangement list) =
                 arrs |> List.exists (fun a -> a.ArrangementType = ArrangementType.ShowLights)
 
             let mutable trackArrangements = []
@@ -79,16 +123,15 @@ module TrackList =
                 //| "showlights" -> Cannot have more than one show lights arrangement
                 | _ -> () // StatusMessage = "Unknown arrangement type for file {Path.GetFileName(arr)}";
 
+            // Add any missing arrangements from the project's templates
+            if state.Templates.Length > 0 then
+                trackArrangements <- trackArrangements @ (getMissingArrangements trackArrangements state.Templates)
+
             let song = RS2014Song.Load(instArr)
-            let newTrack = {
-                Title = song.Title
-                AudioFile = None
-                SongLength = song.SongLength
-                TrimAmount = song.StartBeat
-                Arrangements = trackArrangements |> List.sortBy (fun a -> a.ArrangementType) }
+            let newTrack = createTrack song trackArrangements
+            let tracks, templates = updateTracksAndTemplates state.Tracks state.Templates trackArrangements
 
-            { state with Tracks = state.Tracks @ [ newTrack ] }, Cmd.none
-
+            { state with Tracks = tracks @ [ newTrack ]; Templates = templates }, Cmd.none
 
     /// Updates the model according to the message content.
     let update (msg: Msg) (state: State) =
@@ -97,7 +140,7 @@ module TrackList =
             let selectFiles = Dialogs.openFileDialog "Select Arrangement File(s)" Dialogs.xmlFileFilter true
             state, Cmd.OfAsync.perform (fun _ -> selectFiles) () (fun files -> AddTrack files)
 
-        | AddTrack arrangements -> createNewTrack state arrangements
+        | AddTrack arrangements -> addNewTrack state arrangements
 
         | NewProject -> init
 
@@ -149,20 +192,14 @@ module TrackList =
 
                     let mutable arrangements = foundArrangements |> Map.fold foldArrangements []
 
-                    // TODO: refactor
-                    if state.Tracks.Length > 0 then
-                        let templateArrs = state.Tracks.[0].Arrangements
-                        let notInc = templateArrs |> List.filter (fun t -> arrangements |> List.exists (fun a -> a.Name = t.Name) |> not)
-                        arrangements <- arrangements @ (notInc |> List.map (fun t -> { FileName = None; Name = t.Name; ArrangementType = t.ArrangementType; Data = None }))
+                    // Add any missing arrangements from the project's templates
+                    if state.Templates.Length > 0 then
+                        arrangements <- arrangements @ (getMissingArrangements arrangements state.Templates)
 
-                    let newTrack = {
-                        Title = instArr.Title
-                        TrimAmount = instArr.StartBeat
-                        AudioFile = None
-                        SongLength = instArr.SongLength
-                        Arrangements = arrangements |> List.sortBy (fun a -> a.ArrangementType) }
+                    let newTrack = createTrack instArr arrangements
+                    let tracks, templates = updateTracksAndTemplates state.Tracks state.Templates arrangements
 
-                    { state with Tracks = state.Tracks @ [ newTrack ] }, Cmd.none
+                    { state with Tracks = tracks @ [ newTrack ]; Templates = templates }, Cmd.none
                 | None ->
                     state, Cmd.none
             else
@@ -188,7 +225,7 @@ module TrackList =
             ArrangementCombiner.combineArrangements state.Tracks targetFolder state.AddTrackNamesToLyrics state.CombinationTitle state.CoercePhrases
             { state with StatusMessage = "Arrangements combined." }, Cmd.none
 
-        | SelectSaveProjectTarget ->
+        | SelectSaveProjectFile ->
             let targetFile = Dialogs.saveFileDialog "Save Project As" Dialogs.projectFileFilter (Some "combo.rscproj")
             state, Cmd.OfAsync.perform (fun _ -> targetFile) () (fun f -> SaveProject f)
 
@@ -217,7 +254,14 @@ module TrackList =
 
                 let json = File.ReadAllText(fileName)
                 let newState = JsonSerializer.Deserialize<State>(json, options)
-                newState, Cmd.none
+
+                // Generate the arrangement templates from the first track
+                let templates = 
+                    match newState.Tracks |> List.tryHead with
+                    | Some head -> head.Arrangements |> List.map createTemplate
+                    | None -> []
+
+                { newState with Templates = templates }, Cmd.none
             else
                 state, Cmd.none
 
@@ -239,6 +283,7 @@ module TrackList =
         Border.create [
             Border.borderThickness 1.0
             Border.borderBrush color
+            Border.width 140.0
             Border.child (
                 StackPanel.create [
                     StackPanel.verticalAlignment VerticalAlignment.Top
@@ -360,7 +405,7 @@ module TrackList =
                                     StackPanel.width 90.0
                                     StackPanel.classes [ "part" ]
                                     StackPanel.children [
-                                        // Hide if this s the first track
+                                        // Hide if this is the first track
                                         if index <> 0 then
                                             yield TextBlock.create [ 
                                                 TextBlock.classes [ "h2" ]
@@ -372,6 +417,7 @@ module TrackList =
                                                 NumericUpDown.horizontalAlignment HorizontalAlignment.Left
                                                 NumericUpDown.width 75.0
                                                 NumericUpDown.formatString "F3"
+                                                ToolTip.tip "Sets the amount of time in seconds to be trimmed from the start of the audio and the arrangements."
                                             ]
                                             yield TextBlock.create [
                                                 TextBlock.margin (10.0, 0.0, 0.0, 0.0)
@@ -437,6 +483,9 @@ module TrackList =
                                     Button.fontSize 18.0
                                     // TODO: On Click
                                 ]
+                                ComboBox.create [
+                                    ComboBox.dataItems state.Templates
+                                ]
                             ]
                         ]
 
@@ -469,7 +518,7 @@ module TrackList =
                                     Button.verticalAlignment VerticalAlignment.Center
                                     Button.margin (15.0, 15.0, 15.0, 0.0)
                                     Button.fontSize 18.0
-                                    Button.onClick (fun _ -> dispatch SelectSaveProjectTarget)
+                                    Button.onClick (fun _ -> dispatch SelectSaveProjectFile)
                                     Button.hotKey (KeyGesture.Parse "Ctrl+S")
                                 ]
                             ]
