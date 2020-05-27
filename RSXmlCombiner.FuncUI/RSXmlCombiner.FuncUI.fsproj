@@ -12,6 +12,7 @@
     <Compile Include="Types.fs" />
     <Compile Include="Dialogs.fs" />
     <Compile Include="AudioCombiner.fs" />
+    <Compile Include="ToolkitImporter.fs" />
     <Compile Include="TrackList.fs" />
     <Compile Include="Program.fs" />
     <AvaloniaResource Include="**\*.xaml" />

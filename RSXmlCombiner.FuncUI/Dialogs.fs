@@ -14,6 +14,7 @@ module Dialogs =
     let audioFileFilters = createFilters "Audio Files" (seq { "wav"; "ogg"})
     let xmlFileFilter = createFilters "Rocksmith Arrangement Files" (seq { "xml" })
     let projectFileFilter = createFilters "Project Files" (seq { "rscproj" })
+    let toolkitTemplateFilter = createFilters "Toolkit Templates" (seq { "dlc.xml" })
 
     let openFolderDialog title =
         let dialog = OpenFolderDialog()

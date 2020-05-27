@@ -19,25 +19,19 @@ module Types =
 
     type ArrangementOrdering = Main | Alternative | Bonus
 
-    type InstrumentalArrangement = {
+    type InstrumentalArrangementData = {
         Ordering : ArrangementOrdering
         BaseTone : string option
         ToneNames : string list
-        ToneReplacements : Map<string, string>
-    }
-
-    type ArrangementData =
-        | Instrumental of InstrumentalArrangement
-        | Other
+        ToneReplacements : Map<string, string> }
 
     type Arrangement = {
         Name : string
         FileName : string option
         ArrangementType : ArrangementType
-        Data : ArrangementData option
-    }
+        Data : InstrumentalArrangementData option }
 
-    let createInstrumental fileName =
+    let createInstrumental fileName (baseTone : string option) =
         let song = RS2014Song.Load(fileName)
         let arrangementType =
             if song.ArrangementProperties.PathLead = byte 1 then ArrangementType.Lead
@@ -58,21 +52,18 @@ module Types =
 
         let arrData = {
             Ordering = ArrangementOrdering.Main
-            BaseTone = song.ToneBase |> Option.ofObj
+            BaseTone = Option.ofObj song.ToneBase |> Option.orElse baseTone
             ToneNames = toneNames
-            ToneReplacements = Map[]
-        }
+            ToneReplacements = Map[] }
 
         { FileName = Some fileName
           ArrangementType = arrangementType
           Name = arrangementType.ToString()
-          Data = Some (Instrumental arrData) }
+          Data = Some arrData }
 
     type Track = {
         Title : string
         TrimAmount : double
         AudioFile : string option
         SongLength : float32
-        StartBeat : float32
-        Arrangements : Arrangement list
-    }
+        Arrangements : Arrangement list }

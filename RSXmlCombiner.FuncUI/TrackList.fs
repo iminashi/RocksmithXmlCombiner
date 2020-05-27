@@ -20,7 +20,7 @@ module TrackList =
 
     /// The state of the program. MVU model.
     type State = {
-        tracks : Track list
+        Tracks : Track list
         [<JsonIgnoreAttribute>]
         StatusMessage : string
         CombinationTitle : string
@@ -29,7 +29,7 @@ module TrackList =
 
     /// Initialization function.
     let init = {
-        tracks = []
+        Tracks = []
         StatusMessage = ""
         CombinationTitle = ""
         CoercePhrases = true
@@ -49,6 +49,8 @@ module TrackList =
     | ChangeAudioFileResult of track : Track * newFile:string[]
     | SelectTargetAudioFile
     | CombineAudioFiles of targetFile : string
+    | SelectToolkitTemplate
+    | ImportToolkitTemplate of fileNames : string[]
 
     let changeAudioFile track newFile =
         { track with AudioFile = Some(newFile) }
@@ -67,11 +69,11 @@ module TrackList =
             for fileName in arrangementFileNames do
                 match XmlHelper.GetRootElementName(fileName) with
                 | "song" ->
-                    trackArrangements <- (createInstrumental fileName) :: trackArrangements
+                    trackArrangements <- (createInstrumental fileName None) :: trackArrangements
                 | "vocals" ->
-                    trackArrangements <- { Name = "Vocals"; FileName = Some fileName; ArrangementType = ArrangementType.Vocals; Data = Some(Other)  } :: trackArrangements
+                    trackArrangements <- { Name = "Vocals"; FileName = Some fileName; ArrangementType = ArrangementType.Vocals; Data = None  } :: trackArrangements
                 | "showlights" when trackArrangements |> alreadyHasShowlights |> not ->
-                    trackArrangements <- { Name = "Show Lights"; FileName = Some fileName; ArrangementType = ArrangementType.ShowLights; Data = Some(Other) } :: trackArrangements
+                    trackArrangements <- { Name = "Show Lights"; FileName = Some fileName; ArrangementType = ArrangementType.ShowLights; Data = None } :: trackArrangements
                 //| "showlights" -> Cannot have more than one show lights arrangement
                 | _ -> () // StatusMessage = "Unknown arrangement type for file {Path.GetFileName(arr)}";
 
@@ -79,12 +81,11 @@ module TrackList =
             let newTrack = {
                 Title = song.Title
                 AudioFile = None
-                StartBeat = song.StartBeat
                 SongLength = song.SongLength
                 TrimAmount = double song.StartBeat
                 Arrangements = trackArrangements |> List.sortBy (fun a -> a.ArrangementType) }
 
-            { state with tracks = state.tracks @ [ newTrack ] }, Cmd.none
+            { state with Tracks = state.Tracks @ [ newTrack ] }, Cmd.none
 
 
     /// Updates the model according to the message content.
@@ -99,7 +100,7 @@ module TrackList =
         | NewProject -> init
 
         | RemoveTrackAt index ->
-            { state with tracks = state.tracks |> List.except [ state.tracks.[index] ]}, Cmd.none
+            { state with Tracks = state.Tracks |> List.except [ state.Tracks.[index] ]}, Cmd.none
 
         | ChangeAudioFile track ->
             let selectFiles = Dialogs.openFileDialog "Select Audio File" Dialogs.audioFileFilters false
@@ -108,8 +109,54 @@ module TrackList =
         | ChangeAudioFileResult (track, files) ->
             if files.Length > 0 then
                 let fileName = files.[0]
-                let newTracks = state.tracks |> List.map (fun t -> if t = track then changeAudioFile t fileName else t) 
-                { state with tracks = newTracks }, Cmd.none
+                let newTracks = state.Tracks |> List.map (fun t -> if t = track then changeAudioFile t fileName else t) 
+                { state with Tracks = newTracks }, Cmd.none
+            else
+                state, Cmd.none
+
+        | SelectToolkitTemplate ->
+            let files = Dialogs.openFileDialog "Select Toolkit Template" Dialogs.toolkitTemplateFilter false
+            state, Cmd.OfAsync.perform (fun _ -> files) () (fun f -> ImportToolkitTemplate f)
+
+        | ImportToolkitTemplate files ->
+            if files.Length > 0 then
+                let fileName = files.[0]
+
+                let foundArrangements = ToolkitImporter.import fileName
+
+                // Try to find an instrumental arrangement to read metadata from
+                let instArrType = foundArrangements |> Map.tryFindKey (fun key _ -> (key &&& InstrumentalArrangement) <> ArrangementType.Unknown)
+                match instArrType with
+                | Some instArrType ->
+                    let instArrFile, _ = foundArrangements.[instArrType]
+                    let instArr = RS2014Song.Load(instArrFile)
+                    
+                    let foldArrangements (state : Arrangement list) arrType (fileName, baseTone) =
+                        let arrangement =
+                            match arrType with
+                            | ArrangementType.Lead
+                            | ArrangementType.Bass
+                            | ArrangementType.Rhythm
+                            | ArrangementType.Combo ->
+                                createInstrumental fileName baseTone
+                            | _ -> { FileName = Some fileName
+                                     ArrangementType = arrType
+                                     Name = arrType.ToString()
+                                     Data = None }
+                        arrangement :: state
+
+                    let arrangements = foundArrangements |> Map.fold foldArrangements [] 
+
+                    let newTrack = {
+                        Title = instArr.Title
+                        TrimAmount = double instArr.StartBeat
+                        AudioFile = None
+                        SongLength = instArr.SongLength
+                        Arrangements = arrangements |> List.sortBy (fun a -> a.ArrangementType) }
+
+                    { state with Tracks = state.Tracks @ [ newTrack ] }, Cmd.none
+                | None ->
+                    state, Cmd.none
             else
                 state, Cmd.none
 
@@ -122,7 +169,7 @@ module TrackList =
                 // User canceled the dialog
                 state, Cmd.none
             else
-                let message = AudioCombiner.combineAudioFiles state.tracks targetFile
+                let message = AudioCombiner.combineAudioFiles state.Tracks targetFile
                 { state with StatusMessage = message }, Cmd.none
 
         | SelectSaveProjectTarget ->
@@ -206,7 +253,7 @@ module TrackList =
 
                         // Optional Tone Controls
                         match arr.Data with
-                        | Some (Instrumental instArr) ->
+                        | Some instArr ->
                             // Base Tone Combo Box
                             yield ComboBox.create [
                                 ComboBox.width 100.0
@@ -358,12 +405,12 @@ module TrackList =
                                         ]
                                         Button.create [
                                             Button.content "Import..."
+                                            Button.onClick (fun _ -> dispatch SelectToolkitTemplate)
                                             Button.horizontalAlignment HorizontalAlignment.Left
                                             Button.verticalAlignment VerticalAlignment.Center
                                             Button.margin (0.0, 15.0, 15.0, 0.0)
                                             Button.fontSize 18.0
-                                            // TODO: On Click
-                                        ]
+                                         ]
                                     ]
                                 ]
                                 // Bottom Button
@@ -439,7 +486,7 @@ module TrackList =
                                     Button.verticalAlignment VerticalAlignment.Center
                                     Button.fontSize 20.0
                                     Button.onClick (fun _ -> dispatch SelectTargetAudioFile)
-                                    Button.isEnabled (state.tracks.Length > 1 && state.tracks |> List.forall (fun track -> track.AudioFile |> Option.isSome))
+                                    Button.isEnabled (state.Tracks.Length > 1 && state.Tracks |> List.forall (fun track -> track.AudioFile |> Option.isSome))
                                 ]
                                 // Combine Audio Error Text
                                 //TextBlock.create [
@@ -493,7 +540,7 @@ module TrackList =
                                     Button.content "Combine Arrangements"
                                     Button.verticalAlignment VerticalAlignment.Center
                                     Button.fontSize 20.0
-                                    Button.isEnabled (state.tracks.Length > 1)
+                                    Button.isEnabled (state.Tracks.Length > 1)
                                 ]
                             ]
                         ]
@@ -506,7 +553,7 @@ module TrackList =
                 ScrollViewer.create [
                     ScrollViewer.content (
                         StackPanel.create [
-                            StackPanel.children (List.mapi (fun i item -> trackTemplate item i dispatch :> IView) state.tracks)
+                            StackPanel.children (List.mapi (fun i item -> trackTemplate item i dispatch :> IView) state.Tracks)
                         ] 
                     )
                 ]
