@@ -60,29 +60,29 @@ module TrackList =
             { state with StatusMessage = "Please select at least one instrumental Rocksmith arrangement." }, Cmd.none
         | Some instArr ->
             let alreadyHasShowlights arrs =
-                arrs |> List.exists (fun a -> (getMetadata a).Type = ArrangementType.ShowLights)
+                arrs |> List.exists (fun a -> a.ArrangementType = ArrangementType.ShowLights)
 
-            let song = RS2014Song.Load(instArr)
             let mutable trackArrangements = []
 
-            for arr in arrangementFileNames do
-                match XmlHelper.GetRootElementName(arr) with
+            for fileName in arrangementFileNames do
+                match XmlHelper.GetRootElementName(fileName) with
                 | "song" ->
-                    trackArrangements <- (createInstrumental arr) :: trackArrangements
+                    trackArrangements <- (createInstrumental fileName) :: trackArrangements
                 | "vocals" ->
-                    trackArrangements <- Other( { Name = "Vocals"; FileName = arr; Type = ArrangementType.Vocals } ) :: trackArrangements
+                    trackArrangements <- { Name = "Vocals"; FileName = Some fileName; ArrangementType = ArrangementType.Vocals; Data = Some(Other)  } :: trackArrangements
                 | "showlights" when trackArrangements |> alreadyHasShowlights |> not ->
-                    trackArrangements <- Other( { Name = "Show Lights"; FileName = arr; Type = ArrangementType.ShowLights } ) :: trackArrangements
+                    trackArrangements <- { Name = "Show Lights"; FileName = Some fileName; ArrangementType = ArrangementType.ShowLights; Data = Some(Other) } :: trackArrangements
                 //| "showlights" -> Cannot have more than one show lights arrangement
                 | _ -> () // StatusMessage = "Unknown arrangement type for file {Path.GetFileName(arr)}";
 
+            let song = RS2014Song.Load(instArr)
             let newTrack = {
                 Title = song.Title
                 AudioFile = None
                 StartBeat = song.StartBeat
                 SongLength = song.SongLength
                 TrimAmount = double song.StartBeat
-                Arrangements = trackArrangements |> List.sortBy (fun a -> (getMetadata a).Type) }
+                Arrangements = trackArrangements |> List.sortBy (fun a -> a.ArrangementType) }
 
             { state with tracks = state.tracks @ [ newTrack ] }, Cmd.none
 
@@ -160,16 +160,19 @@ module TrackList =
 
     /// Creates the view for an arrangement.
     let private arrangementTemplate (arr : Arrangement) dispatch =
-        let metaData = getMetadata arr
-        let name, fileName = metaData.Name, metaData.FileName
+        let name = arr.Name
+        let fileName = arr.FileName |> Option.defaultValue ""
         let color =
-            match metaData.Type with
-            | ArrangementType.Lead -> Brushes.Orange
-            | ArrangementType.Rhythm | ArrangementType.Combo -> Brushes.DarkGreen
-            | ArrangementType.Bass -> Brushes.LightBlue
-            | ArrangementType.Vocals | ArrangementType.JVocals -> Brushes.Yellow
-            | ArrangementType.ShowLights -> Brushes.Pink
-            | _ -> Brushes.GhostWhite
+            match arr.FileName with
+            | Some ->
+                match arr.ArrangementType with
+                | ArrangementType.Lead -> Brushes.Orange
+                | ArrangementType.Rhythm | ArrangementType.Combo -> Brushes.DarkGreen
+                | ArrangementType.Bass -> Brushes.LightBlue
+                | ArrangementType.Vocals | ArrangementType.JVocals -> Brushes.Yellow
+                | ArrangementType.ShowLights -> Brushes.Pink
+                | _ -> Brushes.GhostWhite
+            | None -> Brushes.Gray
 
         Border.create [
             Border.borderThickness 1.0
@@ -202,8 +205,8 @@ module TrackList =
                         ]
 
                         // Optional Tone Controls
-                        match arr with
-                        | Instrumental instArr ->
+                        match arr.Data with
+                        | Some (Instrumental instArr) ->
                             // Base Tone Combo Box
                             yield ComboBox.create [
                                 ComboBox.width 100.0
@@ -316,15 +319,11 @@ module TrackList =
                                 ]
 
                                 // Arrangements
-                                ScrollViewer.create [
-                                    ScrollViewer.content (
-                                        StackPanel.create [
-                                            StackPanel.orientation Orientation.Horizontal
-                                            StackPanel.spacing 10.0
-                                            StackPanel.children (List.map (fun item -> arrangementTemplate item dispatch :> IView) track.Arrangements)
-                                        ] 
-                                    )
-                                ]
+                                StackPanel.create [
+                                    StackPanel.orientation Orientation.Horizontal
+                                    StackPanel.spacing 10.0
+                                    StackPanel.children (List.map (fun item -> arrangementTemplate item dispatch :> IView) track.Arrangements)
+                                ] 
                             ]
                         ]
                     ]

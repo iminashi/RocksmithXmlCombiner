@@ -17,25 +17,25 @@ module Types =
     let InstrumentalArrangement = ArrangementType.Lead ||| ArrangementType.Rhythm ||| ArrangementType.Combo ||| ArrangementType.Bass
     let VocalsArrangement = ArrangementType.Vocals ||| ArrangementType.JVocals
 
-    type ArrangementFlag = Main | Alternative | Bonus
-
-    type ArrangementMetaData = {
-        Name : string
-        FileName : string
-        Type : ArrangementType
-    }
+    type ArrangementOrdering = Main | Alternative | Bonus
 
     type InstrumentalArrangement = {
-        MetaData : ArrangementMetaData
-        Flag : ArrangementFlag
+        Ordering : ArrangementOrdering
         BaseTone : string option
         ToneNames : string list
         ToneReplacements : Map<string, string>
     }
 
-    type Arrangement =
+    type ArrangementData =
         | Instrumental of InstrumentalArrangement
-        | Other of MetaData : ArrangementMetaData
+        | Other
+
+    type Arrangement = {
+        Name : string
+        FileName : string option
+        ArrangementType : ArrangementType
+        Data : ArrangementData option
+    }
 
     let createInstrumental fileName =
         let song = RS2014Song.Load(fileName)
@@ -56,24 +56,17 @@ module Types =
                     if not (String.IsNullOrEmpty song.ToneD) then yield song.ToneD
                 ]
 
-        let arr = {
-            MetaData = {
-                FileName = fileName
-                Type = arrangementType
-                Name = arrangementType.ToString()
-            }
-            Flag = ArrangementFlag.Main
+        let arrData = {
+            Ordering = ArrangementOrdering.Main
             BaseTone = song.ToneBase |> Option.ofObj
             ToneNames = toneNames
             ToneReplacements = Map[]
         }
 
-        Instrumental arr
-
-    let getMetadata arr =
-        match arr with
-        | Instrumental i -> i.MetaData
-        | Other o -> o
+        { FileName = Some fileName
+          ArrangementType = arrangementType
+          Name = arrangementType.ToString()
+          Data = Some (Instrumental arrData) }
 
     type Track = {
         Title : string
