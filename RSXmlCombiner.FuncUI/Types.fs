@@ -22,6 +22,9 @@ module Types =
     let isInstrumental arrType =
         (arrType &&& instrumentalArrangement) <> ArrangementType.Unknown
 
+    let isVocals arrType =
+        (arrType &&& vocalsArrangement) <> ArrangementType.Unknown
+
     type ArrangementOrdering = Main | Alternative | Bonus
 
     type InstrumentalArrangementData = {

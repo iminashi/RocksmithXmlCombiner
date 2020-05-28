@@ -8,6 +8,7 @@ module TrackList =
     open Elmish
     open Avalonia.Media
     open Avalonia.Controls
+    open Avalonia.Controls.Shapes
     open Avalonia.FuncUI.DSL
     open Avalonia.FuncUI.Types
     open Avalonia.Layout
@@ -54,13 +55,15 @@ module TrackList =
             |> List.map createTemplate
         current @ newTemplates
 
-    let getMissingArrangements (arrs : Arrangement list) temps =
-        temps
-        |> List.except (arrs |> Seq.map createTemplate)
+    let addMissingArrangements templates (arrs : Arrangement list) =
+        arrs 
+        |> List.append
+            (templates
+            |> List.except (arrs |> Seq.map createTemplate))
 
     let updateTrack templates track =
         let newArrangements = 
-            track.Arrangements @ (getMissingArrangements track.Arrangements templates)
+            addMissingArrangements templates track.Arrangements
             |> List.sortBy (fun a -> a.ArrangementType)
 
         { track with Arrangements = newArrangements }
@@ -95,26 +98,26 @@ module TrackList =
             let alreadyHasShowlights (arrs : Arrangement list) =
                 arrs |> List.exists (fun a -> a.ArrangementType = ArrangementType.ShowLights)
 
-            let mutable trackArrangements = []
-
-            for fileName in arrangementFileNames do
+            let arrangementFolder state fileName =
                 match XmlHelper.GetRootElementName(fileName) with
                 | "song" ->
-                    trackArrangements <- (createInstrumental fileName None) :: trackArrangements
+                    (createInstrumental fileName None) :: state
                 | "vocals" ->
-                    trackArrangements <- { Name = "Vocals"; FileName = Some fileName; ArrangementType = ArrangementType.Vocals; Data = None  } :: trackArrangements
-                | "showlights" when trackArrangements |> alreadyHasShowlights |> not ->
-                    trackArrangements <- { Name = "Show Lights"; FileName = Some fileName; ArrangementType = ArrangementType.ShowLights; Data = None } :: trackArrangements
+                    { Name = "Vocals"; FileName = Some fileName; ArrangementType = ArrangementType.Vocals; Data = None  } :: state
+                | "showlights" when state |> alreadyHasShowlights |> not ->
+                    { Name = "Show Lights"; FileName = Some fileName; ArrangementType = ArrangementType.ShowLights; Data = None } :: state
                 //| "showlights" -> Cannot have more than one show lights arrangement
-                | _ -> () // StatusMessage = "Unknown arrangement type for file {Path.GetFileName(arr)}";
-
-            // Add any missing arrangements from the project's templates
-            if state.Project.Templates.Length > 0 then
-                trackArrangements <- trackArrangements @ (getMissingArrangements trackArrangements state.Project.Templates)
+                | _ -> state // StatusMessage = "Unknown arrangement type for file {Path.GetFileName(arr)}";
+        
+            let arrangements = 
+                arrangementFileNames
+                |> Array.fold arrangementFolder []
+                // Add any missing arrangements from the project's templates
+                |> addMissingArrangements state.Project.Templates
 
             let song = RS2014Song.Load(instArr)
-            let newTrack = createTrack song trackArrangements
-            let tracks, templates = updateTracksAndTemplates state.Project.Tracks state.Project.Templates trackArrangements
+            let newTrack = createTrack song arrangements
+            let tracks, templates = updateTracksAndTemplates state.Project.Tracks state.Project.Templates arrangements
 
             let updatedProject = { state.Project with Tracks = tracks @ [ newTrack ]; Templates = templates }
 
@@ -166,22 +169,18 @@ module TrackList =
                     let foldArrangements (state : Arrangement list) arrType (fileName, baseTone) =
                         let arrangement =
                             match arrType with
-                            | ArrangementType.Lead
-                            | ArrangementType.Bass
-                            | ArrangementType.Rhythm
-                            | ArrangementType.Combo ->
-                                createInstrumental fileName baseTone
+                            | t when isInstrumental t -> createInstrumental fileName baseTone
                             | _ -> { FileName = Some fileName
                                      ArrangementType = arrType
                                      Name = arrType.ToString()
                                      Data = None }
                         arrangement :: state
 
-                    let mutable arrangements = foundArrangements |> Map.fold foldArrangements []
-
-                    // Add any missing arrangements from the project's templates
-                    if state.Project.Templates.Length > 0 then
-                        arrangements <- arrangements @ (getMissingArrangements arrangements state.Project.Templates)
+                    let arrangements = 
+                        foundArrangements
+                        |> Map.fold foldArrangements []
+                        // Add any missing arrangements from the project's templates
+                        |> addMissingArrangements state.Project.Templates
 
                     let newTrack = createTrack instArr arrangements
                     let tracks, templates = updateTracksAndTemplates state.Project.Tracks state.Project.Templates arrangements
@@ -263,11 +262,11 @@ module TrackList =
             match arr.FileName with
             | Some ->
                 match arr.ArrangementType with
-                | ArrangementType.Lead -> Brushes.Orange
-                | ArrangementType.Rhythm | ArrangementType.Combo -> Brushes.Green
-                | ArrangementType.Bass -> Brushes.LightBlue
+                | ArrangementType.Lead -> SolidColorBrush.Parse "#ff9242" :> ISolidColorBrush
+                | ArrangementType.Rhythm | ArrangementType.Combo -> SolidColorBrush.Parse "#1ea334" :> ISolidColorBrush
+                | ArrangementType.Bass -> SolidColorBrush.Parse "#0383b5" :> ISolidColorBrush
                 | ArrangementType.Vocals | ArrangementType.JVocals -> Brushes.Yellow
-                | ArrangementType.ShowLights -> Brushes.Pink
+                | ArrangementType.ShowLights -> Brushes.Violet
                 | _ -> Brushes.GhostWhite
             | None -> Brushes.Gray
 
@@ -280,11 +279,32 @@ module TrackList =
                     StackPanel.verticalAlignment VerticalAlignment.Top
                     StackPanel.classes [ "arrangement" ]
                     StackPanel.children [
-                        // Name
-                        yield TextBlock.create [
-                            TextBlock.classes [ "h2"]
-                            TextBlock.text arr.Name
-                            TextBlock.foreground color
+                        // Icon & Name
+                        yield StackPanel.create [
+                            StackPanel.orientation Orientation.Horizontal
+                            StackPanel.spacing 2.0
+                            StackPanel.children [
+                                if isInstrumental arr.ArrangementType then
+                                    yield Path.create [
+                                        Path.fill color
+                                        Path.data Icons.pick
+                                    ]
+                                else if isVocals arr.ArrangementType then
+                                    yield Path.create [
+                                        Path.fill color
+                                        Path.data Icons.microphone
+                                    ]
+                                else
+                                    yield Path.create [
+                                        Path.fill color
+                                        Path.data Icons.spotlight
+                                    ]
+                                yield TextBlock.create [
+                                    TextBlock.classes [ "h2"]
+                                    TextBlock.text arr.Name
+                                    TextBlock.foreground color
+                                ]
+                            ]
                         ]
                         // Short File Name
                         yield TextBlock.create [
@@ -337,11 +357,6 @@ module TrackList =
     let private trackTemplate (track : Track) index commonTones dispatch =
         Border.create [
             Border.classes [ "track" ]
-            Border.borderBrush Brushes.SlateGray
-            Border.background Brushes.Black
-            Border.borderThickness 3.0
-            Border.padding 5.0
-            Border.margin 5.0
             Border.child (
                 DockPanel.create [
                     DockPanel.margin (5.0, 0.0, 0.0, 0.0)
@@ -436,6 +451,16 @@ module TrackList =
             )
         ]
 
+    let private handleHotkeys dispatch (event : KeyEventArgs) =
+        match event.KeyModifiers with
+        | KeyModifiers.Control ->
+            match event.Key with
+            | Key.O -> dispatch SelectOpenProjectFile
+            | Key.S -> dispatch SelectSaveProjectFile
+            | Key.N -> dispatch NewProject
+            | _ -> ()
+        | _ -> ()
+
     /// Creates the track list view.
     let view (state: State) (dispatch : Msg -> Unit) =
         DockPanel.create [
@@ -471,15 +496,6 @@ module TrackList =
                                          ]
                                     ]
                                 ]
-                                // Bottom Button
-                                //Button.create [
-                                //    Button.content "Edit Common Tones"
-                                //    Button.horizontalAlignment HorizontalAlignment.Center
-                                //    Button.verticalAlignment VerticalAlignment.Center
-                                //    Button.margin (15.0, 15.0, 15.0, 0.0)
-                                //    Button.fontSize 18.0
-                                //    // TODO: On Click
-                                //]
                                 ComboBox.create [
                                     ComboBox.dataItems state.Project.Templates
                                 ]
@@ -516,6 +532,7 @@ module TrackList =
                                     Button.margin (15.0, 15.0, 15.0, 0.0)
                                     Button.fontSize 18.0
                                     Button.onClick (fun _ -> dispatch SelectSaveProjectFile)
+                                    Button.isEnabled (state.Project.Tracks.Length > 0)
                                     Button.hotKey (KeyGesture.Parse "Ctrl+S")
                                 ]
                             ]

@@ -41,7 +41,7 @@ module CommonToneEditor =
             
 
     let private tonesTemplate title (tones : string[]) dispatch =
-        let leftSide = [ "Base"; "Tone A"; "Tone B"; "Tone C"; "Tone D" ]
+        let leftSide = [| "Base"; "Tone A"; "Tone B"; "Tone C"; "Tone D" |]
 
         Grid.create [
             Grid.columnDefinitions "60,150"
@@ -52,14 +52,13 @@ module CommonToneEditor =
                     TextBlock.fontSize 16.0
                     TextBlock.horizontalAlignment HorizontalAlignment.Center
                     Grid.columnSpan 2
-                    Grid.row 0
                 ]
                 for i = 0 to tones.Length - 1 do
                     yield TextBlock.create [
+                        Grid.row (i + 1)
                         TextBlock.margin 2.0
                         TextBlock.text leftSide.[i]
                         TextBlock.verticalAlignment VerticalAlignment.Center
-                        Grid.row (i + 1)
                     ]
                     yield TextBox.create [
                         Grid.column 1
@@ -77,7 +76,7 @@ module CommonToneEditor =
             StackPanel.spacing 10.0
             StackPanel.margin 10.0
             StackPanel.horizontalAlignment HorizontalAlignment.Center
-            StackPanel.verticalAlignment VerticalAlignment.Center
+            StackPanel.verticalAlignment VerticalAlignment.Top
             StackPanel.children [
                 WrapPanel.create [
                     WrapPanel.orientation Orientation.Horizontal
@@ -86,8 +85,5 @@ module CommonToneEditor =
                         |> Map.toList
                         |> List.map (fun (title, tones) -> tonesTemplate title tones dispatch :> IView))
                 ]
-                //Button.create [
-                //    Button.content "OK"
-                //]
             ]
         ]
