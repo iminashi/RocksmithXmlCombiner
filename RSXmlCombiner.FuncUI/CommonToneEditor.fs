@@ -29,7 +29,7 @@ module CommonToneEditor =
         | TemplatesUpdated templates ->
             { state with CommonTones = updateCommonTones templates }, Cmd.none
 
-    let private tonesTemplate title (tones : string[])  dispatch =
+    let private tonesTemplate title (tones : string[]) dispatch =
         let leftSide = [ "Base"; "Tone A"; "Tone B"; "Tone C"; "Tone D" ]
 
         Grid.create [
@@ -57,6 +57,7 @@ module CommonToneEditor =
                         TextBox.text (tones.[i])
                         // TODO: Enabled
                         // TODO: Binding
+                        //TextBox.onTextChanged (fun text -> )
                     ]
             ]
         ]
@@ -70,7 +71,10 @@ module CommonToneEditor =
             StackPanel.children [
                 WrapPanel.create [
                     WrapPanel.orientation Orientation.Horizontal
-                    WrapPanel.children (state.CommonTones |> Map.toList |> List.map (fun (title, tones) -> tonesTemplate title tones dispatch :> IView))
+                    WrapPanel.children (
+                        state.CommonTones
+                        |> Map.toList
+                        |> List.map (fun (title, tones) -> tonesTemplate title tones dispatch :> IView))
                 ]
                 Button.create [
                     //Button.onClick (fun _ -> dispatch OkClick)

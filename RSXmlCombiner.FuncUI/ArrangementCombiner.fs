@@ -113,10 +113,13 @@ module ArrangementCombiner =
         let nArrangements = project.Tracks.Head.Arrangements.Length
         for i in 0..nArrangements - 1 do
             match project.Tracks.Head.Arrangements.[i].ArrangementType with
-            | ArrangementType.Lead | ArrangementType.Rhythm | ArrangementType.Combo | ArrangementType.Bass ->
+            | aType when isInstrumental aType ->
                 combineInstrumental project.Tracks i targetFolder project.CombinationTitle project.CoercePhrases
+
             | ArrangementType.Vocals | ArrangementType.JVocals ->
                 combineVocals project.Tracks i targetFolder project.AddTrackNamesToLyrics
+
             | ArrangementType.ShowLights -> 
                 combineShowLights project.Tracks i targetFolder
+
             | _ -> failwith "Unknown arrangement type."

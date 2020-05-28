@@ -16,7 +16,7 @@ module TrackList =
     open XmlUtils
     open Rocksmith2014Xml
 
-    /// The state of the program. MVU model.
+    /// Contains the open project and a status message
     type State = { Project : CombinerProject; StatusMessage : string }
 
     /// Initial state
@@ -433,13 +433,13 @@ module TrackList =
         DockPanel.create [
             DockPanel.children [
                 // Top Panel
-                DockPanel.create [
+                Grid.create [
                     DockPanel.dock Dock.Top
-                    DockPanel.children [
+                    Grid.columnDefinitions "auto,*,auto"
+                    Grid.children [
                         // Left Side Panel
                         StackPanel.create [
-                            StackPanel.dock Dock.Left
-                            StackPanel.orientation Orientation.Vertical
+                            Grid.column 0
                             StackPanel.children [
                                 // Top Buttons
                                 StackPanel.create [
@@ -464,14 +464,14 @@ module TrackList =
                                     ]
                                 ]
                                 // Bottom Button
-                                Button.create [
-                                    Button.content "Edit Common Tones"
-                                    Button.horizontalAlignment HorizontalAlignment.Center
-                                    Button.verticalAlignment VerticalAlignment.Center
-                                    Button.margin (15.0, 15.0, 15.0, 0.0)
-                                    Button.fontSize 18.0
-                                    // TODO: On Click
-                                ]
+                                //Button.create [
+                                //    Button.content "Edit Common Tones"
+                                //    Button.horizontalAlignment HorizontalAlignment.Center
+                                //    Button.verticalAlignment VerticalAlignment.Center
+                                //    Button.margin (15.0, 15.0, 15.0, 0.0)
+                                //    Button.fontSize 18.0
+                                //    // TODO: On Click
+                                //]
                                 ComboBox.create [
                                     ComboBox.dataItems state.Project.Templates
                                 ]
@@ -480,7 +480,7 @@ module TrackList =
 
                         // Right Side Panel
                         StackPanel.create [
-                            StackPanel.dock Dock.Right
+                            Grid.column 2
                             StackPanel.orientation Orientation.Horizontal
                             StackPanel.children [
                                 Button.create [
@@ -512,8 +512,6 @@ module TrackList =
                                 ]
                             ]
                         ]
-
-                        TextBlock.create []
                     ]
                 ]
 
@@ -525,13 +523,14 @@ module TrackList =
                 ]
 
                 // Bottom Panel
-                DockPanel.create [
+                Grid.create [
                     DockPanel.dock Dock.Bottom
-                    DockPanel.margin 15.0
-                    DockPanel.children [
+                    Grid.margin 15.0
+                    Grid.columnDefinitions "auto,*,auto"
+                    Grid.children [
                         // Left Side Panel
                         StackPanel.create [
-                            StackPanel.dock Dock.Left
+                            Grid.column 0
                             StackPanel.children [
                                 // Combine Audio Files Button
                                 Button.create [
@@ -553,7 +552,7 @@ module TrackList =
 
                         // Right Side Panel
                         StackPanel.create [
-                            StackPanel.dock Dock.Right
+                            Grid.column 2
                             StackPanel.orientation Orientation.Horizontal
                             StackPanel.spacing 10.0
                             StackPanel.children [
@@ -598,8 +597,6 @@ module TrackList =
                                 ]
                             ]
                         ]
-
-                        TextBlock.create []
                     ]
                 ]
 
