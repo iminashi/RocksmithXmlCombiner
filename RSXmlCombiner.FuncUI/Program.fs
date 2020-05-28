@@ -20,7 +20,7 @@ type MainWindow() as this =
         //this.VisualRoot.VisualRoot.Renderer.DrawFps <- true
         //this.VisualRoot.VisualRoot.Renderer.DrawDirtyRects <- true
 
-        Elmish.Program.mkProgram  (fun _ -> TrackList.init) TrackList.update TrackList.view
+        Elmish.Program.mkProgram  (fun () -> Shell.init) Shell.update Shell.view
         |> Program.withHost this
         |> Program.run
 
@@ -40,7 +40,6 @@ type App() =
         | _ -> ()
 
 module Program =
-
     [<EntryPoint>]
     let main(args: string[]) =
         AppBuilder

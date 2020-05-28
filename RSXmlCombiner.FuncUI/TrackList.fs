@@ -17,26 +17,10 @@ module TrackList =
     open Rocksmith2014Xml
 
     /// The state of the program. MVU model.
-    type State = {
-        Tracks : Track list
-        CommonTones : Map<string, string[]>
-        [<JsonIgnore>]
-        Templates : Arrangement list /// Name and type of arrangements that must be found on every track.
-        [<JsonIgnore>]
-        StatusMessage : string
-        CombinationTitle : string
-        CoercePhrases : bool
-        AddTrackNamesToLyrics : bool }
+    type State = { Project : CombinerProject; StatusMessage : string }
 
-    /// Initialization function.
-    let init = {
-        Tracks = []
-        Templates = []
-        CommonTones = Map.empty
-        StatusMessage = ""
-        CombinationTitle = ""
-        CoercePhrases = true
-        AddTrackNamesToLyrics = true }, Cmd.none
+    /// Initial state
+    let init = { Project = emptyProject; StatusMessage = "" }, Cmd.none
 
     // Message
     type Msg =
@@ -56,6 +40,7 @@ module TrackList =
     | ImportToolkitTemplate of fileNames : string[]
     | SelectCombinationTargetFolder
     | CombineArrangements of targetFolder : string
+    | ProjectArrangementsChanged
 
     let changeAudioFile track newFile = { track with AudioFile = Some newFile }
 
@@ -124,14 +109,16 @@ module TrackList =
                 | _ -> () // StatusMessage = "Unknown arrangement type for file {Path.GetFileName(arr)}";
 
             // Add any missing arrangements from the project's templates
-            if state.Templates.Length > 0 then
-                trackArrangements <- trackArrangements @ (getMissingArrangements trackArrangements state.Templates)
+            if state.Project.Templates.Length > 0 then
+                trackArrangements <- trackArrangements @ (getMissingArrangements trackArrangements state.Project.Templates)
 
             let song = RS2014Song.Load(instArr)
             let newTrack = createTrack song trackArrangements
-            let tracks, templates = updateTracksAndTemplates state.Tracks state.Templates trackArrangements
+            let tracks, templates = updateTracksAndTemplates state.Project.Tracks state.Project.Templates trackArrangements
 
-            { state with Tracks = tracks @ [ newTrack ]; Templates = templates }, Cmd.none
+            let updatedProject = { state.Project with Tracks = tracks @ [ newTrack ]; Templates = templates }
+
+            { state with Project = updatedProject }, Cmd.ofMsg ProjectArrangementsChanged
 
     /// Updates the model according to the message content.
     let update (msg: Msg) (state: State) =
@@ -145,7 +132,7 @@ module TrackList =
         | NewProject -> init
 
         | RemoveTrackAt index ->
-            { state with Tracks = state.Tracks |> List.except [ state.Tracks.[index] ]}, Cmd.none
+            { state with Project = { state.Project with Tracks = state.Project.Tracks |> List.except [ state.Project.Tracks.[index] ]}}, Cmd.none
 
         | ChangeAudioFile track ->
             let selectFiles = Dialogs.openFileDialog "Select Audio File" Dialogs.audioFileFilters false
@@ -154,8 +141,8 @@ module TrackList =
         | ChangeAudioFileResult (track, files) ->
             if files.Length > 0 then
                 let fileName = files.[0]
-                let newTracks = state.Tracks |> List.map (fun t -> if t = track then changeAudioFile t fileName else t) 
-                { state with Tracks = newTracks }, Cmd.none
+                let newTracks = state.Project.Tracks |> List.map (fun t -> if t = track then changeAudioFile t fileName else t) 
+                { state with Project = { state.Project with Tracks = newTracks } }, Cmd.none
             else
                 state, Cmd.none
 
@@ -170,7 +157,7 @@ module TrackList =
                 let foundArrangements = ToolkitImporter.import fileName
 
                 // Try to find an instrumental arrangement to read metadata from
-                let instArrType = foundArrangements |> Map.tryFindKey (fun key _ -> (key &&& InstrumentalArrangement) <> ArrangementType.Unknown)
+                let instArrType = foundArrangements |> Map.tryFindKey (fun key _ -> (key &&& instrumentalArrangement) <> ArrangementType.Unknown)
                 match instArrType with
                 | Some instArrType ->
                     let instArrFile, _ = foundArrangements.[instArrType]
@@ -193,13 +180,15 @@ module TrackList =
                     let mutable arrangements = foundArrangements |> Map.fold foldArrangements []
 
                     // Add any missing arrangements from the project's templates
-                    if state.Templates.Length > 0 then
-                        arrangements <- arrangements @ (getMissingArrangements arrangements state.Templates)
+                    if state.Project.Templates.Length > 0 then
+                        arrangements <- arrangements @ (getMissingArrangements arrangements state.Project.Templates)
 
                     let newTrack = createTrack instArr arrangements
-                    let tracks, templates = updateTracksAndTemplates state.Tracks state.Templates arrangements
+                    let tracks, templates = updateTracksAndTemplates state.Project.Tracks state.Project.Templates arrangements
 
-                    { state with Tracks = tracks @ [ newTrack ]; Templates = templates }, Cmd.none
+                    let updatedProject = { state.Project with Tracks = tracks @ [ newTrack ]; Templates = templates }
+
+                    { state with Project = updatedProject }, Cmd.ofMsg ProjectArrangementsChanged
                 | None ->
                     state, Cmd.none
             else
@@ -214,7 +203,7 @@ module TrackList =
                 // User canceled the dialog
                 state, Cmd.none
             else
-                let message = AudioCombiner.combineAudioFiles state.Tracks targetFile
+                let message = AudioCombiner.combineAudioFiles state.Project.Tracks targetFile
                 { state with StatusMessage = message }, Cmd.none
         
         | SelectCombinationTargetFolder ->
@@ -222,7 +211,7 @@ module TrackList =
             state, Cmd.OfAsync.perform (fun _ -> targetFolder) () (fun f -> CombineArrangements f)
 
         | CombineArrangements targetFolder ->
-            ArrangementCombiner.combineArrangements state.Tracks targetFolder state.AddTrackNamesToLyrics state.CombinationTitle state.CoercePhrases
+            ArrangementCombiner.combineArrangements state.Project targetFolder
             { state with StatusMessage = "Arrangements combined." }, Cmd.none
 
         | SelectSaveProjectFile ->
@@ -235,7 +224,7 @@ module TrackList =
                 options.Converters.Add(JsonFSharpConverter())
                 options.PropertyNamingPolicy <- JsonNamingPolicy.CamelCase
                 options.WriteIndented <- true
-                let json = JsonSerializer.Serialize(state, options)
+                let json = JsonSerializer.Serialize(state.Project, options)
                 File.WriteAllText(fileName, json)
             state, Cmd.none
 
@@ -253,15 +242,15 @@ module TrackList =
                 // TODO: Check if all the files still exist
 
                 let json = File.ReadAllText(fileName)
-                let newState = JsonSerializer.Deserialize<State>(json, options)
+                let openedProject = JsonSerializer.Deserialize<CombinerProject>(json, options)
 
                 // Generate the arrangement templates from the first track
                 let templates = 
-                    match newState.Tracks |> List.tryHead with
+                    match openedProject.Tracks |> List.tryHead with
                     | Some head -> head.Arrangements |> List.map createTemplate
                     | None -> []
 
-                { newState with Templates = templates }, Cmd.none
+                { state with Project = { openedProject with Templates = templates } }, Cmd.ofMsg ProjectArrangementsChanged
             else
                 state, Cmd.none
 
@@ -484,7 +473,7 @@ module TrackList =
                                     // TODO: On Click
                                 ]
                                 ComboBox.create [
-                                    ComboBox.dataItems state.Templates
+                                    ComboBox.dataItems state.Project.Templates
                                 ]
                             ]
                         ]
@@ -550,7 +539,7 @@ module TrackList =
                                     Button.verticalAlignment VerticalAlignment.Center
                                     Button.fontSize 20.0
                                     Button.onClick (fun _ -> dispatch SelectTargetAudioFile)
-                                    Button.isEnabled (state.Tracks.Length > 1 && state.Tracks |> List.forall (fun track -> track.AudioFile |> Option.isSome))
+                                    Button.isEnabled (state.Project.Tracks.Length > 1 && state.Project.Tracks |> List.forall (fun track -> track.AudioFile |> Option.isSome))
                                 ]
                                 // Combine Audio Error Text
                                 //TextBlock.create [
@@ -571,7 +560,7 @@ module TrackList =
                                 // Combined Title Text Box
                                 TextBox.create [
                                     TextBox.watermark "Combined Title"
-                                    TextBox.text state.CombinationTitle
+                                    TextBox.text state.Project.CombinationTitle
                                     // TODO: Binding
                                     TextBox.verticalAlignment VerticalAlignment.Center
                                     TextBox.width 200.0
@@ -585,14 +574,14 @@ module TrackList =
                                         // Coerce Phrases Check Box
                                         CheckBox.create [
                                             CheckBox.content "Coerce to 100 Phrases"
-                                            CheckBox.isChecked state.CoercePhrases
+                                            CheckBox.isChecked state.Project.CoercePhrases
                                             // TODO: Binding
                                             ToolTip.tip "Will combine phrases and sections so the resulting arrangements have a max of 100 phrases and sections."
                                         ]
                                         // Add Track Names to Lyrics Check Box
                                         CheckBox.create [
                                             CheckBox.content "Add Track Names to Lyrics"
-                                            CheckBox.isChecked state.AddTrackNamesToLyrics
+                                            CheckBox.isChecked state.Project.AddTrackNamesToLyrics
                                             // TODO: Binding
                                             CheckBox.margin (0.0, 5.0, 0.0, 0.0) 
                                         ]
@@ -605,7 +594,7 @@ module TrackList =
                                     Button.onClick (fun _ -> dispatch SelectCombinationTargetFolder)
                                     Button.verticalAlignment VerticalAlignment.Center
                                     Button.fontSize 20.0
-                                    Button.isEnabled (state.Tracks.Length > 1)
+                                    Button.isEnabled (state.Project.Tracks.Length > 1)
                                 ]
                             ]
                         ]
@@ -618,7 +607,7 @@ module TrackList =
                 ScrollViewer.create [
                     ScrollViewer.content (
                         StackPanel.create [
-                            StackPanel.children (List.mapi (fun i item -> trackTemplate item i dispatch :> IView) state.Tracks)
+                            StackPanel.children (List.mapi (fun i item -> trackTemplate item i dispatch :> IView) state.Project.Tracks)
                         ] 
                     )
                 ]

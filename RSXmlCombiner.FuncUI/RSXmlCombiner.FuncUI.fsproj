@@ -15,6 +15,8 @@
     <Compile Include="AudioCombiner.fs" />
     <Compile Include="ToolkitImporter.fs" />
     <Compile Include="TrackList.fs" />
+    <Compile Include="CommonToneEditor.fs" />
+    <Compile Include="Shell.fs" />
     <Compile Include="Program.fs" />
     <AvaloniaResource Include="**\*.xaml" />
   </ItemGroup>

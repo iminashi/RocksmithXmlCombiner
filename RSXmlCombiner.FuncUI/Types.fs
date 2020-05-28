@@ -1,5 +1,7 @@
 ﻿namespace RSXmlCombiner.FuncUI
 
+open System.Text.Json.Serialization
+
 module Types =
     open System
     open Rocksmith2014Xml
@@ -14,8 +16,11 @@ module Types =
         | JVocals =    0b000100000
         | ShowLights = 0b001000000
 
-    let InstrumentalArrangement = ArrangementType.Lead ||| ArrangementType.Rhythm ||| ArrangementType.Combo ||| ArrangementType.Bass
-    let VocalsArrangement = ArrangementType.Vocals ||| ArrangementType.JVocals
+    let instrumentalArrangement = ArrangementType.Lead ||| ArrangementType.Rhythm ||| ArrangementType.Combo ||| ArrangementType.Bass
+    let vocalsArrangement = ArrangementType.Vocals ||| ArrangementType.JVocals
+
+    let isInstrumental arrType =
+        (arrType &&& instrumentalArrangement) <> ArrangementType.Unknown
 
     type ArrangementOrdering = Main | Alternative | Bonus
 
@@ -67,3 +72,20 @@ module Types =
         AudioFile : string option
         SongLength : float32
         Arrangements : Arrangement list }
+
+    type CombinerProject = {
+        Tracks : Track list
+        CommonTones : Map<string, string[]>
+        [<JsonIgnore>]
+        Templates : Arrangement list /// Name and type of arrangements that must be found on every track.
+        CombinationTitle : string
+        CoercePhrases : bool
+        AddTrackNamesToLyrics : bool }
+
+    let emptyProject = {
+        Tracks = []
+        Templates = []
+        CommonTones = Map.empty
+        CombinationTitle = ""
+        CoercePhrases = true
+        AddTrackNamesToLyrics = true }

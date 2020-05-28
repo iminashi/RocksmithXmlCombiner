@@ -108,15 +108,15 @@ module ArrangementCombiner =
 
             combiner.Save(Path.Combine(targetFolder, sprintf "Combined_%s_RS2.xml" (arrType.ToString())), coercePhrases)
 
-    /// Combines all the arrangements in the track list.
-    let combineArrangements (tracks : Track list) targetFolder addTitles combinedTitle coercePhrases  =
-        let nArrangements = tracks.Head.Arrangements.Length
+    /// Combines all the arrangements in the project.
+    let combineArrangements project targetFolder  =
+        let nArrangements = project.Tracks.Head.Arrangements.Length
         for i in 0..nArrangements - 1 do
-            match tracks.Head.Arrangements.[i].ArrangementType with
+            match project.Tracks.Head.Arrangements.[i].ArrangementType with
             | ArrangementType.Lead | ArrangementType.Rhythm | ArrangementType.Combo | ArrangementType.Bass ->
-                combineInstrumental tracks i targetFolder combinedTitle coercePhrases
+                combineInstrumental project.Tracks i targetFolder project.CombinationTitle project.CoercePhrases
             | ArrangementType.Vocals | ArrangementType.JVocals ->
-                combineVocals tracks i targetFolder addTitles
+                combineVocals project.Tracks i targetFolder project.AddTrackNamesToLyrics
             | ArrangementType.ShowLights -> 
-                combineShowLights tracks i targetFolder
+                combineShowLights project.Tracks i targetFolder
             | _ -> failwith "Unknown arrangement type."
