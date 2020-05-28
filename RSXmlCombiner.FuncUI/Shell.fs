@@ -15,6 +15,7 @@ module Shell =
     type Msg =
         | TrackListMsg of TrackList.Msg
         | CommonTonesMsg of CommonToneEditor.Msg
+        | UpdateCommonTones
 
     let init : State * Cmd<Msg> =
         let trackListState, _ = TrackList.init
@@ -27,8 +28,6 @@ module Shell =
             match trlMsg with
             | TrackList.Msg.ProjectArrangementsChanged ->
                 let tonesState, cmd = CommonToneEditor.update (CommonToneEditor.Msg.TemplatesUpdated(state.trackListState.Project.Templates)) state.commonTonesState
-                //let newProject = {state.trackListState.Project with CommonTones = newCommonTones }
-                //let newTonesState = { state.commonTonesState with Project = newProject }
 
                 { state with commonTonesState = tonesState }, Cmd.map CommonTonesMsg cmd
             | _ ->
@@ -41,6 +40,12 @@ module Shell =
 
             { state with commonTonesState = tonesState }, Cmd.map CommonTonesMsg cmd
 
+        | UpdateCommonTones ->
+            let newTrackListState = 
+                { state.trackListState with Project = {state.trackListState.Project with CommonTones = state.commonTonesState.CommonTones } }
+
+            { state with trackListState = newTrackListState }, Cmd.none
+
     let view (state: State) (dispatch) =
         DockPanel.create
             [ DockPanel.children
@@ -49,6 +54,7 @@ module Shell =
                       TabControl.viewItems
                           [ TabItem.create
                                 [ TabItem.header "Project"
+                                  TabItem.onIsSelectedChanged (fun selected -> if selected then dispatch UpdateCommonTones)
                                   TabItem.content (TrackList.view state.trackListState (TrackListMsg >> dispatch)) ]
                             TabItem.create
                                 [ TabItem.header "Common Tones"

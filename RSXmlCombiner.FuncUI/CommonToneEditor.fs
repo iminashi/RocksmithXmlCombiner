@@ -11,23 +11,34 @@ module CommonToneEditor =
     type State = { CommonTones : Map<string, string[]> }
 
     type Msg =
-        | OkClick
         | TemplatesUpdated of Arrangement list
+        | UpdateToneName of string * int * string
 
-    let private updateCommonTones =
-            Seq.filter (fun t -> t.ArrangementType |> Types.isInstrumental )
-            >> Seq.map (fun t -> t.Name, Array.create 5 "" )
-            >> Map.ofSeq
+    let private updateCommonTones commonTones templates =
+            let newCommonTones = 
+                templates
+                |> Seq.filter (fun t -> t.ArrangementType |> Types.isInstrumental )
+                |> Seq.map (fun t -> t.Name, Array.create 5 "")
+                |> Map.ofSeq
+
+            // Preserve the current tone names
+            commonTones
+            |> Map.fold (fun commonTones name toneNames -> commonTones |> Map.add name toneNames) newCommonTones
 
     let init : State * Cmd<Msg> = { CommonTones = Map.empty }, Cmd.none
 
     let update (msg: Msg) (state: State): State * Cmd<_> =
         match msg with
-        | OkClick ->
-            state, Cmd.ofMsg OkClick
-
         | TemplatesUpdated templates ->
-            { state with CommonTones = updateCommonTones templates }, Cmd.none
+            { state with CommonTones = updateCommonTones state.CommonTones templates }, Cmd.none
+
+        | UpdateToneName (title, index, newName) ->
+            let names = Map.find title state.CommonTones
+            names.[index] <- newName
+            let newTones = state.CommonTones |> Map.add title names
+
+            { state with CommonTones = newTones }, Cmd.none
+            
 
     let private tonesTemplate title (tones : string[]) dispatch =
         let leftSide = [ "Base"; "Tone A"; "Tone B"; "Tone C"; "Tone D" ]
@@ -56,8 +67,7 @@ module CommonToneEditor =
                         TextBox.margin 2.0
                         TextBox.text (tones.[i])
                         // TODO: Enabled
-                        // TODO: Binding
-                        //TextBox.onTextChanged (fun text -> )
+                        TextBox.onTextChanged (fun text -> dispatch (UpdateToneName(title, i, text)))
                     ]
             ]
         ]
@@ -76,9 +86,8 @@ module CommonToneEditor =
                         |> Map.toList
                         |> List.map (fun (title, tones) -> tonesTemplate title tones dispatch :> IView))
                 ]
-                Button.create [
-                    //Button.onClick (fun _ -> dispatch OkClick)
-                    Button.content "OK"
-                ]
+                //Button.create [
+                //    Button.content "OK"
+                //]
             ]
         ]

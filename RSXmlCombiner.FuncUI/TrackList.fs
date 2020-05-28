@@ -254,8 +254,10 @@ module TrackList =
             else
                 state, Cmd.none
 
+        | ProjectArrangementsChanged -> state, Cmd.none
+
     /// Creates the view for an arrangement.
-    let private arrangementTemplate (arr : Arrangement) dispatch =
+    let private arrangementTemplate (arr : Arrangement) (commonTones : Map<string, string[]>) dispatch =
         let fileName = arr.FileName |> Option.defaultValue ""
         let color =
             match arr.FileName with
@@ -303,12 +305,18 @@ module TrackList =
                         // Optional Tone Controls
                         match arr.Data with
                         | Some instArr ->
+                            let getToneNames() = 
+                                match Map.tryFind arr.Name commonTones with
+                                | Some names -> names |> Array.filter (fun name -> not (String.IsNullOrEmpty(name)))
+                                | None -> [||]
+
                             // Base Tone Combo Box
                             yield ComboBox.create [
                                 ComboBox.width 100.0
                                 ComboBox.height 30.0
                                 ComboBox.isVisible (instArr.ToneNames.Length = 0)
-                                // Items?
+                                ComboBox.dataItems (getToneNames())
+                                // TODO: on changed
                                 ToolTip.tip "Base Tone"
                             ]
                             // Edit Replacement Tones Button
@@ -316,8 +324,8 @@ module TrackList =
                                 Button.content "Tones"
                                 Button.width 100.0
                                 Button.isVisible (instArr.ToneNames.Length > 0)
-                                // on click
-                                // warning color
+                                // TODO: on click
+                                // TODO: warning color
                             ]
                         | _ -> () // Do nothing
                     ]
@@ -326,7 +334,7 @@ module TrackList =
         ]
        
     /// Creates the view for a track.
-    let private trackTemplate (track : Track) index dispatch =
+    let private trackTemplate (track : Track) index commonTones dispatch =
         Border.create [
             Border.classes [ "track" ]
             Border.borderBrush Brushes.SlateGray
@@ -419,7 +427,7 @@ module TrackList =
                                 StackPanel.create [
                                     StackPanel.orientation Orientation.Horizontal
                                     StackPanel.spacing 10.0
-                                    StackPanel.children (List.map (fun item -> arrangementTemplate item dispatch :> IView) track.Arrangements)
+                                    StackPanel.children (List.map (fun item -> arrangementTemplate item commonTones dispatch :> IView) track.Arrangements)
                                 ] 
                             ]
                         ]
@@ -604,7 +612,7 @@ module TrackList =
                 ScrollViewer.create [
                     ScrollViewer.content (
                         StackPanel.create [
-                            StackPanel.children (List.mapi (fun i item -> trackTemplate item i dispatch :> IView) state.Project.Tracks)
+                            StackPanel.children (List.mapi (fun i item -> trackTemplate item i state.Project.CommonTones dispatch :> IView) state.Project.Tracks)
                         ] 
                     )
                 ]
