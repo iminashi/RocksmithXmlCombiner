@@ -236,7 +236,7 @@ module TrackList =
                 match rootName, arrangement.ArrangementType with
                 // For instrumental arrangements, create arrangement from the file
                 | "song", t when isInstrumental t ->
-                    let newArr = { createInstrumental fileName None with ArrangementType = t }
+                    let newArr = { createInstrumental fileName None with ArrangementType = t; Name = arrangement.Name }
 
                     let changeArrangement arrList =
                         arrList
