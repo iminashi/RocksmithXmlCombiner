@@ -19,18 +19,21 @@ module ArrangementCombiner =
 
     /// Inserts the given title at the beginning of the given vocals arrangement.
     let private addTitle (vocals : Vocals) (title : string) (startBeat : float32) =
-        let mutable displayTime = 3.0f
-        let startTime = startBeat
+        let defaultDisplayTime = 3f
 
-        if vocals.Count > 0 && vocals.[0].Time < startTime + displayTime then
-            displayTime <- startTime - vocals.[0].Time - 0.1f
+        let displayTime =
+            // Make sure that the title does not overlap with existing lyrics
+            if vocals.Count > 0 && vocals.[0].Time < startBeat + defaultDisplayTime then
+                startBeat - vocals.[0].Time - 0.1f
+            else
+                defaultDisplayTime
 
         // Don't add the title if it will be displayed for less than half a second
         if displayTime > 0.5f then
             let words = title.Split(' ')
             let length = displayTime / (float32 words.Length)
             for i = words.Length - 1 downto 0 do
-                vocals.Insert(0, Vocal(startTime + (length * (float32 i)), length, words.[i]))
+                vocals.Insert(0, Vocal(startBeat + (length * (float32 i)), length, words.[i]))
 
     // Combines the vocals arrangements if at least one track has one.
     let private combineVocals (tracks : Track list) index targetFolder addTitles =
