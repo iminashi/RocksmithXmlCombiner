@@ -1,8 +1,8 @@
 ﻿namespace RSXmlCombiner.FuncUI
 
-open System.Text.Json.Serialization
-
 module Types =
+    open System.Text.Json.Serialization
+    open System.IO
     open System
     open Rocksmith2014Xml
 
@@ -92,3 +92,20 @@ module Types =
         CombinationTitle = ""
         CoercePhrases = true
         AddTrackNamesToLyrics = true }
+
+    let getTones fileName =
+        let song = RS2014Song.Load(fileName)
+
+        let bt = song.ToneBase |> Option.ofObj
+        let toneNames =
+            match song.ToneChanges with
+            | tones when tones.Count > 0 ->
+                [
+                    if not (String.IsNullOrEmpty(song.ToneA)) then yield song.ToneA
+                    if not (String.IsNullOrEmpty(song.ToneB)) then yield song.ToneB
+                    if not (String.IsNullOrEmpty(song.ToneC)) then yield song.ToneC
+                    if not (String.IsNullOrEmpty(song.ToneD)) then yield song.ToneD
+                ]
+            | _ -> []
+
+        bt, toneNames

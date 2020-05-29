@@ -57,4 +57,17 @@
   <Style Selector="Button /template/ ContentPresenter">
     <Setter Property="Border.CornerRadius" Value="4"/>
   </Style>
+
+  <!--<Style Selector="Border.statusbar TextBlock">
+    <Style.Animations>
+      <Animation Duration="0:0:1">
+        <KeyFrame Cue="0%">
+          <Setter Property="Foreground" Value="Red"/>
+        </KeyFrame>
+        <KeyFrame Cue="100%">
+          <Setter Property="Foreground" Value="Gray"/>
+        </KeyFrame>
+      </Animation>
+    </Style.Animations>
+  </Style>-->
 </Styles>

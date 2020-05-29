@@ -26,8 +26,8 @@ module Shell =
         match msg with
         | TrackListMsg trlMsg ->
             match trlMsg with
-            | TrackList.Msg.ProjectArrangementsChanged ->
-                let tonesState, cmd = CommonToneEditor.update (CommonToneEditor.Msg.TemplatesUpdated(state.trackListState.Project.Templates)) state.commonTonesState
+            | TrackList.Msg.ProjectArrangementsChanged(templates, commonTones) ->
+                let tonesState, cmd = CommonToneEditor.update (CommonToneEditor.Msg.TemplatesUpdated(templates, commonTones)) state.commonTonesState
 
                 { state with commonTonesState = tonesState }, Cmd.map CommonTonesMsg cmd
             | _ ->

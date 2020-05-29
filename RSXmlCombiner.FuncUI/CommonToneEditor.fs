@@ -11,8 +11,8 @@ module CommonToneEditor =
     type State = { CommonTones : Map<string, string[]> }
 
     type Msg =
-        | TemplatesUpdated of Arrangement list
-        | UpdateToneName of string * int * string
+        | TemplatesUpdated of templates : Arrangement list * commonTones : Map<string, string[]>
+        | UpdateToneName of title:string * index:int * newName:string
 
     let private updateCommonTones commonTones templates =
             let newCommonTones = 
@@ -29,11 +29,11 @@ module CommonToneEditor =
 
     let update (msg: Msg) (state: State): State * Cmd<_> =
         match msg with
-        | TemplatesUpdated templates ->
-            { state with CommonTones = updateCommonTones state.CommonTones templates }, Cmd.none
+        | TemplatesUpdated (templates, commonTones) ->
+            { state with CommonTones = updateCommonTones commonTones templates }, Cmd.none
 
         | UpdateToneName (title, index, newName) ->
-            let names = Map.find title state.CommonTones
+            let names = state.CommonTones |> Map.find title
             names.[index] <- newName
             let newTones = state.CommonTones |> Map.add title names
 

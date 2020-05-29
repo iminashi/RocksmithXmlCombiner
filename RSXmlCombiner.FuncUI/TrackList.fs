@@ -41,7 +41,10 @@ module TrackList =
     | ImportToolkitTemplate of fileNames : string[]
     | SelectCombinationTargetFolder
     | CombineArrangements of targetFolder : string
-    | ProjectArrangementsChanged
+    | ProjectArrangementsChanged of templates : Arrangement list * commonTones : Map<string, string[]>
+    | SelectArrangementFile of trackIndex : int * arrIndex : int
+    | ChangeArrangementFile of trackIndex : int * arrIndex : int * string[]
+    | UpdateCombinationTitle of title : string
 
     let changeAudioFile track newFile = { track with AudioFile = Some newFile }
 
@@ -121,7 +124,7 @@ module TrackList =
 
             let updatedProject = { state.Project with Tracks = tracks @ [ newTrack ]; Templates = templates }
 
-            { state with Project = updatedProject }, Cmd.ofMsg ProjectArrangementsChanged
+            { state with Project = updatedProject }, Cmd.ofMsg (ProjectArrangementsChanged(templates, updatedProject.CommonTones))
 
     /// Updates the model according to the message content.
     let update (msg: Msg) (state: State) =
@@ -187,7 +190,7 @@ module TrackList =
 
                     let updatedProject = { state.Project with Tracks = tracks @ [ newTrack ]; Templates = templates }
 
-                    { state with Project = updatedProject }, Cmd.ofMsg ProjectArrangementsChanged
+                    { state with Project = updatedProject }, Cmd.ofMsg (ProjectArrangementsChanged(templates, updatedProject.CommonTones))
                 | None ->
                     state, Cmd.none
             else
@@ -249,14 +252,71 @@ module TrackList =
                     | Some head -> head.Arrangements |> List.map createTemplate
                     | None -> []
 
-                { state with Project = { openedProject with Templates = templates } }, Cmd.ofMsg ProjectArrangementsChanged
+                { state with Project = { openedProject with Templates = templates } }, Cmd.ofMsg (ProjectArrangementsChanged(templates, openedProject.CommonTones))
             else
                 state, Cmd.none
 
         | ProjectArrangementsChanged -> state, Cmd.none
 
+        | SelectArrangementFile (trackIndex, arrIndex) ->
+            let files = Dialogs.openFileDialog "Select Arrangement File" Dialogs.xmlFileFilter false
+            state, Cmd.OfAsync.perform (fun _ -> files) () (fun f -> ChangeArrangementFile (trackIndex, arrIndex, f))
+
+        | ChangeArrangementFile (trackIndex, arrIndex, files) ->
+            if files.Length > 0 then
+                let fileName = files.[0]
+                let rootName = XmlHelper.GetRootElementName(fileName)
+                let arrangement = state.Project.Tracks.[trackIndex].Arrangements.[arrIndex]
+
+                match rootName, arrangement.ArrangementType with
+                // For instrumental arrangements, read the tones from the file
+                | "song", t when isInstrumental t ->
+                    let baseTone, toneNames = getTones fileName
+                    let data = {
+                        Ordering = (arrangement.Data |> Option.get).Ordering
+                        BaseTone = baseTone
+                        ToneNames = toneNames
+                        ToneReplacements = Map.empty }
+
+                    let newArr = 
+                        { FileName = Some fileName
+                          ArrangementType = t
+                          Name = arrangement.Name
+                          Data = Some data }
+
+                    let changeArrangement arrList =
+                        arrList
+                        |> List.mapi (fun i arr -> if i = arrIndex then newArr else arr)
+
+                    let updatedTracks =
+                        state.Project.Tracks
+                        |> List.mapi (fun i t -> if i = trackIndex then { t with Arrangements = changeArrangement t.Arrangements } else t)
+ 
+                    { state with Project = { state.Project with Tracks = updatedTracks } }, Cmd.none
+
+                // For vocals and showl lights, just change the file name
+                | "vocals", ArrangementType.Vocals
+                | "vocals", ArrangementType.JVocals
+                | "showlights", ArrangementType.ShowLights ->
+                    let changeFile arrList =
+                        arrList
+                        |> List.mapi (fun i arr -> if i = arrIndex then { arr with FileName = Some fileName } else arr)
+
+                    let newTracks =
+                        state.Project.Tracks
+                        |> List.mapi (fun i t -> if i = trackIndex then { t with Arrangements = changeFile t.Arrangements } else t)
+ 
+                    { state with Project = { state.Project with Tracks = newTracks } }, Cmd.none
+
+                | _ -> { state with StatusMessage = "Incorrect arrangement type" }, Cmd.none
+            else
+                state, Cmd.none
+        
+        | UpdateCombinationTitle newTitle ->
+            { state with Project = { state.Project with CombinationTitle = newTitle } }, Cmd.none
+
     /// Creates the view for an arrangement.
-    let private arrangementTemplate (arr : Arrangement) (commonTones : Map<string, string[]>) dispatch =
+    let private arrangementTemplate (arr : Arrangement) trackIndex arrIndex (commonTones : Map<string, string[]>) dispatch =
         let fileName = arr.FileName |> Option.defaultValue ""
         let color =
             match arr.FileName with
@@ -284,22 +344,15 @@ module TrackList =
                             StackPanel.orientation Orientation.Horizontal
                             StackPanel.spacing 2.0
                             StackPanel.children [
-                                if isInstrumental arr.ArrangementType then
-                                    yield Path.create [
-                                        Path.fill color
-                                        Path.data Icons.pick
-                                    ]
-                                else if isVocals arr.ArrangementType then
-                                    yield Path.create [
-                                        Path.fill color
-                                        Path.data Icons.microphone
-                                    ]
-                                else
-                                    yield Path.create [
-                                        Path.fill color
-                                        Path.data Icons.spotlight
-                                    ]
-                                yield TextBlock.create [
+                                Path.create [
+                                    Path.fill color
+                                    Path.data (
+                                        match arr.ArrangementType with
+                                        | t when isInstrumental t -> Icons.pick
+                                        | t when isVocals t -> Icons.microphone
+                                        | _ -> Icons.spotlight)
+                                ]
+                                TextBlock.create [
                                     TextBlock.classes [ "h2"]
                                     TextBlock.text arr.Name
                                     TextBlock.foreground color
@@ -319,7 +372,8 @@ module TrackList =
                                 match fileName with
                                     | s when s.Length > 0 -> "Change..."
                                     | _ -> "Open..."
-                            ) 
+                            )
+                            Button.onClick (fun _ -> dispatch (SelectArrangementFile(trackIndex, arrIndex)))
                         ]
 
                         // Optional Tone Controls
@@ -327,7 +381,7 @@ module TrackList =
                         | Some instArr ->
                             let getToneNames() = 
                                 match Map.tryFind arr.Name commonTones with
-                                | Some names -> names |> Array.filter (fun name -> not (String.IsNullOrEmpty(name)))
+                                | Some names -> names.AsSpan(1).ToArray() |> Array.filter (fun name -> not (String.IsNullOrEmpty(name)))
                                 | None -> [||]
 
                             // Base Tone Combo Box
@@ -336,7 +390,9 @@ module TrackList =
                                 ComboBox.height 30.0
                                 ComboBox.isVisible (instArr.ToneNames.Length = 0)
                                 ComboBox.dataItems (getToneNames())
+                                ComboBox.selectedItem instArr.BaseTone
                                 // TODO: on changed
+                                // TODO: hidden/disabled on first track
                                 ToolTip.tip "Base Tone"
                             ]
                             // Edit Replacement Tones Button
@@ -386,6 +442,7 @@ module TrackList =
 
                                 // Audio Part
                                 StackPanel.create [
+                                    StackPanel.width 150.0
                                     StackPanel.classes [ "part" ]
                                     StackPanel.children [
                                         TextBlock.create [
@@ -409,40 +466,44 @@ module TrackList =
                                             Button.width 100.0
                                             Button.onClick (fun _ -> dispatch (ChangeAudioFile(track)))
                                         ]
+
+                                        // Trim Part
+                                        StackPanel.create [
+                                            //StackPanel.width 90.0
+                                            StackPanel.classes [ "part" ]
+                                            StackPanel.orientation Orientation.Horizontal
+                                            StackPanel.horizontalAlignment HorizontalAlignment.Center
+                                            StackPanel.children [
+                                                // Hide if this is the first track
+                                                if index <> 0 then
+                                                    yield TextBlock.create [ 
+                                                        TextBlock.classes [ "h2" ]
+                                                        TextBlock.text "Trim:"
+                                                        TextBlock.verticalAlignment VerticalAlignment.Center
+                                                    ]
+                                                    yield NumericUpDown.create [
+                                                        NumericUpDown.value (track.TrimAmount |> double)
+                                                        NumericUpDown.minimum 0.0
+                                                        NumericUpDown.verticalAlignment VerticalAlignment.Center
+                                                        NumericUpDown.width 75.0
+                                                        NumericUpDown.formatString "F3"
+                                                        ToolTip.tip "Sets the amount of time in seconds to be trimmed from the start of the audio and each arrangements."
+                                                    ]
+                                                    yield TextBlock.create [
+                                                        TextBlock.margin (2.0, 0.0, 0.0, 0.0)
+                                                        TextBlock.text "s"
+                                                        TextBlock.verticalAlignment VerticalAlignment.Center
+                                                    ]
+                                            ]
+                                        ]
                                     ]
                                 ]
 
-                                // Trim Part
-                                StackPanel.create [
-                                    StackPanel.width 90.0
-                                    StackPanel.classes [ "part" ]
-                                    StackPanel.children [
-                                        // Hide if this is the first track
-                                        if index <> 0 then
-                                            yield TextBlock.create [ 
-                                                TextBlock.classes [ "h2" ]
-                                                TextBlock.text "Trim:"
-                                            ]
-                                            yield NumericUpDown.create [
-                                                NumericUpDown.value (track.TrimAmount |> double)
-                                                NumericUpDown.minimum 0.0
-                                                NumericUpDown.horizontalAlignment HorizontalAlignment.Left
-                                                NumericUpDown.width 75.0
-                                                NumericUpDown.formatString "F3"
-                                                ToolTip.tip "Sets the amount of time in seconds to be trimmed from the start of the audio and the arrangements."
-                                            ]
-                                            yield TextBlock.create [
-                                                TextBlock.margin (10.0, 0.0, 0.0, 0.0)
-                                                TextBlock.text "seconds"
-                                            ]
-                                    ]
-                                ]
-
-                                // Arrangements
+                                   // Arrangements
                                 StackPanel.create [
                                     StackPanel.orientation Orientation.Horizontal
                                     StackPanel.spacing 10.0
-                                    StackPanel.children (List.map (fun item -> arrangementTemplate item commonTones dispatch :> IView) track.Arrangements)
+                                    StackPanel.children (List.mapi (fun i item -> arrangementTemplate item index i commonTones dispatch :> IView) track.Arrangements)
                                 ] 
                             ]
                         ]
@@ -542,6 +603,9 @@ module TrackList =
 
                 // Status Bar with Message
                 Border.create [
+                    Border.classes [ "statusbar" ]
+                    Border.minHeight 25.0
+                    Border.background "Black"
                     Border.dock Dock.Bottom
                     Border.padding 5.0
                     Border.child (TextBlock.create [ TextBlock.text state.StatusMessage ])
@@ -563,6 +627,7 @@ module TrackList =
                                     Button.verticalAlignment VerticalAlignment.Center
                                     Button.fontSize 20.0
                                     Button.onClick (fun _ -> dispatch SelectTargetAudioFile)
+                                    // Only enable the button if there is more than one track and every track has an audio file
                                     Button.isEnabled (state.Project.Tracks.Length > 1 && state.Project.Tracks |> List.forall (fun track -> track.AudioFile |> Option.isSome))
                                 ]
                                 // Combine Audio Error Text
@@ -585,7 +650,7 @@ module TrackList =
                                 TextBox.create [
                                     TextBox.watermark "Combined Title"
                                     TextBox.text state.Project.CombinationTitle
-                                    // TODO: Binding
+                                    TextBox.onTextChanged (fun text -> dispatch (UpdateCombinationTitle text))
                                     TextBox.verticalAlignment VerticalAlignment.Center
                                     TextBox.width 200.0
                                     ToolTip.tip "Combined Title"
