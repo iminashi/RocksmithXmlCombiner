@@ -18,10 +18,10 @@ module TrackList =
     open Rocksmith2014Xml
 
     /// Contains the open project and a status message
-    type State = { Project : CombinerProject; StatusMessage : string }
+    type State = { Project : CombinerProject }
 
     /// Initial state
-    let init = { Project = emptyProject; StatusMessage = "" }, Cmd.none
+    let init = { Project = emptyProject }, Cmd.none
 
     // Message
     type Msg =
@@ -36,6 +36,9 @@ module TrackList =
     | ProjectArrangementsChanged of templates : Arrangement list * commonTones : Map<string, string[]>
     | SelectArrangementFile of trackIndex : int * arrIndex : int
     | ChangeArrangementFile of trackIndex : int * arrIndex : int * string[]
+    | ArrangementBaseToneChanged of trackIndex : int * arrIndex : int * baseTone : string
+    | StatusMessage of string
+    | UpdateCommonTones of Map<string, string[]>
 
     let changeAudioFile track newFile = { track with AudioFile = Some newFile }
 
@@ -87,7 +90,8 @@ module TrackList =
         let instArrFile = arrangementFileNames |> Array.tryFind (fun a -> XmlHelper.ValidateRootElement(a, "song"))
         match instArrFile with
         | None -> 
-            { state with StatusMessage = "Please select at least one instrumental Rocksmith arrangement." }, Cmd.none
+            state, Cmd.ofMsg (StatusMessage "Please select at least one instrumental Rocksmith arrangement.")
+
         | Some instArr ->
             let alreadyHasShowlights (arrs : Arrangement list) =
                 arrs |> List.exists (fun a -> a.ArrangementType = ArrangementType.ShowLights)
@@ -120,6 +124,8 @@ module TrackList =
     /// Updates the model according to the message content.
     let update (msg: Msg) (state: State) =
         match msg with
+        | StatusMessage -> state, Cmd.none
+
         | AddTrack arrangements -> addNewTrack state arrangements
 
         | NewProject -> init
@@ -146,7 +152,7 @@ module TrackList =
                 let foundArrangements = ToolkitImporter.import fileName
 
                 // Try to find an instrumental arrangement to read metadata from
-                let instArrType = foundArrangements |> Map.tryFindKey (fun key _ -> (key &&& instrumentalArrangement) <> ArrangementType.Unknown)
+                let instArrType = foundArrangements |> Map.tryFindKey (fun arrType _ -> isInstrumental arrType)
                 match instArrType with
                 | Some instArrType ->
                     let instArrFile, _ = foundArrangements.[instArrType]
@@ -157,7 +163,7 @@ module TrackList =
                             | t when isInstrumental t -> createInstrumental fileName baseTone
                             | _ -> { FileName = Some fileName
                                      ArrangementType = arrType
-                                     Name = arrType.ToString()
+                                     Name = arrTypeHumanized arrType
                                      Data = None }
                         arrangement :: state
 
@@ -249,7 +255,7 @@ module TrackList =
  
                     { state with Project = { state.Project with Tracks = updatedTracks } }, Cmd.none
 
-                // For vocals and showl lights, just change the file name
+                // For vocals and show lights, just change the file name
                 | "vocals", ArrangementType.Vocals
                 | "vocals", ArrangementType.JVocals
                 | "showlights", ArrangementType.ShowLights ->
@@ -263,9 +269,31 @@ module TrackList =
  
                     { state with Project = { state.Project with Tracks = newTracks } }, Cmd.none
 
-                | _ -> { state with StatusMessage = "Incorrect arrangement type" }, Cmd.none
+                | _ -> state, Cmd.ofMsg (StatusMessage "Incorrect arrangement type")
             else
                 state, Cmd.none
+
+        | ArrangementBaseToneChanged (trackIndex, arrIndex, baseTone) ->
+            let arrangement = state.Project.Tracks.[trackIndex].Arrangements.[arrIndex]
+            let data = {
+                Ordering = (arrangement.Data |> Option.get).Ordering
+                BaseTone = Some baseTone
+                ToneNames = (arrangement.Data |> Option.get).ToneNames
+                ToneReplacements = Map.empty }
+
+            let changeArrangement arrList =
+                arrList
+                |> List.mapi (fun i arr -> if i = arrIndex then { arr with Data = Some data } else arr)
+
+            let updatedTracks =
+                state.Project.Tracks
+                |> List.mapi (fun i t -> if i = trackIndex then { t with Arrangements = changeArrangement t.Arrangements } else t)
+
+            { state with Project = { state.Project with Tracks = updatedTracks } }, Cmd.none
+
+        | UpdateCommonTones commonTones ->
+            { state with Project = { state.Project with CommonTones = commonTones } }, Cmd.none
+
 
     /// Creates the view for an arrangement.
     let private arrangementTemplate (arr : Arrangement) trackIndex arrIndex (commonTones : Map<string, string[]>) dispatch =
@@ -314,7 +342,7 @@ module TrackList =
                         // File Name
                         yield TextBlock.create [
                             if fileName |> Option.isSome then
-                                yield TextBlock.text (System.IO.Path.GetFileNameWithoutExtension(fileName |> Option.get))
+                                yield TextBlock.text (Path.GetFileNameWithoutExtension(fileName |> Option.get))
                             else
                                 yield TextBlock.text "No file"
                             yield TextBlock.foreground Brushes.DarkGray
@@ -328,18 +356,19 @@ module TrackList =
                         | Some instArr ->
                             let getToneNames() = 
                                 match Map.tryFind arr.Name commonTones with
-                                | Some names -> names.AsSpan(1).ToArray() |> Array.filter (fun name -> not (String.IsNullOrEmpty(name)))
+                                | Some names ->
+                                    let lastNonNullIndex = names |> Array.findIndexBack (fun t -> not (String.IsNullOrEmpty(t)))
+                                    names.[1..lastNonNullIndex] // Exclude the first one (Base Tone)
                                 | None -> [||]
 
                             // Base Tone Combo Box
                             yield ComboBox.create [
                                 ComboBox.width 100.0
                                 ComboBox.height 30.0
-                                ComboBox.isVisible (instArr.ToneNames.Length = 0)
+                                ComboBox.isVisible (instArr.ToneNames.Length = 0 && trackIndex <> 0)
                                 ComboBox.dataItems (getToneNames())
-                                ComboBox.selectedItem instArr.BaseTone
-                                // TODO: on changed
-                                // TODO: hidden/disabled on first track
+                                ComboBox.selectedItem (instArr.BaseTone |> Option.defaultValue "")
+                                ComboBox.onSelectedItemChanged (fun obj -> dispatch (ArrangementBaseToneChanged(trackIndex, arrIndex, string obj)))
                                 ToolTip.tip "Base Tone"
                             ]
                             // Edit Replacement Tones Button
@@ -451,7 +480,7 @@ module TrackList =
                                     ]
                                 ]
 
-                                   // Arrangements
+                                // Arrangements
                                 StackPanel.create [
                                     StackPanel.orientation Orientation.Horizontal
                                     StackPanel.spacing 10.0

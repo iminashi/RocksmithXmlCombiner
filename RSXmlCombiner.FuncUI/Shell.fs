@@ -6,6 +6,7 @@ module Shell =
     open Avalonia
     open Avalonia.Controls
     open Avalonia.Input
+    open Avalonia.Media
     open Avalonia.FuncUI.DSL
     open Avalonia.FuncUI
 
@@ -37,10 +38,14 @@ module Shell =
         | TrackListMsg trlMsg ->
             match trlMsg with
             | TrackList.Msg.ProjectArrangementsChanged(templates, commonTones) ->
-                let tonesState, cmd = CommonToneEditor.update (CommonToneEditor.Msg.TemplatesUpdated(templates, commonTones)) state.commonTonesState
+                let tonesState, _ = CommonToneEditor.update (CommonToneEditor.Msg.TemplatesUpdated(templates, commonTones)) state.commonTonesState
                 let newBcState, _ = BottomControls.update (BottomControls.Msg.TracksUpdated(state.trackListState.Project.Tracks)) state.bottomControlsState
 
-                { state with commonTonesState = tonesState; bottomControlsState = newBcState }, Cmd.map CommonTonesMsg cmd
+                { state with commonTonesState = tonesState; bottomControlsState = newBcState }, Cmd.none
+
+            | TrackList.Msg.StatusMessage message ->
+                { state with StatusMessage = message }, Cmd.none
+
             | _ ->
                 let trackListState, cmd = TrackList.update trlMsg state.trackListState
                 let newBcState, _ = BottomControls.update (BottomControls.Msg.TracksUpdated(trackListState.Project.Tracks)) state.bottomControlsState
@@ -53,10 +58,9 @@ module Shell =
             { state with commonTonesState = tonesState }, Cmd.map CommonTonesMsg cmd
 
         | UpdateCommonTones ->
-            let newTrackListState = 
-                { state.trackListState with Project = {state.trackListState.Project with CommonTones = state.commonTonesState.CommonTones } }
+            let newTrackListState, cmd = TrackList.update (TrackList.Msg.UpdateCommonTones(state.commonTonesState.CommonTones)) state.trackListState
 
-            { state with trackListState = newTrackListState }, Cmd.none
+            { state with trackListState = newTrackListState }, Cmd.map TrackListMsg cmd
 
         | TopControlsMsg msg ->
             match msg with
@@ -113,7 +117,7 @@ module Shell =
             TabControl.tabStripPlacement Dock.Top
             TabControl.viewItems [
                 TabItem.create [
-                    TabItem.header "Project"
+                    TabItem.header "Tracks"
                     TabItem.onIsSelectedChanged (fun selected -> if selected then dispatch UpdateCommonTones)
                     TabItem.content (
                         DockPanel.create [
@@ -123,8 +127,8 @@ module Shell =
                                 // Status Bar with Message
                                 Border.create [
                                     Border.classes [ "statusbar" ]
-                                    Border.minHeight 25.0
-                                    Border.background "Black"
+                                    Border.minHeight 28.0
+                                    Border.background "#222222"
                                     Border.dock Dock.Bottom
                                     Border.padding 5.0
                                     Border.child (TextBlock.create [ TextBlock.text state.StatusMessage ])

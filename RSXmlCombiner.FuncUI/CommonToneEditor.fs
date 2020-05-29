@@ -34,8 +34,7 @@ module CommonToneEditor =
 
         | UpdateToneName (title, index, newName) ->
             let names = state.CommonTones |> Map.find title
-            names.[index] <- newName
-            let newTones = state.CommonTones |> Map.add title names
+            let newTones = state.CommonTones |> Map.add title (names |> Array.mapi (fun i name -> if i = index then newName else name))
 
             { state with CommonTones = newTones }, Cmd.none
             

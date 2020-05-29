@@ -109,3 +109,9 @@ module Types =
             | _ -> []
 
         bt, toneNames
+
+    let arrTypeHumanized arrType =
+        match arrType with
+        | ArrangementType.ShowLights -> "Show Lights"
+        | ArrangementType.JVocals -> "J-Vocals"
+        | _ -> string arrType

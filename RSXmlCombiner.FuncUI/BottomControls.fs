@@ -4,10 +4,8 @@ module BottomControls =
     open Elmish
     open Avalonia.Controls
     open Avalonia.FuncUI.DSL
-    open Avalonia.Input
     open Types
     open Avalonia.Layout
-    open Avalonia.FuncUI.Types
 
     type State = { Tracks : Track list; CombinationTitle : string }
 
@@ -78,6 +76,7 @@ module BottomControls =
                         TextBox.create [
                             TextBox.watermark "Combined Title"
                             TextBox.text state.CombinationTitle
+                            TextBox.verticalAlignment VerticalAlignment.Center
                             TextBox.onTextChanged (fun text -> dispatch (UpdateCombinationTitle text))
                             TextBox.width 200.0
                             ToolTip.tip "Combined Title"
