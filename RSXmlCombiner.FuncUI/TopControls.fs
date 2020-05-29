@@ -1,11 +1,10 @@
 ﻿namespace RSXmlCombiner.FuncUI
 
-open Avalonia.Input
-
 module TopControls =
     open Elmish
     open Avalonia.Controls
     open Avalonia.FuncUI.DSL
+    open Avalonia.Input
     open Types
     open Avalonia.Layout
     open Avalonia.FuncUI.Types

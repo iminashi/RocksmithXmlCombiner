@@ -10,9 +10,12 @@
     <Setter Property="FontSize" Value="18"/>
   </Style>
 
+  <!--<Style Selector="Path.close:pointerover">
+    <Setter Property="Fill" Value="Red"/>
+  </Style>-->
+
   <Style Selector="Button.close:pointerover">
     <Setter Property="Background" Value="DarkRed"/>
-    <Setter Property="Foreground" Value="White"/>
   </Style>
 
   <Style Selector="Button.close /template/ ContentPresenter">

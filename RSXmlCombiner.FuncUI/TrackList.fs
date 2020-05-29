@@ -32,15 +32,10 @@ module TrackList =
     | SaveProject of fileName : string
     | ChangeAudioFile of track : Track
     | ChangeAudioFileResult of track : Track * newFile:string[]
-    | SelectTargetAudioFile
-    | CombineAudioFiles of targetFile : string
     | ImportToolkitTemplate of fileNames : string[]
-    | SelectCombinationTargetFolder
-    | CombineArrangements of targetFolder : string
     | ProjectArrangementsChanged of templates : Arrangement list * commonTones : Map<string, string[]>
     | SelectArrangementFile of trackIndex : int * arrIndex : int
     | ChangeArrangementFile of trackIndex : int * arrIndex : int * string[]
-    | UpdateCombinationTitle of title : string
 
     let changeAudioFile track newFile = { track with AudioFile = Some newFile }
 
@@ -155,7 +150,6 @@ module TrackList =
                 match instArrType with
                 | Some instArrType ->
                     let instArrFile, _ = foundArrangements.[instArrType]
-                    let instArr = RS2014Song.Load(instArrFile)
                     
                     let foldArrangements (state : Arrangement list) arrType (fileName, baseTone) =
                         let arrangement =
@@ -173,6 +167,7 @@ module TrackList =
                         // Add any missing arrangements from the project's templates
                         |> addMissingArrangements state.Project.Templates
 
+                    let instArr = RS2014Song.Load(instArrFile)
                     let newTrack = createTrack instArr arrangements
                     let tracks, templates = updateTracksAndTemplates state.Project.Tracks state.Project.Templates arrangements
 
@@ -183,26 +178,6 @@ module TrackList =
                     state, Cmd.none
             else
                 state, Cmd.none
-
-        | SelectTargetAudioFile -> 
-            let targetFile = Dialogs.saveFileDialog "Select Target File" Dialogs.audioFileFilters (Some "combo.wav")
-            state, Cmd.OfAsync.perform (fun _ -> targetFile) () (fun f -> CombineAudioFiles f)
-
-        | CombineAudioFiles targetFile ->
-            if String.IsNullOrEmpty targetFile then
-                // User canceled the dialog
-                state, Cmd.none
-            else
-                let message = AudioCombiner.combineAudioFiles state.Project.Tracks targetFile
-                { state with StatusMessage = message }, Cmd.none
-        
-        | SelectCombinationTargetFolder ->
-            let targetFolder = Dialogs.openFolderDialog "Select Target Folder"
-            state, Cmd.OfAsync.perform (fun _ -> targetFolder) () (fun f -> CombineArrangements f)
-
-        | CombineArrangements targetFolder ->
-            ArrangementCombiner.combineArrangements state.Project targetFolder
-            { state with StatusMessage = "Arrangements combined." }, Cmd.none
 
         | SaveProject fileName ->
             if not (String.IsNullOrEmpty fileName) then
@@ -291,20 +266,17 @@ module TrackList =
                 | _ -> { state with StatusMessage = "Incorrect arrangement type" }, Cmd.none
             else
                 state, Cmd.none
-        
-        | UpdateCombinationTitle newTitle ->
-            { state with Project = { state.Project with CombinationTitle = newTitle } }, Cmd.none
 
     /// Creates the view for an arrangement.
     let private arrangementTemplate (arr : Arrangement) trackIndex arrIndex (commonTones : Map<string, string[]>) dispatch =
-        let fileName = arr.FileName |> Option.defaultValue ""
+        let fileName = arr.FileName
         let color =
-            match arr.FileName with
+            match fileName with
             | Some ->
                 match arr.ArrangementType with
-                | ArrangementType.Lead -> SolidColorBrush.Parse "#ff9242" :> ISolidColorBrush
-                | ArrangementType.Rhythm | ArrangementType.Combo -> SolidColorBrush.Parse "#1ea334" :> ISolidColorBrush
-                | ArrangementType.Bass -> SolidColorBrush.Parse "#0383b5" :> ISolidColorBrush
+                | ArrangementType.Lead -> CustomBrushes.lead
+                | ArrangementType.Rhythm | ArrangementType.Combo -> CustomBrushes.rhythm
+                | ArrangementType.Bass -> CustomBrushes.bass
                 | ArrangementType.Vocals | ArrangementType.JVocals -> Brushes.Yellow
                 | ArrangementType.ShowLights -> Brushes.Violet
                 | _ -> Brushes.GhostWhite
@@ -322,7 +294,7 @@ module TrackList =
                         // Icon & Name
                         yield StackPanel.create [
                             StackPanel.orientation Orientation.Horizontal
-                            StackPanel.spacing 2.0
+                            StackPanel.spacing 4.0
                             StackPanel.children [
                                 Path.create [
                                     Path.fill color
@@ -339,21 +311,16 @@ module TrackList =
                                 ]
                             ]
                         ]
-                        // Short File Name
+                        // File Name
                         yield TextBlock.create [
-                            TextBlock.text (System.IO.Path.GetFileNameWithoutExtension(fileName))
-                            TextBlock.foreground Brushes.DarkGray
-                            ToolTip.tip fileName
-                        ]
-                        // Open File Button
-                        yield Button.create [
-                            Button.width 100.0
-                            Button.content (
-                                match fileName with
-                                    | s when s.Length > 0 -> "Change..."
-                                    | _ -> "Open..."
-                            )
-                            Button.onClick (fun _ -> dispatch (SelectArrangementFile(trackIndex, arrIndex)))
+                            if fileName |> Option.isSome then
+                                yield TextBlock.text (System.IO.Path.GetFileNameWithoutExtension(fileName |> Option.get))
+                            else
+                                yield TextBlock.text "No file"
+                            yield TextBlock.foreground Brushes.DarkGray
+                            yield TextBlock.cursor (Cursor(StandardCursorType.Hand))
+                            yield TextBlock.onTapped (fun _ -> dispatch (SelectArrangementFile(trackIndex, arrIndex)))
+                            yield ToolTip.tip (fileName |> Option.defaultValue "Click to select file")
                         ]
 
                         // Optional Tone Controls
@@ -411,6 +378,17 @@ module TrackList =
                             StackPanel.orientation Orientation.Horizontal
                             StackPanel.children [
                                 // Delete button
+                                //Path.create [
+                                //    Path.data Icons.close
+                                //    Path.fill "Red"
+                                //    Path.margin (0.0, 0.0, 20.0, 0.0)
+                                //    Path.verticalAlignment VerticalAlignment.Center
+                                //    Path.onTapped (fun _ -> dispatch (RemoveTrackAt index))
+                                //    Path.classes [ "close" ]
+                                //    Path.cursor (Cursor(StandardCursorType.Hand))
+                                //    Path.renderTransform (ScaleTransform(1.5, 1.5))
+                                //]
+    
                                 Button.create [
                                     Button.verticalAlignment VerticalAlignment.Center
                                     Button.fontSize 18.0
@@ -432,19 +410,13 @@ module TrackList =
                                         ]
                                         // Audio File Name
                                         TextBlock.create [
+                                            TextBlock.horizontalAlignment HorizontalAlignment.Center
                                             TextBlock.foreground Brushes.DarkGray
                                             TextBlock.maxWidth 100.0
-                                            TextBlock.text (track.AudioFile |> Option.defaultValue "" |> Path.GetFileName)
-                                            ToolTip.tip (track.AudioFile |> Option.defaultValue "")
-                                        ]
-                                        // Open Audio File Button
-                                        Button.create [
-                                            Button.content (
-                                                match track.AudioFile with
-                                                | None -> "Open..."
-                                                | Some _ -> "Change...")
-                                            Button.width 100.0
-                                            Button.onClick (fun _ -> dispatch (ChangeAudioFile(track)))
+                                            TextBlock.cursor (Cursor(StandardCursorType.Hand))
+                                            TextBlock.onTapped (fun _ -> dispatch (ChangeAudioFile(track)))
+                                            TextBlock.text (track.AudioFile |> Option.defaultValue "None selected" |> Path.GetFileName)
+                                            ToolTip.tip (track.AudioFile |> Option.defaultValue "Click to select a file.")
                                         ]
 
                                         // Trim Part
@@ -493,112 +465,14 @@ module TrackList =
         ]
 
     /// Creates the track list view.
-    let view (state: State) (dispatch : Msg -> Unit) : IView list =
-        [
-            // Status Bar with Message
-            Border.create [
-                Border.classes [ "statusbar" ]
-                Border.minHeight 25.0
-                Border.background "Black"
-                Border.dock Dock.Bottom
-                Border.padding 5.0
-                Border.child (TextBlock.create [ TextBlock.text state.StatusMessage ])
-            ]
-
-            // Bottom Panel
-            Grid.create [
-                DockPanel.dock Dock.Bottom
-                Grid.margin 15.0
-                Grid.columnDefinitions "auto,*,auto"
-                Grid.children [
-                    // Left Side Panel
-                    StackPanel.create [
-                        Grid.column 0
-                        StackPanel.children [
-                            // Combine Audio Files Button
-                            Button.create [
-                                Button.content "Combine Audio"
-                                Button.verticalAlignment VerticalAlignment.Center
-                                Button.fontSize 20.0
-                                Button.onClick (fun _ -> dispatch SelectTargetAudioFile)
-                                // Only enable the button if there is more than one track and every track has an audio file
-                                Button.isEnabled (state.Project.Tracks.Length > 1 && state.Project.Tracks |> List.forall (fun track -> track.AudioFile |> Option.isSome))
-                            ]
-                            // Combine Audio Error Text
-                            //TextBlock.create [
-                            //    TextBlock.fontSize 20.0
-                            //    TextBlock.foreground "red"
-                            //    TextBlock.horizontalAlignment HorizontalAlignment.Center
-                            //    TextBlock.text "ERROR"
-                            //]
-                        ]
-                    ]
-
-                    // Right Side Panel
-                    StackPanel.create [
-                        Grid.column 2
-                        StackPanel.orientation Orientation.Horizontal
-                        StackPanel.spacing 10.0
-                        StackPanel.children [
-                            // Combined Title Text Box
-                            TextBox.create [
-                                TextBox.watermark "Combined Title"
-                                TextBox.text state.Project.CombinationTitle
-                                TextBox.onTextChanged (fun text -> dispatch (UpdateCombinationTitle text))
-                                TextBox.verticalAlignment VerticalAlignment.Center
-                                TextBox.width 200.0
-                                ToolTip.tip "Combined Title"
-                            ]
-
-                            // Options Panel
-                            StackPanel.create [
-                                StackPanel.verticalAlignment VerticalAlignment.Center
-                                StackPanel.children [
-                                    // Coerce Phrases Check Box
-                                    CheckBox.create [
-                                        CheckBox.content "Coerce to 100 Phrases"
-                                        CheckBox.isChecked state.Project.CoercePhrases
-                                        // TODO: Binding
-                                        ToolTip.tip "Will combine phrases and sections so the resulting arrangements have a max of 100 phrases and sections."
-                                    ]
-                                    // Add Track Names to Lyrics Check Box
-                                    CheckBox.create [
-                                        CheckBox.content "Add Track Names to Lyrics"
-                                        CheckBox.isChecked state.Project.AddTrackNamesToLyrics
-                                        // TODO: Binding
-                                        CheckBox.margin (0.0, 5.0, 0.0, 0.0) 
-                                    ]
-                                ]
-                            ]
-
-                            // Combine Arrangements Button
-                            Button.create [
-                                Button.content "Combine Arrangements"
-                                Button.onClick (fun _ -> dispatch SelectCombinationTargetFolder)
-                                Button.verticalAlignment VerticalAlignment.Center
-                                Button.fontSize 20.0
-                                Button.isEnabled (state.Project.Tracks.Length > 1)
-                            ]
-                        ]
-                    ]
-                ]
-            ]
-
-            // List of tracks
-            ScrollViewer.create [
-                ScrollViewer.content (
-                    StackPanel.create [
-                        StackPanel.children (List.mapi (fun i item -> trackTemplate item i state.Project.CommonTones dispatch :> IView) state.Project.Tracks)
-                    ] 
-                )
-            ]
-            
-            //ListBox.create [
-            //    ListBox.dataItems state.tracks
-            //    ListBox.margin 5.0
-            //    ListBox.itemTemplate (DataTemplateView<Track>.create(fun item -> trackTemplate item dispatch))
-            //    //ListBox.virtualizationMode ItemVirtualizationMode.None
-            //]
+    let view (state: State) (dispatch : Msg -> Unit) =
+        // List of tracks
+        ScrollViewer.create [
+            ScrollViewer.content (
+                StackPanel.create [
+                    StackPanel.children (List.mapi (fun i item -> trackTemplate item i state.Project.CommonTones dispatch :> IView) state.Project.Tracks)
+                ] 
+            )
         ]
         
         

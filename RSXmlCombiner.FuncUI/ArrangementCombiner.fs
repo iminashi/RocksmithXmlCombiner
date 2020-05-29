@@ -19,7 +19,7 @@ module ArrangementCombiner =
 
     /// Inserts the given title at the beginning of the given vocals arrangement.
     let private addTitle (vocals : Vocals) (title : string) (startBeat : float32) =
-        let defaultDisplayTime = 3f
+        let defaultDisplayTime = 3.0f
 
         let displayTime =
             // Make sure that the title does not overlap with existing lyrics

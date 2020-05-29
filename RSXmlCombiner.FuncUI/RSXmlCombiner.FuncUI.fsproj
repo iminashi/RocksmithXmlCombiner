@@ -9,10 +9,12 @@
     <Page Include="Styles.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Compile Include="CustomBrushes.fs" />
     <Compile Include="Icons.fs" />
     <Compile Include="Types.fs" />
     <Compile Include="Dialogs.fs" />
     <Compile Include="TopControls.fs" />
+    <Compile Include="BottomControls.fs" />
     <Compile Include="ArrangementCombiner.fs" />
     <Compile Include="AudioCombiner.fs" />
     <Compile Include="ToolkitImporter.fs" />
