@@ -79,8 +79,8 @@ module TrackList =
 
         (updateTracks tracks templates), templates
 
-    let createTrack (song : RS2014Song) arrangements =
-        { Title = song.Title
+    let createTrack (song : RS2014Song) arrangements title =
+        { Title = title
           AudioFile = None
           SongLength = song.SongLength
           TrimAmount = song.StartBeat
@@ -114,7 +114,7 @@ module TrackList =
                 |> addMissingArrangements state.Project.Templates
 
             let song = RS2014Song.Load(instArr)
-            let newTrack = createTrack song arrangements
+            let newTrack = createTrack song arrangements song.Title
             let tracks, templates = updateTracksAndTemplates state.Project.Tracks state.Project.Templates arrangements
 
             let updatedProject = { state.Project with Tracks = tracks @ [ newTrack ]; Templates = templates }
@@ -153,7 +153,7 @@ module TrackList =
             if files.Length > 0 then
                 let fileName = files.[0]
 
-                let foundArrangements = ToolkitImporter.import fileName
+                let foundArrangements, title = ToolkitImporter.import fileName
 
                 // Try to find an instrumental arrangement to read metadata from
                 let instArrType = foundArrangements |> Map.tryFindKey (fun arrType _ -> isInstrumental arrType)
@@ -178,7 +178,7 @@ module TrackList =
                         |> addMissingArrangements state.Project.Templates
 
                     let instArr = RS2014Song.Load(instArrFile)
-                    let newTrack = createTrack instArr arrangements
+                    let newTrack = createTrack instArr arrangements title
                     let tracks, templates = updateTracksAndTemplates state.Project.Tracks state.Project.Templates arrangements
 
                     let updatedProject = { state.Project with Tracks = tracks @ [ newTrack ]; Templates = templates }
