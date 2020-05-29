@@ -37,8 +37,8 @@ module Shell =
         match msg with
         | TrackListMsg trlMsg ->
             match trlMsg with
-            | TrackList.Msg.ProjectArrangementsChanged(templates, commonTones) ->
-                let tonesState, _ = CommonToneEditor.update (CommonToneEditor.Msg.TemplatesUpdated(templates, commonTones)) state.commonTonesState
+            | TrackList.Msg.ProjectArrangementsChanged(templates) ->
+                let tonesState, _ = CommonToneEditor.update (CommonToneEditor.Msg.TemplatesUpdated(templates)) state.commonTonesState
                 let newBcState, _ = BottomControls.update (BottomControls.Msg.TracksUpdated(state.trackListState.Project.Tracks)) state.bottomControlsState
 
                 { state with commonTonesState = tonesState; bottomControlsState = newBcState }, Cmd.none
@@ -77,9 +77,10 @@ module Shell =
 
                 { state with trackListState = trackListState }, Cmd.map TrackListMsg cmd
             | TopControls.Msg.NewProject ->
-                let trackListState, cmd = TrackList.update (TrackList.Msg.NewProject) state.trackListState
+                let trackListState, _ = TrackList.update (TrackList.Msg.NewProject) state.trackListState
+                let commonTonesState, _ = CommonToneEditor.update (CommonToneEditor.Msg.NewProject) state.commonTonesState
 
-                { state with trackListState = trackListState }, Cmd.map TrackListMsg cmd
+                { state with trackListState = trackListState; commonTonesState = commonTonesState }, Cmd.none
             | TopControls.Msg.SaveProject fileName ->
                 let trackListState, cmd = TrackList.update (TrackList.Msg.SaveProject(fileName)) state.trackListState
 

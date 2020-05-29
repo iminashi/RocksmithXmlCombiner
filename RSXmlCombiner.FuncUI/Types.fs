@@ -99,6 +99,7 @@ module Types =
         let bt = song.ToneBase |> Option.ofObj
         let toneNames =
             match song.ToneChanges with
+            | null -> []
             | tones when tones.Count > 0 ->
                 [
                     if not (String.IsNullOrEmpty(song.ToneA)) then yield song.ToneA

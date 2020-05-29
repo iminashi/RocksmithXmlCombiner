@@ -30,10 +30,10 @@ module TrackList =
     | NewProject
     | OpenProject of fileNames : string[]
     | SaveProject of fileName : string
-    | ChangeAudioFile of track : Track
-    | ChangeAudioFileResult of track : Track * newFile:string[]
+    | ChangeAudioFile of trackIndex : int
+    | ChangeAudioFileResult of trackIndex : int * newFile:string[]
     | ImportToolkitTemplate of fileNames : string[]
-    | ProjectArrangementsChanged of templates : Arrangement list * commonTones : Map<string, string[]>
+    | ProjectArrangementsChanged of templates : Arrangement list
     | SelectArrangementFile of trackIndex : int * arrIndex : int
     | ChangeArrangementFile of trackIndex : int * arrIndex : int * string[]
     | ArrangementBaseToneChanged of trackIndex : int * arrIndex : int * baseTone : string
@@ -43,7 +43,7 @@ module TrackList =
     let changeAudioFile track newFile = { track with AudioFile = Some newFile }
 
     let createTemplate arr =
-        { Name = arr.Name; ArrangementType = arr.ArrangementType; FileName = None; Data = None }
+        { Name = arrTypeHumanized arr.ArrangementType; ArrangementType = arr.ArrangementType; FileName = None; Data = None }
 
     let updateTemplates (current : Arrangement list) (arrangements : Arrangement list) =
         let newTemplates =
@@ -119,28 +119,32 @@ module TrackList =
 
             let updatedProject = { state.Project with Tracks = tracks @ [ newTrack ]; Templates = templates }
 
-            { state with Project = updatedProject }, Cmd.ofMsg (ProjectArrangementsChanged(templates, updatedProject.CommonTones))
+            { state with Project = updatedProject }, Cmd.ofMsg (ProjectArrangementsChanged(templates))
 
     /// Updates the model according to the message content.
     let update (msg: Msg) (state: State) =
         match msg with
         | StatusMessage -> state, Cmd.none
 
-        | AddTrack arrangements -> addNewTrack state arrangements
+        | AddTrack fileNames -> 
+            if fileNames.Length > 0 then
+                addNewTrack state fileNames
+            else
+                state, Cmd.none
 
         | NewProject -> init
 
         | RemoveTrackAt index ->
             { state with Project = { state.Project with Tracks = state.Project.Tracks |> List.except [ state.Project.Tracks.[index] ]}}, Cmd.none
 
-        | ChangeAudioFile track ->
+        | ChangeAudioFile trackIndex ->
             let selectFiles = Dialogs.openFileDialog "Select Audio File" Dialogs.audioFileFilters false
-            state, Cmd.OfAsync.perform (fun _ -> selectFiles) track (fun files -> ChangeAudioFileResult(track, files))
+            state, Cmd.OfAsync.perform (fun _ -> selectFiles) trackIndex (fun files -> ChangeAudioFileResult(trackIndex, files))
 
-        | ChangeAudioFileResult (track, files) ->
+        | ChangeAudioFileResult (trackIndex, files) ->
             if files.Length > 0 then
                 let fileName = files.[0]
-                let newTracks = state.Project.Tracks |> List.map (fun t -> if t = track then changeAudioFile t fileName else t) 
+                let newTracks = state.Project.Tracks |> List.mapi (fun i t -> if i = trackIndex then changeAudioFile t fileName else t) 
                 { state with Project = { state.Project with Tracks = newTracks } }, Cmd.none
             else
                 state, Cmd.none
@@ -179,7 +183,7 @@ module TrackList =
 
                     let updatedProject = { state.Project with Tracks = tracks @ [ newTrack ]; Templates = templates }
 
-                    { state with Project = updatedProject }, Cmd.ofMsg (ProjectArrangementsChanged(templates, updatedProject.CommonTones))
+                    { state with Project = updatedProject }, Cmd.ofMsg (ProjectArrangementsChanged(templates))
                 | None ->
                     state, Cmd.none
             else
@@ -213,7 +217,7 @@ module TrackList =
                     | Some head -> head.Arrangements |> List.map createTemplate
                     | None -> []
 
-                { state with Project = { openedProject with Templates = templates } }, Cmd.ofMsg (ProjectArrangementsChanged(templates, openedProject.CommonTones))
+                { state with Project = { openedProject with Templates = templates } }, Cmd.ofMsg (ProjectArrangementsChanged(templates))
             else
                 state, Cmd.none
 
@@ -230,20 +234,9 @@ module TrackList =
                 let arrangement = state.Project.Tracks.[trackIndex].Arrangements.[arrIndex]
 
                 match rootName, arrangement.ArrangementType with
-                // For instrumental arrangements, read the tones from the file
+                // For instrumental arrangements, create arrangement from the file
                 | "song", t when isInstrumental t ->
-                    let baseTone, toneNames = getTones fileName
-                    let data = {
-                        Ordering = (arrangement.Data |> Option.get).Ordering
-                        BaseTone = baseTone
-                        ToneNames = toneNames
-                        ToneReplacements = Map.empty }
-
-                    let newArr = 
-                        { FileName = Some fileName
-                          ArrangementType = t
-                          Name = arrangement.Name
-                          Data = Some data }
+                    let newArr = { createInstrumental fileName None with ArrangementType = t }
 
                     let changeArrangement arrList =
                         arrList
@@ -357,8 +350,9 @@ module TrackList =
                             let getToneNames() = 
                                 match Map.tryFind arr.Name commonTones with
                                 | Some names ->
-                                    let lastNonNullIndex = names |> Array.findIndexBack (fun t -> not (String.IsNullOrEmpty(t)))
-                                    names.[1..lastNonNullIndex] // Exclude the first one (Base Tone)
+                                    match names |> Array.tryFindIndexBack (fun t -> not (String.IsNullOrEmpty(t))) with
+                                    | Some lastNonNullIndex -> names.[1..lastNonNullIndex] // Exclude the first one (Base Tone)
+                                    | None -> names.[1..]
                                 | None -> [||]
 
                             // Base Tone Combo Box
@@ -443,7 +437,7 @@ module TrackList =
                                             TextBlock.foreground Brushes.DarkGray
                                             TextBlock.maxWidth 100.0
                                             TextBlock.cursor (Cursor(StandardCursorType.Hand))
-                                            TextBlock.onTapped (fun _ -> dispatch (ChangeAudioFile(track)))
+                                            TextBlock.onTapped (fun _ -> dispatch (ChangeAudioFile(index)))
                                             TextBlock.text (track.AudioFile |> Option.defaultValue "None selected" |> Path.GetFileName)
                                             ToolTip.tip (track.AudioFile |> Option.defaultValue "Click to select a file.")
                                         ]

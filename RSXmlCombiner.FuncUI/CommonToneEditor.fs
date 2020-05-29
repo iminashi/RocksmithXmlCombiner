@@ -11,8 +11,9 @@ module CommonToneEditor =
     type State = { CommonTones : Map<string, string[]> }
 
     type Msg =
-        | TemplatesUpdated of templates : Arrangement list * commonTones : Map<string, string[]>
+        | TemplatesUpdated of templates : Arrangement list
         | UpdateToneName of title:string * index:int * newName:string
+        | NewProject
 
     let private updateCommonTones commonTones templates =
             let newCommonTones = 
@@ -29,8 +30,8 @@ module CommonToneEditor =
 
     let update (msg: Msg) (state: State): State * Cmd<_> =
         match msg with
-        | TemplatesUpdated (templates, commonTones) ->
-            { state with CommonTones = updateCommonTones commonTones templates }, Cmd.none
+        | TemplatesUpdated (templates) ->
+            { state with CommonTones = updateCommonTones state.CommonTones templates }, Cmd.none
 
         | UpdateToneName (title, index, newName) ->
             let names = state.CommonTones |> Map.find title
@@ -38,6 +39,8 @@ module CommonToneEditor =
 
             { state with CommonTones = newTones }, Cmd.none
             
+        | NewProject -> 
+            { state with CommonTones = Map.empty }, Cmd.none
 
     let private tonesTemplate title (tones : string[]) dispatch =
         let leftSide = [| "Base"; "Tone A"; "Tone B"; "Tone C"; "Tone D" |]
@@ -65,7 +68,7 @@ module CommonToneEditor =
                         TextBox.margin 2.0
                         TextBox.text (tones.[i])
                         // TODO: Enabled
-                        TextBox.onTextChanged (fun text -> dispatch (UpdateToneName(title, i, text)))
+                        TextBox.onTextChanged ((fun text -> dispatch (UpdateToneName(title, i, text))), SubPatchOptions.OnChangeOf title)
                     ]
             ]
         ]
@@ -82,7 +85,8 @@ module CommonToneEditor =
                     WrapPanel.children (
                         state.CommonTones
                         |> Map.toList
-                        |> List.map (fun (title, tones) -> tonesTemplate title tones dispatch :> IView))
+                        |> List.map (fun (title, tones) -> tonesTemplate title tones dispatch :> IView)
+                    )
                 ]
             ]
         ]
