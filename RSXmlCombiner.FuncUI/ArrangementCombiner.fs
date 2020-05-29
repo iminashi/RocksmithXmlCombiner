@@ -66,23 +66,27 @@ module ArrangementCombiner =
                         tone.Name <- kv.Value
 
         // Make sure that there are no duplicate names in the defined tones
-        let mutable uniqueTones : Set<string> = Set.empty
-        if not (song.ToneB |> isNull) then uniqueTones <- uniqueTones.Add song.ToneB
-        if not (song.ToneC |> isNull) then uniqueTones <- uniqueTones.Add song.ToneC
-        if not (song.ToneD |> isNull) then uniqueTones <- uniqueTones.Add song.ToneD
-        if not (song.ToneA |> isNull) then uniqueTones <- uniqueTones.Remove song.ToneA
-
+        let uniqueTones : Set<string> = Set.ofSeq [
+            if not (song.ToneA |> String.IsNullOrEmpty) then yield song.ToneA
+            if not (song.ToneB |> String.IsNullOrEmpty) then yield song.ToneB
+            if not (song.ToneC |> String.IsNullOrEmpty) then yield song.ToneC
+            if not (song.ToneD |> String.IsNullOrEmpty) then yield song.ToneD
+        ]
+        
+        song.ToneA <- null
         song.ToneB <- null
         song.ToneC <- null
         song.ToneD <- null
+        
+        let songType = song.GetType()
 
         // Set the properties using reflection
-        let mutable toneChar = 'B'
-        let songType = song.GetType()
-        for toneName in uniqueTones do
+        let folder toneChar tName =
             let toneProp = songType.GetProperty(sprintf "Tone%c" toneChar)
-            toneProp.SetValue(song, toneName)
-            toneChar <- toneChar + char 1
+            toneProp.SetValue(song, tName)
+            toneChar + char 1
+
+        uniqueTones |> Set.fold folder 'A' |> ignore
 
     /// Combines the instrumental arrangements at the given index if all tracks have one set.
     let private combineInstrumental (tracks : Track list) index targetFolder combinedTitle coercePhrases =

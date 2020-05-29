@@ -15,6 +15,7 @@ module Shell =
     type Msg =
         | TrackListMsg of TrackList.Msg
         | CommonTonesMsg of CommonToneEditor.Msg
+        | TopControlsMsg of TopControls.Msg
         | UpdateCommonTones
 
     let init : State * Cmd<Msg> =
@@ -46,6 +47,33 @@ module Shell =
 
             { state with trackListState = newTrackListState }, Cmd.none
 
+        | TopControlsMsg msg ->
+            match msg with
+            | TopControls.Msg.AddTrack fileNames ->
+                let trackListState, cmd = TrackList.update (TrackList.Msg.AddTrack(fileNames)) state.trackListState
+
+                { state with trackListState = trackListState }, Cmd.map TrackListMsg cmd
+            | TopControls.Msg.OpenProject fileNames ->
+                let trackListState, cmd = TrackList.update (TrackList.Msg.OpenProject(fileNames)) state.trackListState
+
+                { state with trackListState = trackListState }, Cmd.map TrackListMsg cmd
+            | TopControls.Msg.ImportToolkitTemplate fileNames ->
+                let trackListState, cmd = TrackList.update (TrackList.Msg.ImportToolkitTemplate(fileNames)) state.trackListState
+
+                { state with trackListState = trackListState }, Cmd.map TrackListMsg cmd
+            | TopControls.Msg.NewProject ->
+                let trackListState, cmd = TrackList.update (TrackList.Msg.NewProject) state.trackListState
+
+                { state with trackListState = trackListState }, Cmd.map TrackListMsg cmd
+            | TopControls.Msg.SaveProject fileName ->
+                let trackListState, cmd = TrackList.update (TrackList.Msg.SaveProject(fileName)) state.trackListState
+
+                { state with trackListState = trackListState }, Cmd.map TrackListMsg cmd
+            | _ ->
+                let _, cmd = TopControls.update msg ()
+
+                state, Cmd.map TopControlsMsg cmd
+
     let view (state: State) (dispatch) =
         DockPanel.create
             [ DockPanel.children
@@ -55,7 +83,13 @@ module Shell =
                           [ TabItem.create
                                 [ TabItem.header "Project"
                                   TabItem.onIsSelectedChanged (fun selected -> if selected then dispatch UpdateCommonTones)
-                                  TabItem.content (TrackList.view state.trackListState (TrackListMsg >> dispatch)) ]
+                                  TabItem.content (
+                                    DockPanel.create [
+                                        DockPanel.children ([
+                                            TopControls.view () (TopControlsMsg >> dispatch)
+                                        ] @ TrackList.view state.trackListState (TrackListMsg >> dispatch))
+                                    ])
+                                ]
                             TabItem.create
                                 [ TabItem.header "Common Tones"
                                   TabItem.content (CommonToneEditor.view state.commonTonesState (CommonTonesMsg >> dispatch)) ] ] ] ] ]

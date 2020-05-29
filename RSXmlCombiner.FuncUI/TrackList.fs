@@ -25,19 +25,15 @@ module TrackList =
 
     // Message
     type Msg =
-    | AddTrackSelectFiles
     | AddTrack of arrangements : string[]
     | RemoveTrackAt of index : int
     | NewProject
     | OpenProject of fileNames : string[]
-    | SelectOpenProjectFile
     | SaveProject of fileName : string
-    | SelectSaveProjectFile
     | ChangeAudioFile of track : Track
     | ChangeAudioFileResult of track : Track * newFile:string[]
     | SelectTargetAudioFile
     | CombineAudioFiles of targetFile : string
-    | SelectToolkitTemplate
     | ImportToolkitTemplate of fileNames : string[]
     | SelectCombinationTargetFolder
     | CombineArrangements of targetFolder : string
@@ -129,10 +125,6 @@ module TrackList =
     /// Updates the model according to the message content.
     let update (msg: Msg) (state: State) =
         match msg with
-        | AddTrackSelectFiles ->
-            let selectFiles = Dialogs.openFileDialog "Select Arrangement File(s)" Dialogs.xmlFileFilter true
-            state, Cmd.OfAsync.perform (fun _ -> selectFiles) () (fun files -> AddTrack files)
-
         | AddTrack arrangements -> addNewTrack state arrangements
 
         | NewProject -> init
@@ -151,10 +143,6 @@ module TrackList =
                 { state with Project = { state.Project with Tracks = newTracks } }, Cmd.none
             else
                 state, Cmd.none
-
-        | SelectToolkitTemplate ->
-            let files = Dialogs.openFileDialog "Select Toolkit Template" Dialogs.toolkitTemplateFilter false
-            state, Cmd.OfAsync.perform (fun _ -> files) () (fun f -> ImportToolkitTemplate f)
 
         | ImportToolkitTemplate files ->
             if files.Length > 0 then
@@ -216,10 +204,6 @@ module TrackList =
             ArrangementCombiner.combineArrangements state.Project targetFolder
             { state with StatusMessage = "Arrangements combined." }, Cmd.none
 
-        | SelectSaveProjectFile ->
-            let targetFile = Dialogs.saveFileDialog "Save Project As" Dialogs.projectFileFilter (Some "combo.rscproj")
-            state, Cmd.OfAsync.perform (fun _ -> targetFile) () (fun f -> SaveProject f)
-
         | SaveProject fileName ->
             if not (String.IsNullOrEmpty fileName) then
                 let options = JsonSerializerOptions()
@@ -229,10 +213,6 @@ module TrackList =
                 let json = JsonSerializer.Serialize(state.Project, options)
                 File.WriteAllText(fileName, json)
             state, Cmd.none
-
-        | SelectOpenProjectFile ->
-            let files = Dialogs.openFileDialog "Select Project File" Dialogs.projectFileFilter false
-            state, Cmd.OfAsync.perform (fun _ -> files) () (fun f -> OpenProject f)
 
         | OpenProject files ->
             if files.Length > 0 then
@@ -512,199 +492,113 @@ module TrackList =
             )
         ]
 
-    let private handleHotkeys dispatch (event : KeyEventArgs) =
-        match event.KeyModifiers with
-        | KeyModifiers.Control ->
-            match event.Key with
-            | Key.O -> dispatch SelectOpenProjectFile
-            | Key.S -> dispatch SelectSaveProjectFile
-            | Key.N -> dispatch NewProject
-            | _ -> ()
-        | _ -> ()
-
     /// Creates the track list view.
-    let view (state: State) (dispatch : Msg -> Unit) =
-        DockPanel.create [
-            DockPanel.children [
-                // Top Panel
-                Grid.create [
-                    DockPanel.dock Dock.Top
-                    Grid.columnDefinitions "auto,*,auto"
-                    Grid.children [
-                        // Left Side Panel
-                        StackPanel.create [
-                            Grid.column 0
-                            StackPanel.children [
-                                // Top Buttons
-                                StackPanel.create [
-                                    StackPanel.orientation Orientation.Horizontal
-                                    StackPanel.children [
-                                        Button.create [
-                                            Button.content "Add Track..."
-                                            Button.onClick (fun _ -> dispatch AddTrackSelectFiles)
-                                            Button.horizontalAlignment HorizontalAlignment.Left
-                                            Button.verticalAlignment VerticalAlignment.Center
-                                            Button.margin (15.0, 15.0, 15.0, 0.0)
-                                            Button.fontSize 18.0
-                                        ]
-                                        Button.create [
-                                            Button.content "Import..."
-                                            Button.onClick (fun _ -> dispatch SelectToolkitTemplate)
-                                            Button.horizontalAlignment HorizontalAlignment.Left
-                                            Button.verticalAlignment VerticalAlignment.Center
-                                            Button.margin (0.0, 15.0, 15.0, 0.0)
-                                            Button.fontSize 18.0
-                                         ]
-                                    ]
-                                ]
-                                ComboBox.create [
-                                    ComboBox.dataItems state.Project.Templates
-                                ]
-                            ]
-                        ]
-
-                        // Right Side Panel
-                        StackPanel.create [
-                            Grid.column 2
-                            StackPanel.orientation Orientation.Horizontal
-                            StackPanel.children [
-                                Button.create [
-                                    Button.content "New Project"
-                                    Button.onClick (fun _ -> dispatch NewProject)
-                                    Button.horizontalAlignment HorizontalAlignment.Right
-                                    Button.verticalAlignment VerticalAlignment.Center
-                                    Button.margin (15.0, 15.0, 0.0, 0.0)
-                                    Button.fontSize 18.0
-                                    Button.hotKey (KeyGesture.Parse "Ctrl+N") // TODO: Hook up hot keys
-                                ]
-                                Button.create [
-                                    Button.content "Open Project..."
-                                    Button.horizontalAlignment HorizontalAlignment.Right
-                                    Button.verticalAlignment VerticalAlignment.Center
-                                    Button.margin (15.0, 15.0, 0.0, 0.0)
-                                    Button.fontSize 18.0
-                                    Button.onClick (fun _ -> dispatch SelectOpenProjectFile)
-                                    Button.hotKey (KeyGesture.Parse "Ctrl+O")
-                                ]
-                                Button.create [
-                                    Button.content "Save Project..."
-                                    Button.horizontalAlignment HorizontalAlignment.Right
-                                    Button.verticalAlignment VerticalAlignment.Center
-                                    Button.margin (15.0, 15.0, 15.0, 0.0)
-                                    Button.fontSize 18.0
-                                    Button.onClick (fun _ -> dispatch SelectSaveProjectFile)
-                                    Button.isEnabled (state.Project.Tracks.Length > 0)
-                                    Button.hotKey (KeyGesture.Parse "Ctrl+S")
-                                ]
-                            ]
-                        ]
-                    ]
-                ]
-
-                // Status Bar with Message
-                Border.create [
-                    Border.classes [ "statusbar" ]
-                    Border.minHeight 25.0
-                    Border.background "Black"
-                    Border.dock Dock.Bottom
-                    Border.padding 5.0
-                    Border.child (TextBlock.create [ TextBlock.text state.StatusMessage ])
-                ]
-
-                // Bottom Panel
-                Grid.create [
-                    DockPanel.dock Dock.Bottom
-                    Grid.margin 15.0
-                    Grid.columnDefinitions "auto,*,auto"
-                    Grid.children [
-                        // Left Side Panel
-                        StackPanel.create [
-                            Grid.column 0
-                            StackPanel.children [
-                                // Combine Audio Files Button
-                                Button.create [
-                                    Button.content "Combine Audio"
-                                    Button.verticalAlignment VerticalAlignment.Center
-                                    Button.fontSize 20.0
-                                    Button.onClick (fun _ -> dispatch SelectTargetAudioFile)
-                                    // Only enable the button if there is more than one track and every track has an audio file
-                                    Button.isEnabled (state.Project.Tracks.Length > 1 && state.Project.Tracks |> List.forall (fun track -> track.AudioFile |> Option.isSome))
-                                ]
-                                // Combine Audio Error Text
-                                //TextBlock.create [
-                                //    TextBlock.fontSize 20.0
-                                //    TextBlock.foreground "red"
-                                //    TextBlock.horizontalAlignment HorizontalAlignment.Center
-                                //    TextBlock.text "ERROR"
-                                //]
-                            ]
-                        ]
-
-                        // Right Side Panel
-                        StackPanel.create [
-                            Grid.column 2
-                            StackPanel.orientation Orientation.Horizontal
-                            StackPanel.spacing 10.0
-                            StackPanel.children [
-                                // Combined Title Text Box
-                                TextBox.create [
-                                    TextBox.watermark "Combined Title"
-                                    TextBox.text state.Project.CombinationTitle
-                                    TextBox.onTextChanged (fun text -> dispatch (UpdateCombinationTitle text))
-                                    TextBox.verticalAlignment VerticalAlignment.Center
-                                    TextBox.width 200.0
-                                    ToolTip.tip "Combined Title"
-                                ]
-
-                                // Options Panel
-                                StackPanel.create [
-                                    StackPanel.verticalAlignment VerticalAlignment.Center
-                                    StackPanel.children [
-                                        // Coerce Phrases Check Box
-                                        CheckBox.create [
-                                            CheckBox.content "Coerce to 100 Phrases"
-                                            CheckBox.isChecked state.Project.CoercePhrases
-                                            // TODO: Binding
-                                            ToolTip.tip "Will combine phrases and sections so the resulting arrangements have a max of 100 phrases and sections."
-                                        ]
-                                        // Add Track Names to Lyrics Check Box
-                                        CheckBox.create [
-                                            CheckBox.content "Add Track Names to Lyrics"
-                                            CheckBox.isChecked state.Project.AddTrackNamesToLyrics
-                                            // TODO: Binding
-                                            CheckBox.margin (0.0, 5.0, 0.0, 0.0) 
-                                        ]
-                                    ]
-                                ]
-
-                                // Combine Arrangements Button
-                                Button.create [
-                                    Button.content "Combine Arrangements"
-                                    Button.onClick (fun _ -> dispatch SelectCombinationTargetFolder)
-                                    Button.verticalAlignment VerticalAlignment.Center
-                                    Button.fontSize 20.0
-                                    Button.isEnabled (state.Project.Tracks.Length > 1)
-                                ]
-                            ]
-                        ]
-                    ]
-                ]
-
-                // List of tracks
-                ScrollViewer.create [
-                    ScrollViewer.content (
-                        StackPanel.create [
-                            StackPanel.children (List.mapi (fun i item -> trackTemplate item i state.Project.CommonTones dispatch :> IView) state.Project.Tracks)
-                        ] 
-                    )
-                ]
-                
-                //ListBox.create [
-                //    ListBox.dataItems state.tracks
-                //    ListBox.margin 5.0
-                //    ListBox.itemTemplate (DataTemplateView<Track>.create(fun item -> trackTemplate item dispatch))
-                //    //ListBox.virtualizationMode ItemVirtualizationMode.None
-                //]
+    let view (state: State) (dispatch : Msg -> Unit) : IView list =
+        [
+            // Status Bar with Message
+            Border.create [
+                Border.classes [ "statusbar" ]
+                Border.minHeight 25.0
+                Border.background "Black"
+                Border.dock Dock.Bottom
+                Border.padding 5.0
+                Border.child (TextBlock.create [ TextBlock.text state.StatusMessage ])
             ]
+
+            // Bottom Panel
+            Grid.create [
+                DockPanel.dock Dock.Bottom
+                Grid.margin 15.0
+                Grid.columnDefinitions "auto,*,auto"
+                Grid.children [
+                    // Left Side Panel
+                    StackPanel.create [
+                        Grid.column 0
+                        StackPanel.children [
+                            // Combine Audio Files Button
+                            Button.create [
+                                Button.content "Combine Audio"
+                                Button.verticalAlignment VerticalAlignment.Center
+                                Button.fontSize 20.0
+                                Button.onClick (fun _ -> dispatch SelectTargetAudioFile)
+                                // Only enable the button if there is more than one track and every track has an audio file
+                                Button.isEnabled (state.Project.Tracks.Length > 1 && state.Project.Tracks |> List.forall (fun track -> track.AudioFile |> Option.isSome))
+                            ]
+                            // Combine Audio Error Text
+                            //TextBlock.create [
+                            //    TextBlock.fontSize 20.0
+                            //    TextBlock.foreground "red"
+                            //    TextBlock.horizontalAlignment HorizontalAlignment.Center
+                            //    TextBlock.text "ERROR"
+                            //]
+                        ]
+                    ]
+
+                    // Right Side Panel
+                    StackPanel.create [
+                        Grid.column 2
+                        StackPanel.orientation Orientation.Horizontal
+                        StackPanel.spacing 10.0
+                        StackPanel.children [
+                            // Combined Title Text Box
+                            TextBox.create [
+                                TextBox.watermark "Combined Title"
+                                TextBox.text state.Project.CombinationTitle
+                                TextBox.onTextChanged (fun text -> dispatch (UpdateCombinationTitle text))
+                                TextBox.verticalAlignment VerticalAlignment.Center
+                                TextBox.width 200.0
+                                ToolTip.tip "Combined Title"
+                            ]
+
+                            // Options Panel
+                            StackPanel.create [
+                                StackPanel.verticalAlignment VerticalAlignment.Center
+                                StackPanel.children [
+                                    // Coerce Phrases Check Box
+                                    CheckBox.create [
+                                        CheckBox.content "Coerce to 100 Phrases"
+                                        CheckBox.isChecked state.Project.CoercePhrases
+                                        // TODO: Binding
+                                        ToolTip.tip "Will combine phrases and sections so the resulting arrangements have a max of 100 phrases and sections."
+                                    ]
+                                    // Add Track Names to Lyrics Check Box
+                                    CheckBox.create [
+                                        CheckBox.content "Add Track Names to Lyrics"
+                                        CheckBox.isChecked state.Project.AddTrackNamesToLyrics
+                                        // TODO: Binding
+                                        CheckBox.margin (0.0, 5.0, 0.0, 0.0) 
+                                    ]
+                                ]
+                            ]
+
+                            // Combine Arrangements Button
+                            Button.create [
+                                Button.content "Combine Arrangements"
+                                Button.onClick (fun _ -> dispatch SelectCombinationTargetFolder)
+                                Button.verticalAlignment VerticalAlignment.Center
+                                Button.fontSize 20.0
+                                Button.isEnabled (state.Project.Tracks.Length > 1)
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+
+            // List of tracks
+            ScrollViewer.create [
+                ScrollViewer.content (
+                    StackPanel.create [
+                        StackPanel.children (List.mapi (fun i item -> trackTemplate item i state.Project.CommonTones dispatch :> IView) state.Project.Tracks)
+                    ] 
+                )
+            ]
+            
+            //ListBox.create [
+            //    ListBox.dataItems state.tracks
+            //    ListBox.margin 5.0
+            //    ListBox.itemTemplate (DataTemplateView<Track>.create(fun item -> trackTemplate item dispatch))
+            //    //ListBox.virtualizationMode ItemVirtualizationMode.None
+            //]
         ]
+        
         
