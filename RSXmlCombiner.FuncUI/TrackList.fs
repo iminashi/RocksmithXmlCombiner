@@ -217,7 +217,7 @@ module TrackList =
                     | Some head -> head.Arrangements |> List.map createTemplate
                     | None -> []
 
-                { state with Project = { openedProject with Templates = templates } }, Cmd.ofMsg (ProjectArrangementsChanged(templates))
+                { state with Project = { openedProject with Templates = templates } }, Cmd.none
             else
                 state, Cmd.none
 

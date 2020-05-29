@@ -68,23 +68,29 @@ module Shell =
                 let trackListState, cmd = TrackList.update (TrackList.Msg.AddTrack(fileNames)) state.trackListState
 
                 { state with trackListState = trackListState }, Cmd.map TrackListMsg cmd
-            | TopControls.Msg.OpenProject fileNames ->
-                let trackListState, cmd = TrackList.update (TrackList.Msg.OpenProject(fileNames)) state.trackListState
 
-                { state with trackListState = trackListState }, Cmd.map TrackListMsg cmd
+            | TopControls.Msg.OpenProject fileNames ->
+                let trackListState, _ = TrackList.update (TrackList.Msg.OpenProject(fileNames)) state.trackListState
+                let commonToneState, _ = CommonToneEditor.update (CommonToneEditor.Msg.OpenProject(trackListState.Project.CommonTones)) state.commonTonesState
+
+                { state with trackListState = trackListState; commonTonesState = commonToneState }, Cmd.none
+
             | TopControls.Msg.ImportToolkitTemplate fileNames ->
                 let trackListState, cmd = TrackList.update (TrackList.Msg.ImportToolkitTemplate(fileNames)) state.trackListState
 
                 { state with trackListState = trackListState }, Cmd.map TrackListMsg cmd
+
             | TopControls.Msg.NewProject ->
                 let trackListState, _ = TrackList.update (TrackList.Msg.NewProject) state.trackListState
                 let commonTonesState, _ = CommonToneEditor.update (CommonToneEditor.Msg.NewProject) state.commonTonesState
 
                 { state with trackListState = trackListState; commonTonesState = commonTonesState }, Cmd.none
+
             | TopControls.Msg.SaveProject fileName ->
                 let trackListState, cmd = TrackList.update (TrackList.Msg.SaveProject(fileName)) state.trackListState
 
                 { state with trackListState = trackListState }, Cmd.map TrackListMsg cmd
+
             | _ ->
                 let _, cmd = TopControls.update msg ()
 

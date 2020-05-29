@@ -14,6 +14,7 @@ module CommonToneEditor =
         | TemplatesUpdated of templates : Arrangement list
         | UpdateToneName of title:string * index:int * newName:string
         | NewProject
+        | OpenProject of Map<string, string[]>
 
     let private updateCommonTones commonTones templates =
             let newCommonTones = 
@@ -41,6 +42,9 @@ module CommonToneEditor =
             
         | NewProject -> 
             { state with CommonTones = Map.empty }, Cmd.none
+
+        | OpenProject commonTones ->
+            { state with CommonTones = commonTones }, Cmd.none
 
     let private tonesTemplate title (tones : string[]) dispatch =
         let leftSide = [| "Base"; "Tone A"; "Tone B"; "Tone C"; "Tone D" |]
