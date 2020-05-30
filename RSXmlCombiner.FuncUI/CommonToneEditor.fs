@@ -1,6 +1,7 @@
 ﻿namespace RSXmlCombiner.FuncUI
 
 module CommonToneEditor =
+    open System
     open Elmish
     open Avalonia.Controls
     open Avalonia.FuncUI.DSL
@@ -37,7 +38,7 @@ module CommonToneEditor =
                 for i = 0 to tones.Length - 1 do
                     yield TextBlock.create [
                         Grid.row (i + 1)
-                        TextBlock.margin 2.0
+                        TextBlock.margin (8.0, 2.0, 0.0, 2.0)
                         TextBlock.text leftSide.[i]
                         TextBlock.verticalAlignment VerticalAlignment.Center
                     ]
@@ -46,7 +47,7 @@ module CommonToneEditor =
                         Grid.row (i + 1)
                         TextBox.margin 2.0
                         TextBox.text (tones.[i])
-                        // TODO: Enabled
+                        TextBox.isEnabled (i = 0 || not (String.IsNullOrEmpty(tones.[i - 1])))
                         TextBox.onTextChanged ((fun text -> dispatch (UpdateToneName(title, i, text))), SubPatchOptions.OnChangeOf title)
                     ]
             ]
