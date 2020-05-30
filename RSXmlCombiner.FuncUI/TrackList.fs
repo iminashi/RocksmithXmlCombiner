@@ -132,11 +132,12 @@ module TrackList =
                     StackPanel.verticalAlignment VerticalAlignment.Top
                     StackPanel.classes [ "arrangement" ]
                     StackPanel.children [
-                        // Icon & Name
+                        // Header
                         yield StackPanel.create [
                             StackPanel.orientation Orientation.Horizontal
                             StackPanel.spacing 4.0
                             StackPanel.children [
+                                // Arrangement Icon
                                 Path.create [
                                     Path.fill color
                                     Path.data (
@@ -145,6 +146,7 @@ module TrackList =
                                         | t when isVocals t -> Icons.microphone
                                         | _ -> Icons.spotlight)
                                 ]
+                                // Arrangement name
                                 TextBlock.create [
                                     TextBlock.classes [ "h2"]
                                     TextBlock.text arr.Name
@@ -152,13 +154,14 @@ module TrackList =
                                     TextBlock.cursor (Cursor(StandardCursorType.Hand))
                                     TextBlock.onTapped (fun _ -> dispatch (SelectArrangementFile(trackIndex, arrIndex)))
                                 ]
+                                // Remove arrangement file button
                                 ContentControl.create [
-                                    ContentControl.width 20.0
-                                    ContentControl.height 20.0
+                                    ContentControl.width 22.0
+                                    ContentControl.height 22.0
                                     ContentControl.content (
                                         Canvas.create [
-                                            yield Canvas.width 20.0
-                                            yield Canvas.height 20.0
+                                            yield Canvas.width 22.0
+                                            yield Canvas.height 22.0
                                             yield Canvas.classes [ "removeArr" ]
                                             if arr.FileName |> Option.isNone then yield Canvas.isVisible false
                                             yield Canvas.onTapped (fun _ -> dispatch (RemoveArrangement(trackIndex, arrIndex)))
@@ -183,7 +186,7 @@ module TrackList =
                             yield TextBlock.foreground Brushes.DarkGray
                             yield TextBlock.cursor (Cursor(StandardCursorType.Hand))
                             yield TextBlock.onTapped (fun _ -> dispatch (SelectArrangementFile(trackIndex, arrIndex)))
-                            yield ToolTip.tip (fileName |> Option.defaultValue "Click to select file")
+                            yield ToolTip.tip (fileName |> Option.defaultValue "Click to select a file.")
                         ]
 
                         // Optional Tone Controls
