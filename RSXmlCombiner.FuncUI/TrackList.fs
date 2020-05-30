@@ -106,7 +106,7 @@ module TrackList =
             let arrangementFolder state fileName =
                 match XmlHelper.GetRootElementName(fileName) with
                 | "song" ->
-                    (createInstrumental fileName None) :: state
+                    (createInstrumental fileName None None) :: state
                 | "vocals" ->
                     { Name = "Vocals"; FileName = Some fileName; ArrangementType = ArrangementType.Vocals; Data = None  } :: state
                 | "showlights" when state |> alreadyHasShowlights |> not ->
@@ -179,7 +179,9 @@ module TrackList =
                     let foldArrangements (state : Arrangement list) arrType (fileName, baseTone) =
                         let arrangement =
                             match arrType with
-                            | t when isInstrumental t -> createInstrumental fileName baseTone
+                            | t when isInstrumental t ->
+                                // Respect the arrangement type from the Toolkit template
+                                createInstrumental fileName baseTone (Some arrType)
                             | _ -> { FileName = Some fileName
                                      ArrangementType = arrType
                                      Name = arrTypeHumanized arrType
@@ -249,9 +251,9 @@ module TrackList =
                 let arrangement = state.Project.Tracks.[trackIndex].Arrangements.[arrIndex]
 
                 match rootName, arrangement.ArrangementType with
-                // For instrumental arrangements, create an arrangement from the file
+                // For instrumental arrangements, create an arrangement from the file, preserving the arrangement type and name
                 | "song", t when isInstrumental t ->
-                    let newArr = { createInstrumental fileName None with ArrangementType = t; Name = arrangement.Name }
+                    let newArr = { createInstrumental fileName None (Some t) with Name = arrangement.Name }
                     let updatedTracks = updateSingleArrangement state.Project.Tracks trackIndex arrIndex newArr
                     { state with Project = { state.Project with Tracks = updatedTracks } }, Cmd.none
 
@@ -364,6 +366,7 @@ module TrackList =
                                 yield TextBlock.text (Path.GetFileNameWithoutExtension(fileName |> Option.get))
                             else
                                 yield TextBlock.text "No file"
+                            yield TextBlock.width 100.0
                             yield TextBlock.foreground Brushes.DarkGray
                             yield TextBlock.cursor (Cursor(StandardCursorType.Hand))
                             yield TextBlock.onTapped (fun _ -> dispatch (SelectArrangementFile(trackIndex, arrIndex)))
@@ -441,7 +444,7 @@ module TrackList =
                                 Button.create [
                                     Button.verticalAlignment VerticalAlignment.Center
                                     Button.fontSize 18.0
-                                    Button.margin (0.0, 0.0, 20.0, 0.0)
+                                    Button.margin (2.0, 0.0, 5.0, 0.0)
                                     Button.content "X"
                                     Button.classes [ "close" ]
                                     Button.onClick (fun _ -> dispatch (RemoveTrackAt index))

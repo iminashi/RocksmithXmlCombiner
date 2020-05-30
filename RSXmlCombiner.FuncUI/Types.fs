@@ -45,13 +45,16 @@ module Types =
         | ArrangementOrdering.Bonus -> "Bonus "
         | _ -> ""
 
-    let createInstrumental fileName (baseTone : string option) =
+    let createInstrumental fileName (baseTone : string option) (arrType : ArrangementType option) =
         let song = RS2014Song.Load(fileName)
         let arrangementType =
-            if song.ArrangementProperties.PathLead = byte 1 then ArrangementType.Lead
-            else if song.ArrangementProperties.PathRhythm = byte 1 then ArrangementType.Rhythm
-            else if song.ArrangementProperties.PathBass = byte 1 then ArrangementType.Bass
-            else ArrangementType.Unknown
+            match arrType with
+            | Some t -> t
+            | None ->
+                if song.ArrangementProperties.PathLead = byte 1 then ArrangementType.Lead
+                else if song.ArrangementProperties.PathRhythm = byte 1 then ArrangementType.Rhythm
+                else if song.ArrangementProperties.PathBass = byte 1 then ArrangementType.Bass
+                else ArrangementType.Unknown
 
         let toneNames =
             if isNull song.ToneChanges then
