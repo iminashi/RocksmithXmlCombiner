@@ -18,6 +18,8 @@ module BottomControls =
     | CombineArrangements of targetFolder :string
     | UpdateCombinationTitle of newTitle : string
     | StatusMessage of String
+    | CoercePhrasesChanged of bool
+    | AddTrackNamesChanged of bool
 
     let update msg state : State * Cmd<_> =
         match msg with
@@ -48,6 +50,9 @@ module BottomControls =
             state, Cmd.OfAsync.perform (fun _ -> targetFolder) () (fun f -> CombineArrangements f)
 
         | UpdateCombinationTitle newTitle -> { state with CombinationTitle = newTitle }, Cmd.none
+
+        | CoercePhrasesChanged value -> { state with CoercePhrases = value }, Cmd.none
+        | AddTrackNamesChanged value -> { state with AddTrackNamesToLyrics = value }, Cmd.none
 
     let view state dispatch =
         // Bottom Panel
@@ -101,14 +106,16 @@ module BottomControls =
                                 CheckBox.create [
                                     CheckBox.content "Coerce to 100 Phrases"
                                     CheckBox.isChecked state.CoercePhrases
-                                    // TODO: Binding
+                                    CheckBox.onChecked (fun _ -> dispatch (CoercePhrasesChanged(true)))
+                                    CheckBox.onUnchecked (fun _ -> dispatch (CoercePhrasesChanged(false)))
                                     ToolTip.tip "Will combine phrases and sections so the resulting arrangements have a max of 100 phrases and sections."
                                 ]
                                 // Add Track Names to Lyrics Check Box
                                 CheckBox.create [
                                     CheckBox.content "Add Track Names to Lyrics"
                                     CheckBox.isChecked state.AddTrackNamesToLyrics
-                                    // TODO: Binding
+                                    CheckBox.onChecked (fun _ -> dispatch (AddTrackNamesChanged(true)))
+                                    CheckBox.onUnchecked (fun _ -> dispatch (AddTrackNamesChanged(false)))
                                     CheckBox.margin (0.0, 5.0, 0.0, 0.0) 
                                 ]
                             ]
