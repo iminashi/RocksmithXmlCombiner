@@ -11,7 +11,7 @@ open Avalonia.FuncUI.Components.Hosts
 type MainWindow() as this =
     inherit HostWindow()
     do
-        base.Title <- "RSXmlCombiner.FuncUI"
+        base.Title <- "Rocksmith 2014 XML Combiner"
         base.Width <- 1100.0
         base.Height <- 800.0
         base.MinWidth <- 900.0

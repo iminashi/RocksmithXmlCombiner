@@ -8,6 +8,7 @@ module TrackList =
     open Elmish
     open Avalonia.Media
     open Avalonia.Controls
+    open Avalonia.Controls.Primitives
     open Avalonia.Controls.Shapes
     open Avalonia.FuncUI.DSL
     open Avalonia.FuncUI.Types
@@ -39,37 +40,43 @@ module TrackList =
     | ArrangementBaseToneChanged of trackIndex : int * arrIndex : int * baseTone : string
     | StatusMessage of string
     | UpdateCommonTones of Map<string, string[]>
+    | RemoveArrangement of trackIndex : int * arrIndex : int
 
-    let changeAudioFile track newFile = { track with AudioFile = Some newFile }
+    let private changeAudioFile track newFile = { track with AudioFile = Some newFile }
 
-    let createTemplate arr =
-        { Name = arrTypeHumanized arr.ArrangementType; ArrangementType = arr.ArrangementType; FileName = None; Data = None }
+    let private createArrName arr =
+        match arr.Data with
+        | Some data -> createNamePrefix data.Ordering + arr.ArrangementType.ToString()
+        | None -> arrTypeHumanized arr.ArrangementType
 
-    let updateTemplates (current : Arrangement list) (arrangements : Arrangement list) =
+    let private createTemplate arr =
+        { Name = createArrName arr; ArrangementType = arr.ArrangementType; FileName = None; Data = None }
+
+    let private updateTemplates (current : Arrangement list) (arrangements : Arrangement list) =
         let newTemplates =
             arrangements
             |> List.filter (fun arr -> current |> List.exists (fun temp -> arr.Name = temp.Name) |> not)
             |> List.map createTemplate
         current @ newTemplates
 
-    let addMissingArrangements templates (arrs : Arrangement list) =
+    let private addMissingArrangements templates (arrs : Arrangement list) =
         arrs 
         |> List.append
             (templates
             |> List.except (arrs |> Seq.map createTemplate))
 
-    let updateTrack templates track =
+    let private updateTrack templates track =
         let newArrangements = 
             addMissingArrangements templates track.Arrangements
             |> List.sortBy (fun a -> a.ArrangementType)
 
         { track with Arrangements = newArrangements }
 
-    let updateTracks (tracks : Track list) (templates : Arrangement list) =
+    let private updateTracks (tracks : Track list) (templates : Arrangement list) =
         tracks
         |> List.map (updateTrack templates)
 
-    let updateTracksAndTemplates tracks (currentTemplates : Arrangement list) newTrackarrangements =
+    let private updateTracksAndTemplates tracks (currentTemplates : Arrangement list) newTrackarrangements =
         let templates =
             if currentTemplates.IsEmpty then
                 // Initialize the templates from this track
@@ -79,14 +86,14 @@ module TrackList =
 
         (updateTracks tracks templates), templates
 
-    let createTrack (song : RS2014Song) arrangements title =
+    let private createTrack (song : RS2014Song) arrangements title =
         { Title = title
           AudioFile = None
           SongLength = song.SongLength
           TrimAmount = song.StartBeat
           Arrangements = arrangements |> List.sortBy (fun a -> a.ArrangementType) }
 
-    let addNewTrack state arrangementFileNames =
+    let private addNewTrack state arrangementFileNames =
         let instArrFile = arrangementFileNames |> Array.tryFind (fun a -> XmlHelper.ValidateRootElement(a, "song"))
         match instArrFile with
         | None -> 
@@ -120,6 +127,14 @@ module TrackList =
             let updatedProject = { state.Project with Tracks = tracks @ [ newTrack ]; Templates = templates }
 
             { state with Project = updatedProject }, Cmd.ofMsg (ProjectArrangementsChanged(templates))
+
+    let private updateSingleArrangement tracks trackIndex arrIndex newArr =
+        let changeArrangement arrList =
+            arrList
+            |> List.mapi (fun i arr -> if i = arrIndex then newArr else arr)
+
+        tracks
+        |> List.mapi (fun i t -> if i = trackIndex then { t with Arrangements = changeArrangement t.Arrangements } else t)
 
     /// Updates the model according to the message content.
     let update (msg: Msg) (state: State) =
@@ -185,7 +200,7 @@ module TrackList =
 
                     { state with Project = updatedProject }, Cmd.ofMsg (ProjectArrangementsChanged(templates))
                 | None ->
-                    state, Cmd.none
+                    state, Cmd.none // TODO: Display a message
             else
                 state, Cmd.none
 
@@ -234,33 +249,19 @@ module TrackList =
                 let arrangement = state.Project.Tracks.[trackIndex].Arrangements.[arrIndex]
 
                 match rootName, arrangement.ArrangementType with
-                // For instrumental arrangements, create arrangement from the file
+                // For instrumental arrangements, create an arrangement from the file
                 | "song", t when isInstrumental t ->
                     let newArr = { createInstrumental fileName None with ArrangementType = t; Name = arrangement.Name }
-
-                    let changeArrangement arrList =
-                        arrList
-                        |> List.mapi (fun i arr -> if i = arrIndex then newArr else arr)
-
-                    let updatedTracks =
-                        state.Project.Tracks
-                        |> List.mapi (fun i t -> if i = trackIndex then { t with Arrangements = changeArrangement t.Arrangements } else t)
- 
+                    let updatedTracks = updateSingleArrangement state.Project.Tracks trackIndex arrIndex newArr
                     { state with Project = { state.Project with Tracks = updatedTracks } }, Cmd.none
 
                 // For vocals and show lights, just change the file name
                 | "vocals", ArrangementType.Vocals
                 | "vocals", ArrangementType.JVocals
                 | "showlights", ArrangementType.ShowLights ->
-                    let changeFile arrList =
-                        arrList
-                        |> List.mapi (fun i arr -> if i = arrIndex then { arr with FileName = Some fileName } else arr)
-
-                    let newTracks =
-                        state.Project.Tracks
-                        |> List.mapi (fun i t -> if i = trackIndex then { t with Arrangements = changeFile t.Arrangements } else t)
- 
-                    { state with Project = { state.Project with Tracks = newTracks } }, Cmd.none
+                    let newArr = { arrangement with FileName = Some fileName }
+                    let updatedTracks = updateSingleArrangement state.Project.Tracks trackIndex arrIndex newArr
+                    { state with Project = { state.Project with Tracks = updatedTracks } }, Cmd.none
 
                 | _ -> state, Cmd.ofMsg (StatusMessage "Incorrect arrangement type")
             else
@@ -274,18 +275,21 @@ module TrackList =
                 ToneNames = (arrangement.Data |> Option.get).ToneNames
                 ToneReplacements = Map.empty }
 
-            let changeArrangement arrList =
-                arrList
-                |> List.mapi (fun i arr -> if i = arrIndex then { arr with Data = Some data } else arr)
-
-            let updatedTracks =
-                state.Project.Tracks
-                |> List.mapi (fun i t -> if i = trackIndex then { t with Arrangements = changeArrangement t.Arrangements } else t)
+            let newArr = { state.Project.Tracks.[trackIndex].Arrangements.[arrIndex] with Data = Some data }
+            let updatedTracks = updateSingleArrangement state.Project.Tracks trackIndex arrIndex newArr
 
             { state with Project = { state.Project with Tracks = updatedTracks } }, Cmd.none
 
         | UpdateCommonTones commonTones ->
             { state with Project = { state.Project with CommonTones = commonTones } }, Cmd.none
+
+        | RemoveArrangement (trackIndex, arrIndex) ->
+            let newArr =
+                { state.Project.Tracks.[trackIndex].Arrangements.[arrIndex] with FileName = None; Data = None }
+
+            let updatedTracks = updateSingleArrangement state.Project.Tracks trackIndex arrIndex newArr
+
+            { state with Project = { state.Project with Tracks = updatedTracks } }, Cmd.none
 
 
     /// Creates the view for an arrangement.
@@ -306,7 +310,8 @@ module TrackList =
         Border.create [
             Border.borderThickness 1.0
             Border.borderBrush color
-            Border.width 140.0
+            Border.minWidth 140.0
+            Border.classes [ "arrangement" ]
             Border.child (
                 StackPanel.create [
                     StackPanel.verticalAlignment VerticalAlignment.Top
@@ -329,6 +334,27 @@ module TrackList =
                                     TextBlock.classes [ "h2"]
                                     TextBlock.text arr.Name
                                     TextBlock.foreground color
+                                    TextBlock.cursor (Cursor(StandardCursorType.Hand))
+                                    TextBlock.onTapped (fun _ -> dispatch (SelectArrangementFile(trackIndex, arrIndex)))
+                                ]
+                                ContentControl.create [
+                                    ContentControl.width 20.0
+                                    ContentControl.height 20.0
+                                    ContentControl.content (
+                                        Canvas.create [
+                                            yield Canvas.width 20.0
+                                            yield Canvas.height 20.0
+                                            yield Canvas.classes [ "removeArr" ]
+                                            if arr.FileName |> Option.isNone then yield Canvas.isVisible false
+                                            yield Canvas.onTapped (fun _ -> dispatch (RemoveArrangement(trackIndex, arrIndex)))
+                                            yield Canvas.children [
+                                                Path.create [
+                                                    Path.fill Brushes.DarkRed
+                                                    Path.data Icons.close
+                                                ]
+                                            ]
+                                        ]
+                                    )
                                 ]
                             ]
                         ]
@@ -444,7 +470,6 @@ module TrackList =
 
                                         // Trim Part
                                         StackPanel.create [
-                                            //StackPanel.width 90.0
                                             StackPanel.classes [ "part" ]
                                             StackPanel.orientation Orientation.Horizontal
                                             StackPanel.horizontalAlignment HorizontalAlignment.Center
@@ -479,7 +504,7 @@ module TrackList =
                                     StackPanel.orientation Orientation.Horizontal
                                     StackPanel.spacing 10.0
                                     StackPanel.children (List.mapi (fun i item -> arrangementTemplate item index i commonTones dispatch :> IView) track.Arrangements)
-                                ] 
+                                ]
                             ]
                         ]
                     ]
@@ -491,11 +516,10 @@ module TrackList =
     let view (state: State) (dispatch : Msg -> Unit) =
         // List of tracks
         ScrollViewer.create [
+            ScrollViewer.horizontalScrollBarVisibility ScrollBarVisibility.Auto
             ScrollViewer.content (
                 StackPanel.create [
                     StackPanel.children (List.mapi (fun i item -> trackTemplate item i state.Project.CommonTones dispatch :> IView) state.Project.Tracks)
                 ] 
             )
         ]
-        
-        

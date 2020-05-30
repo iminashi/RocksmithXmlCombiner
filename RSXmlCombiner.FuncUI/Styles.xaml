@@ -10,9 +10,11 @@
     <Setter Property="FontSize" Value="18"/>
   </Style>
 
-  <!--<Style Selector="Path.close:pointerover">
-    <Setter Property="Fill" Value="Red"/>
-  </Style>-->
+  <Style Selector="Canvas.removeArr">
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="IsVisible" Value="False"/>
+    <Setter Property="Background" Value="Transparent"/>
+  </Style>
 
   <Style Selector="Button.close:pointerover">
     <Setter Property="Background" Value="DarkRed"/>
@@ -43,6 +45,14 @@
     <Setter Property="VerticalAlignment" Value="Center"/>
     <Setter Property="Margin" Value="10"/>
     <Setter Property="Spacing" Value="5"/>
+  </Style>
+
+  <Style Selector="Border.arrangement">
+    <Setter Property="Background" Value="Transparent"/>
+  </Style>
+
+  <Style Selector="Border.arrangement:pointerover Canvas.removeArr">
+    <Setter Property="IsVisible" Value="True"/>
   </Style>
   
   <Style Selector="Border.track">

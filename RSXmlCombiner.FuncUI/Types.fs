@@ -39,6 +39,12 @@ module Types =
         ArrangementType : ArrangementType
         Data : InstrumentalArrangementData option }
 
+    let createNamePrefix ordering = 
+        match ordering with
+        | ArrangementOrdering.Alternative -> "Alt. "
+        | ArrangementOrdering.Bonus -> "Bonus "
+        | _ -> ""
+
     let createInstrumental fileName (baseTone : string option) =
         let song = RS2014Song.Load(fileName)
         let arrangementType =
@@ -58,15 +64,22 @@ module Types =
                     if not (String.IsNullOrEmpty song.ToneD) then yield song.ToneD
                 ]
 
+        let ordering =
+            if song.ArrangementProperties.BonusArrangement = byte 1 then ArrangementOrdering.Bonus
+            else if song.ArrangementProperties.Represent = byte 0 then ArrangementOrdering.Alternative
+            else ArrangementOrdering.Main
+
         let arrData = {
-            Ordering = ArrangementOrdering.Main
+            Ordering = ordering
             BaseTone = Option.ofObj song.ToneBase |> Option.orElse baseTone
             ToneNames = toneNames
             ToneReplacements = Map[] }
 
+        let name = (createNamePrefix ordering) + arrangementType.ToString()
+
         { FileName = Some fileName
           ArrangementType = arrangementType
-          Name = arrangementType.ToString()
+          Name = name
           Data = Some arrData }
 
     type Track = {
