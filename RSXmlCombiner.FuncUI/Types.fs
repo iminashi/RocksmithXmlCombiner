@@ -78,7 +78,7 @@ module Types =
             Ordering = ordering
             BaseTone = Option.ofObj song.ToneBase |> Option.orElse baseTone
             ToneNames = toneNames
-            ToneReplacements = Map[] }
+            ToneReplacements = Map.empty }
 
         let name = (createNamePrefix ordering) + arrangementType.ToString()
 
@@ -94,18 +94,21 @@ module Types =
         SongLength : float32
         Arrangements : Arrangement list }
 
+    type Templates = Templates of Arrangement list
+
     type CombinerProject = {
         Tracks : Track list
         CommonTones : CommonTones
         [<JsonIgnore>]
-        Templates : Arrangement list /// Name and type of arrangements that must be found on every track.
+        /// Name and type of arrangements that must be found on every track.
+        Templates : Templates
         CombinationTitle : string
         CoercePhrases : bool
         AddTrackNamesToLyrics : bool }
 
     let emptyProject = {
         Tracks = []
-        Templates = []
+        Templates = Templates []
         CommonTones = Map.empty
         CombinationTitle = ""
         CoercePhrases = true

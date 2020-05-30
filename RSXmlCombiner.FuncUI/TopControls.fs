@@ -47,14 +47,14 @@ module TopControls =
     let private createTemplate arr =
         { Name = createArrName arr; ArrangementType = arr.ArrangementType; FileName = None; Data = None }
 
-    let private updateTemplates (current : Arrangement list) (arrangements : Arrangement list) =
+    let private updateTemplates (Templates currentTemplates) (arrangements : Arrangement list) =
         let newTemplates =
             arrangements
-            |> List.filter (fun arr -> current |> List.exists (fun temp -> arr.Name = temp.Name) |> not)
+            |> List.filter (fun arr -> currentTemplates |> List.exists (fun temp -> arr.Name = temp.Name) |> not)
             |> List.map createTemplate
-        current @ newTemplates
+        Templates (currentTemplates @ newTemplates)
 
-    let private addMissingArrangements templates (arrs : Arrangement list) =
+    let private addMissingArrangements (Templates templates) (arrs : Arrangement list) =
         arrs 
         |> List.append
             (templates
@@ -67,11 +67,11 @@ module TopControls =
 
         { track with Arrangements = newArrangements }
 
-    let private updateTracks (tracks : Track list) (templates : Arrangement list) =
+    let private updateTracks (tracks : Track list) (templates : Templates) =
         tracks
         |> List.map (updateTrack templates)
 
-    let private updateCommonTones commonTones templates =
+    let private updateCommonTones commonTones (Templates templates) =
             let newCommonTones = 
                 templates
                 |> Seq.filter (fun t -> t.ArrangementType |> Types.isInstrumental )
@@ -83,16 +83,12 @@ module TopControls =
             |> Map.fold (fun commonTones name toneNames -> commonTones |> Map.add name toneNames) newCommonTones
 
     let private updateProject project newTrack =
-        let templates =
-            if project.Templates.IsEmpty then
-                // Initialize the templates from the new track
-                newTrack.Arrangements |> List.map createTemplate
-            else
-                // Add any new arrangements in the track to the templates
-                updateTemplates project.Templates newTrack.Arrangements
+        // Add any new arrangements in the track to the templates
+        let templates = updateTemplates project.Templates newTrack.Arrangements
 
         // Update the common tone map from the new templates
         let commonTones = updateCommonTones project.CommonTones templates
+
         // Add any new templates to the existing tracks
         let tracks = updateTracks project.Tracks templates
         
@@ -214,8 +210,8 @@ module TopControls =
                 // Generate the arrangement templates from the first track
                 let templates = 
                     match openedProject.Tracks |> List.tryHead with
-                    | Some head -> head.Arrangements |> List.map createTemplate
-                    | None -> []
+                    | Some head -> head.Arrangements |> List.map createTemplate |> Templates
+                    | None -> Templates []
 
                 { openedProject with Templates = templates }, Cmd.none
             else
@@ -240,6 +236,7 @@ module TopControls =
 
     let view state dispatch =
         // Top Panel
+        let (Templates templates) = state.Templates
         Grid.create [
             DockPanel.dock Dock.Top
             Grid.margin (15.0, 0.0)
@@ -265,7 +262,7 @@ module TopControls =
 
                 ComboBox.create [
                     Grid.column 1
-                    ComboBox.dataItems state.Templates
+                    ComboBox.dataItems templates
                 ]
 
                 // Right Side Panel
