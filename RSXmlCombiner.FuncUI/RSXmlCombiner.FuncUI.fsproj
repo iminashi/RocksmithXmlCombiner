@@ -17,6 +17,7 @@
     <Compile Include="Icons.fs" />
     <Compile Include="Types.fs" />
     <Compile Include="Dialogs.fs" />
+    <Compile Include="CombinerProject.fs" />
     <Compile Include="ArrangementCombiner.fs" />
     <Compile Include="AudioCombiner.fs" />
     <Compile Include="ToolkitImporter.fs" />

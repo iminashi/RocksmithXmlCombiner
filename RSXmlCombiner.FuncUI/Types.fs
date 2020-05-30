@@ -137,3 +137,11 @@ module Types =
         | ArrangementType.ShowLights -> "Show Lights"
         | ArrangementType.JVocals -> "J-Vocals"
         | _ -> string arrType
+
+    let private createArrName arr =
+        match arr.Data with
+        | Some data -> createNamePrefix data.Ordering + arr.ArrangementType.ToString()
+        | None -> arrTypeHumanized arr.ArrangementType
+
+    let createTemplate arr =
+        { Name = createArrName arr; ArrangementType = arr.ArrangementType; FileName = None; Data = None }

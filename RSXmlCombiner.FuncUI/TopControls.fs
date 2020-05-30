@@ -39,61 +39,6 @@ module TopControls =
             | _ -> ()
         | _ -> ()
 
-    let private createArrName arr =
-        match arr.Data with
-        | Some data -> createNamePrefix data.Ordering + arr.ArrangementType.ToString()
-        | None -> arrTypeHumanized arr.ArrangementType
-
-    let private createTemplate arr =
-        { Name = createArrName arr; ArrangementType = arr.ArrangementType; FileName = None; Data = None }
-
-    let private updateTemplates (Templates currentTemplates) (arrangements : Arrangement list) =
-        let newTemplates =
-            arrangements
-            |> List.filter (fun arr -> currentTemplates |> List.exists (fun temp -> arr.Name = temp.Name) |> not)
-            |> List.map createTemplate
-        Templates (currentTemplates @ newTemplates)
-
-    let private addMissingArrangements (Templates templates) (arrs : Arrangement list) =
-        arrs 
-        |> List.append
-            (templates
-            |> List.except (arrs |> Seq.map createTemplate))
-
-    let private updateTrack templates track =
-        let newArrangements = 
-            addMissingArrangements templates track.Arrangements
-            |> List.sortBy (fun a -> a.ArrangementType)
-
-        { track with Arrangements = newArrangements }
-
-    let private updateTracks (tracks : Track list) (templates : Templates) =
-        tracks
-        |> List.map (updateTrack templates)
-
-    let private updateCommonTones commonTones (Templates templates) =
-            let newCommonTones = 
-                templates
-                |> Seq.filter (fun t -> t.ArrangementType |> Types.isInstrumental )
-                |> Seq.map (fun t -> t.Name, Array.create 5 "")
-                |> Map.ofSeq
-
-            // Preserve the current tone names
-            commonTones
-            |> Map.fold (fun commonTones name toneNames -> commonTones |> Map.add name toneNames) newCommonTones
-
-    let private updateProject project newTrack =
-        // Add any new arrangements in the track to the templates
-        let templates = updateTemplates project.Templates newTrack.Arrangements
-
-        // Update the common tone map from the new templates
-        let commonTones = updateCommonTones project.CommonTones templates
-
-        // Add any new templates to the existing tracks
-        let tracks = updateTracks project.Tracks templates
-        
-        { project with Tracks = tracks @ [ newTrack ]; Templates = templates; CommonTones = commonTones }
-
     let private createTrack instArrFile arrangements (title : string option) =
         let song = RS2014Song.Load(instArrFile)
         { Title = title |> Option.defaultValue song.Title
@@ -127,11 +72,11 @@ module TopControls =
                 arrangementFileNames
                 |> Array.fold arrangementFolder []
                 // Add any missing arrangements from the project's templates
-                |> addMissingArrangements state.Templates
+                |> CombinerProject.addMissingArrangements state.Templates
 
             let newTrack = createTrack instArrFile arrangements None
 
-            updateProject state newTrack, Cmd.none
+            CombinerProject.addTrack newTrack state, Cmd.none
 
     let private saveProject fileName project =
         let options = JsonSerializerOptions()
@@ -183,11 +128,11 @@ module TopControls =
                         foundArrangements
                         |> Map.fold foldArrangements []
                         // Add any missing arrangements from the project's templates
-                        |> addMissingArrangements state.Templates
+                        |> CombinerProject.addMissingArrangements state.Templates
 
                     let newTrack = createTrack instArrFile arrangements (Some title)
 
-                    updateProject state newTrack, Cmd.none
+                    CombinerProject.addTrack newTrack state, Cmd.none
                 | None ->
                     state, Cmd.none // TODO: Display a message
             else
