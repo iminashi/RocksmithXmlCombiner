@@ -2,8 +2,6 @@
 
 module TrackList =
     open System
-    open System.Text.Json
-    open System.Text.Json.Serialization
     open System.IO
     open Elmish
     open Avalonia.Media
@@ -16,117 +14,20 @@ module TrackList =
     open Avalonia.Input
     open Types
     open XmlUtils
-    open Rocksmith2014Xml
 
-    /// Contains the open project and a status message
-    type State = { Project : CombinerProject }
+    type State = CombinerProject
 
-    /// Initial state
-    let init = { Project = emptyProject }, Cmd.none
-
-    // Message
     type Msg =
-    | AddTrack of arrangements : string[]
     | RemoveTrackAt of index : int
-    | NewProject
-    | OpenProject of fileNames : string[]
-    | SaveProject of fileName : string
     | ChangeAudioFile of trackIndex : int
     | ChangeAudioFileResult of trackIndex : int * newFile:string[]
-    | ImportToolkitTemplate of fileNames : string[]
-    | ProjectArrangementsChanged of templates : Arrangement list
     | SelectArrangementFile of trackIndex : int * arrIndex : int
     | ChangeArrangementFile of trackIndex : int * arrIndex : int * string[]
     | ArrangementBaseToneChanged of trackIndex : int * arrIndex : int * baseTone : string
     | StatusMessage of string
-    | UpdateCommonTones of Map<string, string[]>
     | RemoveArrangement of trackIndex : int * arrIndex : int
 
     let private changeAudioFile track newFile = { track with AudioFile = Some newFile }
-
-    let private createArrName arr =
-        match arr.Data with
-        | Some data -> createNamePrefix data.Ordering + arr.ArrangementType.ToString()
-        | None -> arrTypeHumanized arr.ArrangementType
-
-    let private createTemplate arr =
-        { Name = createArrName arr; ArrangementType = arr.ArrangementType; FileName = None; Data = None }
-
-    let private updateTemplates (current : Arrangement list) (arrangements : Arrangement list) =
-        let newTemplates =
-            arrangements
-            |> List.filter (fun arr -> current |> List.exists (fun temp -> arr.Name = temp.Name) |> not)
-            |> List.map createTemplate
-        current @ newTemplates
-
-    let private addMissingArrangements templates (arrs : Arrangement list) =
-        arrs 
-        |> List.append
-            (templates
-            |> List.except (arrs |> Seq.map createTemplate))
-
-    let private updateTrack templates track =
-        let newArrangements = 
-            addMissingArrangements templates track.Arrangements
-            |> List.sortBy (fun a -> a.ArrangementType)
-
-        { track with Arrangements = newArrangements }
-
-    let private updateTracks (tracks : Track list) (templates : Arrangement list) =
-        tracks
-        |> List.map (updateTrack templates)
-
-    let private updateTracksAndTemplates tracks (currentTemplates : Arrangement list) newTrackarrangements =
-        let templates =
-            if currentTemplates.IsEmpty then
-                // Initialize the templates from this track
-                newTrackarrangements |> List.map createTemplate
-            else
-                updateTemplates currentTemplates newTrackarrangements
-
-        (updateTracks tracks templates), templates
-
-    let private createTrack (song : RS2014Song) arrangements title =
-        { Title = title
-          AudioFile = None
-          SongLength = song.SongLength
-          TrimAmount = song.StartBeat
-          Arrangements = arrangements |> List.sortBy (fun a -> a.ArrangementType) }
-
-    let private addNewTrack state arrangementFileNames =
-        let instArrFile = arrangementFileNames |> Array.tryFind (fun a -> XmlHelper.ValidateRootElement(a, "song"))
-        match instArrFile with
-        | None -> 
-            state, Cmd.ofMsg (StatusMessage "Please select at least one instrumental Rocksmith arrangement.")
-
-        | Some instArr ->
-            let alreadyHasShowlights (arrs : Arrangement list) =
-                arrs |> List.exists (fun a -> a.ArrangementType = ArrangementType.ShowLights)
-
-            let arrangementFolder state fileName =
-                match XmlHelper.GetRootElementName(fileName) with
-                | "song" ->
-                    (createInstrumental fileName None None) :: state
-                | "vocals" ->
-                    { Name = "Vocals"; FileName = Some fileName; ArrangementType = ArrangementType.Vocals; Data = None  } :: state
-                | "showlights" when state |> alreadyHasShowlights |> not ->
-                    { Name = "Show Lights"; FileName = Some fileName; ArrangementType = ArrangementType.ShowLights; Data = None } :: state
-                //| "showlights" -> Cannot have more than one show lights arrangement
-                | _ -> state // StatusMessage = "Unknown arrangement type for file {Path.GetFileName(arr)}";
-        
-            let arrangements = 
-                arrangementFileNames
-                |> Array.fold arrangementFolder []
-                // Add any missing arrangements from the project's templates
-                |> addMissingArrangements state.Project.Templates
-
-            let song = RS2014Song.Load(instArr)
-            let newTrack = createTrack song arrangements song.Title
-            let tracks, templates = updateTracksAndTemplates state.Project.Tracks state.Project.Templates arrangements
-
-            let updatedProject = { state.Project with Tracks = tracks @ [ newTrack ]; Templates = templates }
-
-            { state with Project = updatedProject }, Cmd.ofMsg (ProjectArrangementsChanged(templates))
 
     let private updateSingleArrangement tracks trackIndex arrIndex newArr =
         let changeArrangement arrList =
@@ -141,16 +42,8 @@ module TrackList =
         match msg with
         | StatusMessage -> state, Cmd.none
 
-        | AddTrack fileNames -> 
-            if fileNames.Length > 0 then
-                addNewTrack state fileNames
-            else
-                state, Cmd.none
-
-        | NewProject -> init
-
         | RemoveTrackAt index ->
-            { state with Project = { state.Project with Tracks = state.Project.Tracks |> List.except [ state.Project.Tracks.[index] ]}}, Cmd.none
+            { state with Tracks = state.Tracks |> List.except [ state.Tracks.[index] ] }, Cmd.none
 
         | ChangeAudioFile trackIndex ->
             let selectFiles = Dialogs.openFileDialog "Select Audio File" Dialogs.audioFileFilters false
@@ -159,86 +52,10 @@ module TrackList =
         | ChangeAudioFileResult (trackIndex, files) ->
             if files.Length > 0 then
                 let fileName = files.[0]
-                let newTracks = state.Project.Tracks |> List.mapi (fun i t -> if i = trackIndex then changeAudioFile t fileName else t) 
-                { state with Project = { state.Project with Tracks = newTracks } }, Cmd.none
+                let newTracks = state.Tracks |> List.mapi (fun i t -> if i = trackIndex then changeAudioFile t fileName else t) 
+                { state with Tracks = newTracks }, Cmd.none
             else
                 state, Cmd.none
-
-        | ImportToolkitTemplate files ->
-            if files.Length > 0 then
-                let fileName = files.[0]
-
-                let foundArrangements, title = ToolkitImporter.import fileName
-
-                // Try to find an instrumental arrangement to read metadata from
-                let instArrType = foundArrangements |> Map.tryFindKey (fun arrType _ -> isInstrumental arrType)
-                match instArrType with
-                | Some instArrType ->
-                    let instArrFile, _ = foundArrangements.[instArrType]
-                    
-                    let foldArrangements (state : Arrangement list) arrType (fileName, baseTone) =
-                        let arrangement =
-                            match arrType with
-                            | t when isInstrumental t ->
-                                // Respect the arrangement type from the Toolkit template
-                                createInstrumental fileName baseTone (Some arrType)
-                            | _ -> { FileName = Some fileName
-                                     ArrangementType = arrType
-                                     Name = arrTypeHumanized arrType
-                                     Data = None }
-                        arrangement :: state
-
-                    let arrangements = 
-                        foundArrangements
-                        |> Map.fold foldArrangements []
-                        // Add any missing arrangements from the project's templates
-                        |> addMissingArrangements state.Project.Templates
-
-                    let instArr = RS2014Song.Load(instArrFile)
-                    let newTrack = createTrack instArr arrangements title
-                    let tracks, templates = updateTracksAndTemplates state.Project.Tracks state.Project.Templates arrangements
-
-                    let updatedProject = { state.Project with Tracks = tracks @ [ newTrack ]; Templates = templates }
-
-                    { state with Project = updatedProject }, Cmd.ofMsg (ProjectArrangementsChanged(templates))
-                | None ->
-                    state, Cmd.none // TODO: Display a message
-            else
-                state, Cmd.none
-
-        | SaveProject fileName ->
-            if not (String.IsNullOrEmpty fileName) then
-                let options = JsonSerializerOptions()
-                options.Converters.Add(JsonFSharpConverter())
-                options.PropertyNamingPolicy <- JsonNamingPolicy.CamelCase
-                options.WriteIndented <- true
-                let json = JsonSerializer.Serialize(state.Project, options)
-                File.WriteAllText(fileName, json)
-            state, Cmd.none
-
-        | OpenProject files ->
-            if files.Length > 0 then
-                let fileName = files.[0]
-                let options = JsonSerializerOptions()
-                options.Converters.Add(JsonFSharpConverter())
-                options.PropertyNamingPolicy <- JsonNamingPolicy.CamelCase
-
-                // TODO: Check if all the files still exist
-
-                let json = File.ReadAllText(fileName)
-                let openedProject = JsonSerializer.Deserialize<CombinerProject>(json, options)
-
-                // Generate the arrangement templates from the first track
-                let templates = 
-                    match openedProject.Tracks |> List.tryHead with
-                    | Some head -> head.Arrangements |> List.map createTemplate
-                    | None -> []
-
-                { state with Project = { openedProject with Templates = templates } }, Cmd.none
-            else
-                state, Cmd.none
-
-        | ProjectArrangementsChanged -> state, Cmd.none
 
         | SelectArrangementFile (trackIndex, arrIndex) ->
             let files = Dialogs.openFileDialog "Select Arrangement File" Dialogs.xmlFileFilter false
@@ -248,54 +65,50 @@ module TrackList =
             if files.Length > 0 then
                 let fileName = files.[0]
                 let rootName = XmlHelper.GetRootElementName(fileName)
-                let arrangement = state.Project.Tracks.[trackIndex].Arrangements.[arrIndex]
+                let arrangement = state.Tracks.[trackIndex].Arrangements.[arrIndex]
 
                 match rootName, arrangement.ArrangementType with
                 // For instrumental arrangements, create an arrangement from the file, preserving the arrangement type and name
                 | "song", t when isInstrumental t ->
                     let newArr = { createInstrumental fileName None (Some t) with Name = arrangement.Name }
-                    let updatedTracks = updateSingleArrangement state.Project.Tracks trackIndex arrIndex newArr
-                    { state with Project = { state.Project with Tracks = updatedTracks } }, Cmd.none
+                    let updatedTracks = updateSingleArrangement state.Tracks trackIndex arrIndex newArr
+                    { state with Tracks = updatedTracks }, Cmd.none
 
                 // For vocals and show lights, just change the file name
                 | "vocals", ArrangementType.Vocals
                 | "vocals", ArrangementType.JVocals
                 | "showlights", ArrangementType.ShowLights ->
                     let newArr = { arrangement with FileName = Some fileName }
-                    let updatedTracks = updateSingleArrangement state.Project.Tracks trackIndex arrIndex newArr
-                    { state with Project = { state.Project with Tracks = updatedTracks } }, Cmd.none
+                    let updatedTracks = updateSingleArrangement state.Tracks trackIndex arrIndex newArr
+                    { state with Tracks = updatedTracks }, Cmd.none
 
                 | _ -> state, Cmd.ofMsg (StatusMessage "Incorrect arrangement type")
             else
                 state, Cmd.none
 
         | ArrangementBaseToneChanged (trackIndex, arrIndex, baseTone) ->
-            let arrangement = state.Project.Tracks.[trackIndex].Arrangements.[arrIndex]
+            let arrangement = state.Tracks.[trackIndex].Arrangements.[arrIndex]
             let data = {
                 Ordering = (arrangement.Data |> Option.get).Ordering
                 BaseTone = Some baseTone
                 ToneNames = (arrangement.Data |> Option.get).ToneNames
                 ToneReplacements = Map.empty }
 
-            let newArr = { state.Project.Tracks.[trackIndex].Arrangements.[arrIndex] with Data = Some data }
-            let updatedTracks = updateSingleArrangement state.Project.Tracks trackIndex arrIndex newArr
+            let newArr = { state.Tracks.[trackIndex].Arrangements.[arrIndex] with Data = Some data }
+            let updatedTracks = updateSingleArrangement state.Tracks trackIndex arrIndex newArr
 
-            { state with Project = { state.Project with Tracks = updatedTracks } }, Cmd.none
-
-        | UpdateCommonTones commonTones ->
-            { state with Project = { state.Project with CommonTones = commonTones } }, Cmd.none
+            { state with Tracks = updatedTracks }, Cmd.none
 
         | RemoveArrangement (trackIndex, arrIndex) ->
             let newArr =
-                { state.Project.Tracks.[trackIndex].Arrangements.[arrIndex] with FileName = None; Data = None }
+                { state.Tracks.[trackIndex].Arrangements.[arrIndex] with FileName = None; Data = None }
 
-            let updatedTracks = updateSingleArrangement state.Project.Tracks trackIndex arrIndex newArr
+            let updatedTracks = updateSingleArrangement state.Tracks trackIndex arrIndex newArr
 
-            { state with Project = { state.Project with Tracks = updatedTracks } }, Cmd.none
-
+            { state with Tracks = updatedTracks }, Cmd.none
 
     /// Creates the view for an arrangement.
-    let private arrangementTemplate (arr : Arrangement) trackIndex arrIndex (commonTones : Map<string, string[]>) dispatch =
+    let private arrangementTemplate (arr : Arrangement) trackIndex arrIndex (commonTones : CommonTones) dispatch =
         let fileName = arr.FileName
         let color =
             match fileName with
@@ -522,7 +335,7 @@ module TrackList =
             ScrollViewer.horizontalScrollBarVisibility ScrollBarVisibility.Auto
             ScrollViewer.content (
                 StackPanel.create [
-                    StackPanel.children (List.mapi (fun i item -> trackTemplate item i state.Project.CommonTones dispatch :> IView) state.Project.Tracks)
+                    StackPanel.children (List.mapi (fun i item -> trackTemplate item i state.CommonTones dispatch :> IView) state.Tracks)
                 ] 
             )
         ]

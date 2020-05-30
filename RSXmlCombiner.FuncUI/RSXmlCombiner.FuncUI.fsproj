@@ -3,6 +3,10 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
+    <AssemblyName>RSXmlCombiner</AssemblyName>
+    <Authors>iminashi</Authors>
+    <Company>iminashi</Company>
+    <Product>Rocksmith 2014 XML Combiner</Product>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,13 +17,13 @@
     <Compile Include="Icons.fs" />
     <Compile Include="Types.fs" />
     <Compile Include="Dialogs.fs" />
-    <Compile Include="TopControls.fs" />
-    <Compile Include="BottomControls.fs" />
     <Compile Include="ArrangementCombiner.fs" />
     <Compile Include="AudioCombiner.fs" />
     <Compile Include="ToolkitImporter.fs" />
     <Compile Include="CommonToneEditor.fs" />
     <Compile Include="TrackList.fs" />
+    <Compile Include="BottomControls.fs" />
+    <Compile Include="TopControls.fs" />
     <Compile Include="Shell.fs" />
     <Compile Include="Program.fs" />
     <AvaloniaResource Include="**\*.xaml" />
@@ -29,7 +33,7 @@
     <PackageReference Include="Avalonia.Desktop" Version="0.9.10" />
     <PackageReference Include="FSharp.SystemTextJson" Version="0.11.13" />
     <PackageReference Include="JaggerJo.Avalonia.FuncUI" Version="0.4.0" />
-    <PackageReference Include="JaggerJo.Avalonia.FuncUI.DSL" Version="0.4.0" />
+    <PackageReference Include="JaggerJo.Avalonia.FuncUI.DSL" Version="0.4.1" />
     <PackageReference Include="JaggerJo.Avalonia.FuncUI.Elmish" Version="0.4.0" />
   </ItemGroup>
 

@@ -2,6 +2,7 @@
 
 module Shell =
     open System
+    open Types
     open Elmish
     open Avalonia
     open Avalonia.Controls
@@ -11,9 +12,7 @@ module Shell =
     open Avalonia.FuncUI
 
     type State =
-        { trackListState : TrackList.State
-          commonTonesState : CommonToneEditor.State
-          bottomControlsState : BottomControls.State
+        { Project : CombinerProject
           StatusMessage : string }
 
     type Msg =
@@ -21,103 +20,35 @@ module Shell =
         | CommonTonesMsg of CommonToneEditor.Msg
         | TopControlsMsg of TopControls.Msg
         | BottomControlsMsg of BottomControls.Msg
-        | UpdateCommonTones
 
-    let init : State * Cmd<Msg> =
-        let trackListState, _ = TrackList.init
-        let commonTonesState, _ = CommonToneEditor.init
-        let bottomControlsState = BottomControls.init
+    let init () = { Project = emptyProject; StatusMessage = "" }, Cmd.none
 
-        { trackListState = trackListState
-          commonTonesState = commonTonesState
-          bottomControlsState = bottomControlsState
-          StatusMessage = "" }, Cmd.none
-
-    let update (msg: Msg) (state: State): State * Cmd<_> =
-        match msg with
-        | TrackListMsg trlMsg ->
-            match trlMsg with
-            | TrackList.Msg.ProjectArrangementsChanged(templates) ->
-                let tonesState, _ = CommonToneEditor.update (CommonToneEditor.Msg.TemplatesUpdated(templates)) state.commonTonesState
-                let newBcState, _ = BottomControls.update (BottomControls.Msg.TracksUpdated(state.trackListState.Project.Tracks)) state.bottomControlsState
-
-                { state with commonTonesState = tonesState; bottomControlsState = newBcState }, Cmd.none
-
+    let update (shellMsg: Msg) (state: State): State * Cmd<_> =
+        match shellMsg with
+        | TrackListMsg msg ->
+            match msg with
             | TrackList.Msg.StatusMessage message ->
                 { state with StatusMessage = message }, Cmd.none
-
             | _ ->
-                let trackListState, cmd = TrackList.update trlMsg state.trackListState
-                let newBcState, _ = BottomControls.update (BottomControls.Msg.TracksUpdated(trackListState.Project.Tracks)) state.bottomControlsState
+                let trackListState, cmd = TrackList.update msg state.Project
+                { state with Project = trackListState }, Cmd.map TrackListMsg cmd
 
-                { state with trackListState = trackListState; bottomControlsState = newBcState }, Cmd.map TrackListMsg cmd
-
-        | CommonTonesMsg tonesMsg ->
-            let tonesState, cmd = CommonToneEditor.update tonesMsg state.commonTonesState
-
-            { state with commonTonesState = tonesState }, Cmd.map CommonTonesMsg cmd
-
-        | UpdateCommonTones ->
-            let newTrackListState, cmd = TrackList.update (TrackList.Msg.UpdateCommonTones(state.commonTonesState.CommonTones)) state.trackListState
-
-            { state with trackListState = newTrackListState }, Cmd.map TrackListMsg cmd
+        | CommonTonesMsg msg ->
+            let tonesState, cmd = CommonToneEditor.update msg state.Project
+            { state with Project = tonesState }, Cmd.map CommonTonesMsg cmd
 
         | TopControlsMsg msg ->
-            match msg with
-            | TopControls.Msg.AddTrack fileNames ->
-                let trackListState, cmd = TrackList.update (TrackList.Msg.AddTrack(fileNames)) state.trackListState
-
-                { state with trackListState = trackListState }, Cmd.map TrackListMsg cmd
-
-            | TopControls.Msg.OpenProject fileNames ->
-                let trackListState, _ = TrackList.update (TrackList.Msg.OpenProject(fileNames)) state.trackListState
-                let commonToneState, _ = CommonToneEditor.update (CommonToneEditor.Msg.OpenProject(trackListState.Project.CommonTones)) state.commonTonesState
-
-                { state with trackListState = trackListState; commonTonesState = commonToneState }, Cmd.none
-
-            | TopControls.Msg.ImportToolkitTemplate fileNames ->
-                let trackListState, cmd = TrackList.update (TrackList.Msg.ImportToolkitTemplate(fileNames)) state.trackListState
-
-                { state with trackListState = trackListState }, Cmd.map TrackListMsg cmd
-
-            | TopControls.Msg.NewProject ->
-                let trackListState, _ = TrackList.update (TrackList.Msg.NewProject) state.trackListState
-                let commonTonesState, _ = CommonToneEditor.update (CommonToneEditor.Msg.NewProject) state.commonTonesState
-
-                { state with trackListState = trackListState; commonTonesState = commonTonesState }, Cmd.none
-
-            | TopControls.Msg.SaveProject fileName ->
-                let trackListState, cmd = TrackList.update (TrackList.Msg.SaveProject(fileName)) state.trackListState
-
-                { state with trackListState = trackListState }, Cmd.map TrackListMsg cmd
-
-            | _ ->
-                let _, cmd = TopControls.update msg ()
-
-                state, Cmd.map TopControlsMsg cmd
+            let topCtrlState, cmd = TopControls.update msg state.Project
+            { state with Project = topCtrlState }, Cmd.map TopControlsMsg cmd
 
         | BottomControlsMsg msg ->
             match msg with 
-            | BottomControls.Msg.CombineAudioFiles targetFile ->
-                if String.IsNullOrEmpty targetFile then
-                    // User canceled the dialog
-                    state, Cmd.none
-                else
-                    let message = AudioCombiner.combineAudioFiles state.trackListState.Project.Tracks targetFile
-                    { state with StatusMessage = message }, Cmd.none
-            
-            | BottomControls.Msg.CombineArrangements targetFolder ->
-                if String.IsNullOrEmpty(targetFolder) then
-                    // User canceled the dialog
-                    state, Cmd.none
-                else
-                    ArrangementCombiner.combineArrangements state.trackListState.Project targetFolder
-                    { state with StatusMessage = "Arrangements combined." }, Cmd.none
+            | BottomControls.Msg.StatusMessage message ->
+                { state with StatusMessage = message }, Cmd.none
 
             | _ ->
-                let bcState, cmd = BottomControls.update msg state.bottomControlsState
-
-                { state with bottomControlsState = bcState }, Cmd.map BottomControlsMsg cmd
+                let bcState, cmd = BottomControls.update msg state.Project
+                { state with Project = bcState }, Cmd.map BottomControlsMsg cmd
 
     let view (state: State) (dispatch) =
         TabControl.create [
@@ -125,11 +56,10 @@ module Shell =
             TabControl.viewItems [
                 TabItem.create [
                     TabItem.header "Tracks"
-                    TabItem.onIsSelectedChanged (fun selected -> if selected then dispatch UpdateCommonTones)
                     TabItem.content (
                         DockPanel.create [
                             DockPanel.children [
-                                TopControls.view () (TopControlsMsg >> dispatch)
+                                TopControls.view state.Project (TopControlsMsg >> dispatch)
 
                                 // Status Bar with Message
                                 Border.create [
@@ -141,17 +71,16 @@ module Shell =
                                     Border.child (TextBlock.create [ TextBlock.text state.StatusMessage ])
                                 ]
 
-                                BottomControls.view state.bottomControlsState (BottomControlsMsg >> dispatch)
+                                BottomControls.view state.Project (BottomControlsMsg >> dispatch)
 
-                                TrackList.view state.trackListState (TrackListMsg >> dispatch)
+                                TrackList.view state.Project (TrackListMsg >> dispatch)
                             ]
                         ]
                     )
                 ]
                 TabItem.create [
                     TabItem.header "Common Tones"
-                    TabItem.content (CommonToneEditor.view state.commonTonesState (CommonTonesMsg >> dispatch))
+                    TabItem.content (CommonToneEditor.view state.Project (CommonTonesMsg >> dispatch))
                 ]
             ]
         ]
-

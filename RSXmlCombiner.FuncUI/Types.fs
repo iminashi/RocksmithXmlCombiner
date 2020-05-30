@@ -6,6 +6,8 @@ module Types =
     open System
     open Rocksmith2014Xml
 
+    type CommonTones = Map<string, string[]>
+
     type ArrangementType = 
         | Unknown =    0b000000000
         | Lead =       0b000000001
@@ -94,7 +96,7 @@ module Types =
 
     type CombinerProject = {
         Tracks : Track list
-        CommonTones : Map<string, string[]>
+        CommonTones : CommonTones
         [<JsonIgnore>]
         Templates : Arrangement list /// Name and type of arrangements that must be found on every track.
         CombinationTitle : string

@@ -20,7 +20,7 @@ type MainWindow() as this =
         //this.VisualRoot.VisualRoot.Renderer.DrawFps <- true
         //this.VisualRoot.VisualRoot.Renderer.DrawDirtyRects <- true
 
-        Elmish.Program.mkProgram  (fun () -> Shell.init) Shell.update Shell.view
+        Elmish.Program.mkProgram Shell.init Shell.update Shell.view
         |> Program.withHost this
         |> Program.run
 
@@ -31,7 +31,7 @@ type App() =
     override this.Initialize() =
         this.Styles.Load "avares://Avalonia.Themes.Default/DefaultTheme.xaml"
         this.Styles.Load "avares://Avalonia.Themes.Default/Accents/BaseDark.xaml"
-        this.Styles.Load "avares://RSXmlCombiner.FuncUI/Styles.xaml"
+        this.Styles.Load "avares://RSXmlCombiner/Styles.xaml"
 
     override this.OnFrameworkInitializationCompleted() =
         match this.ApplicationLifetime with

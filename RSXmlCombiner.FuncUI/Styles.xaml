@@ -49,6 +49,7 @@
 
   <Style Selector="Border.arrangement">
     <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="CornerRadius" Value="4"/>
   </Style>
 
   <Style Selector="Border.arrangement:pointerover Canvas.removeArr">

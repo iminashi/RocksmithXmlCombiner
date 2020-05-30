@@ -8,43 +8,18 @@ module CommonToneEditor =
     open Avalonia.Layout
     open Avalonia.FuncUI.Types
 
-    type State = { CommonTones : Map<string, string[]> }
+    type State = CombinerProject
 
     type Msg =
-        | TemplatesUpdated of templates : Arrangement list
         | UpdateToneName of title:string * index:int * newName:string
-        | NewProject
-        | OpenProject of Map<string, string[]>
-
-    let private updateCommonTones commonTones templates =
-            let newCommonTones = 
-                templates
-                |> Seq.filter (fun t -> t.ArrangementType |> Types.isInstrumental )
-                |> Seq.map (fun t -> t.Name, Array.create 5 "")
-                |> Map.ofSeq
-
-            // Preserve the current tone names
-            commonTones
-            |> Map.fold (fun commonTones name toneNames -> commonTones |> Map.add name toneNames) newCommonTones
-
-    let init : State * Cmd<Msg> = { CommonTones = Map.empty }, Cmd.none
 
     let update (msg: Msg) (state: State): State * Cmd<_> =
         match msg with
-        | TemplatesUpdated (templates) ->
-            { state with CommonTones = updateCommonTones state.CommonTones templates }, Cmd.none
-
         | UpdateToneName (title, index, newName) ->
             let names = state.CommonTones |> Map.find title
             let newTones = state.CommonTones |> Map.add title (names |> Array.mapi (fun i name -> if i = index then newName else name))
 
             { state with CommonTones = newTones }, Cmd.none
-            
-        | NewProject -> 
-            { state with CommonTones = Map.empty }, Cmd.none
-
-        | OpenProject commonTones ->
-            { state with CommonTones = commonTones }, Cmd.none
 
     let private tonesTemplate title (tones : string[]) dispatch =
         let leftSide = [| "Base"; "Tone A"; "Tone B"; "Tone C"; "Tone D" |]

@@ -1,5 +1,7 @@
 ﻿namespace RSXmlCombiner.FuncUI
 
+open System
+
 module BottomControls =
     open Elmish
     open Avalonia.Controls
@@ -7,7 +9,7 @@ module BottomControls =
     open Types
     open Avalonia.Layout
 
-    type State = { Tracks : Track list; CombinationTitle : string }
+    type State = CombinerProject
 
     type Msg = 
     | SelectTargetAudioFile
@@ -15,28 +17,37 @@ module BottomControls =
     | CombineAudioFiles of targetFile : string
     | CombineArrangements of targetFolder :string
     | UpdateCombinationTitle of newTitle : string
-    | TracksUpdated of tracks : Track list
-
-    let init = { Tracks = []; CombinationTitle = "" }
+    | StatusMessage of String
 
     let update msg state : State * Cmd<_> =
         match msg with
+        | StatusMessage -> state, Cmd.none
+
         | SelectTargetAudioFile -> 
             let targetFile = Dialogs.saveFileDialog "Select Target File" Dialogs.audioFileFilters (Some "combo.wav")
             state, Cmd.OfAsync.perform (fun _ -> targetFile) () (fun f -> CombineAudioFiles f)
 
-        | CombineAudioFiles -> state, Cmd.none
-        | CombineArrangements -> state, Cmd.none
+        | CombineAudioFiles targetFile ->
+            if String.IsNullOrEmpty targetFile then
+                // User canceled the dialog
+                state, Cmd.none
+            else
+                let message = AudioCombiner.combineAudioFiles state.Tracks targetFile
+                state, Cmd.ofMsg (StatusMessage message)
+
+        | CombineArrangements targetFolder ->
+            if String.IsNullOrEmpty(targetFolder) then
+                // User canceled the dialog
+                state, Cmd.none
+            else
+                ArrangementCombiner.combineArrangements state targetFolder
+                state, Cmd.ofMsg (StatusMessage "Arrangements combined.")
 
         | SelectCombinationTargetFolder ->
             let targetFolder = Dialogs.openFolderDialog "Select Target Folder"
             state, Cmd.OfAsync.perform (fun _ -> targetFolder) () (fun f -> CombineArrangements f)
 
-        | UpdateCombinationTitle newTitle ->
-            { state with CombinationTitle = newTitle }, Cmd.none
-
-        | TracksUpdated tracks ->
-            { state with Tracks = tracks }, Cmd.none
+        | UpdateCombinationTitle newTitle -> { state with CombinationTitle = newTitle }, Cmd.none
 
     let view state dispatch =
         // Bottom Panel
@@ -89,14 +100,14 @@ module BottomControls =
                                 // Coerce Phrases Check Box
                                 CheckBox.create [
                                     CheckBox.content "Coerce to 100 Phrases"
-                                    //CheckBox.isChecked state.Project.CoercePhrases
+                                    CheckBox.isChecked state.CoercePhrases
                                     // TODO: Binding
                                     ToolTip.tip "Will combine phrases and sections so the resulting arrangements have a max of 100 phrases and sections."
                                 ]
                                 // Add Track Names to Lyrics Check Box
                                 CheckBox.create [
                                     CheckBox.content "Add Track Names to Lyrics"
-                                    //CheckBox.isChecked state.Project.AddTrackNamesToLyrics
+                                    CheckBox.isChecked state.AddTrackNamesToLyrics
                                     // TODO: Binding
                                     CheckBox.margin (0.0, 5.0, 0.0, 0.0) 
                                 ]
