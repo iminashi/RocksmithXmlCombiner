@@ -1,6 +1,25 @@
 ﻿namespace RSXmlCombiner.FuncUI
 
+open System.Text.Json.Serialization
+
+type CombinerProject = {
+    Tracks : Track list
+    CommonTones : CommonTones
+    [<JsonIgnore>]
+    /// Name and type of arrangements that must be found on every track.
+    Templates : Templates
+    CombinationTitle : string
+    CoercePhrases : bool
+    AddTrackNamesToLyrics : bool }
+
 module CombinerProject =
+    let empty = {
+        Tracks = []
+        Templates = Templates []
+        CommonTones = Map.empty
+        CombinationTitle = ""
+        CoercePhrases = true
+        AddTrackNamesToLyrics = true }
 
     let private updateTemplates (Templates currentTemplates) (arrangements : Arrangement list) =
         let newTemplates =
@@ -37,6 +56,7 @@ module CombinerProject =
             commonTones
             |> Map.fold (fun commonTones name toneNames -> commonTones |> Map.add name toneNames) newCommonTones
 
+    /// Adds a new track to the end of the track list of the project.
     let addTrack newTrack project =
         // Add any new arrangements in the track to the templates
         let templates = updateTemplates project.Templates newTrack.Arrangements

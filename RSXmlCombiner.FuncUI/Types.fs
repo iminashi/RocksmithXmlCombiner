@@ -2,7 +2,6 @@
 
 [<AutoOpen>]
 module Types =
-    open System.Text.Json.Serialization
     open System
     open Rocksmith2014Xml
 
@@ -95,24 +94,6 @@ module Types =
         Arrangements : Arrangement list }
 
     type Templates = Templates of Arrangement list
-
-    type CombinerProject = {
-        Tracks : Track list
-        CommonTones : CommonTones
-        [<JsonIgnore>]
-        /// Name and type of arrangements that must be found on every track.
-        Templates : Templates
-        CombinationTitle : string
-        CoercePhrases : bool
-        AddTrackNamesToLyrics : bool }
-
-    let emptyProject = {
-        Tracks = []
-        Templates = Templates []
-        CommonTones = Map.empty
-        CombinationTitle = ""
-        CoercePhrases = true
-        AddTrackNamesToLyrics = true }
 
     let getTones fileName =
         let song = RS2014Song.Load(fileName)

@@ -137,7 +137,7 @@ module TopControls =
             else
                 state, Cmd.none
         
-        | NewProject -> emptyProject, Cmd.none
+        | NewProject -> CombinerProject.empty, Cmd.none
 
         | OpenProject files ->
             if files.Length > 0 then
@@ -147,6 +147,7 @@ module TopControls =
                 options.PropertyNamingPolicy <- JsonNamingPolicy.CamelCase
 
                 // TODO: Check if all the files still exist
+                // TODO: Error handling on deserialize failure
 
                 let json = File.ReadAllText(fileName)
                 let openedProject = JsonSerializer.Deserialize<CombinerProject>(json, options)
