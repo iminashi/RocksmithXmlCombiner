@@ -8,12 +8,10 @@ module CommonToneEditor =
     open Avalonia.Layout
     open Avalonia.FuncUI.Types
 
-    type State = CombinerProject
-
     type Msg =
         | UpdateToneName of title:string * index:int * newName:string
 
-    let update (msg: Msg) (state: State): State * Cmd<_> =
+    let update (msg: Msg) state : ProgramState * Cmd<_> =
         match msg with
         | UpdateToneName (title, index, newName) ->
             let names = state.CommonTones |> Map.find title
@@ -52,7 +50,7 @@ module CommonToneEditor =
             ]
         ]
 
-    let view (state: State) (dispatch) =
+    let view state dispatch =
         StackPanel.create [
             StackPanel.spacing 10.0
             StackPanel.margin 10.0

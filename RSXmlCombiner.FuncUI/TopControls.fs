@@ -8,13 +8,8 @@ module TopControls =
     open Avalonia.FuncUI.Types
     open Avalonia.Input
     open System
-    open System.IO
-    open System.Text.Json
-    open System.Text.Json.Serialization
     open Rocksmith2014Xml
     open XmlUtils
-
-    type State = CombinerProject
 
     type Msg =
         | SelectAddTrackFiles
@@ -26,7 +21,6 @@ module TopControls =
         | NewProject
         | SaveProject of fileName : string
         | SelectSaveProjectFile
-        | StatusMessage of string
 
     let private handleHotkeys dispatch (event : KeyEventArgs) =
         match event.KeyModifiers with
@@ -50,7 +44,7 @@ module TopControls =
         let instArrFile = arrangementFileNames |> Array.tryFind (fun a -> XmlHelper.ValidateRootElement(a, "song"))
         match instArrFile with
         | None -> 
-            state, Cmd.ofMsg (StatusMessage "Please select at least one instrumental Rocksmith arrangement.")
+            { state with StatusMessage = "Please select at least one instrumental Rocksmith arrangement." }, Cmd.none
 
         | Some instArrFile ->
             let alreadyHasShowlights (arrs : Arrangement list) =
@@ -71,24 +65,14 @@ module TopControls =
                 arrangementFileNames
                 |> Array.fold arrangementFolder []
                 // Add any missing arrangements from the project's templates
-                |> CombinerProject.addMissingArrangements state.Templates
+                |> ProgramState.addMissingArrangements state.Templates
 
             let newTrack = createTrack instArrFile arrangements None
 
-            CombinerProject.addTrack newTrack state, Cmd.none
+            ProgramState.addTrack newTrack state, Cmd.none
 
-    let private saveProject fileName project =
-        let options = JsonSerializerOptions()
-        options.Converters.Add(JsonFSharpConverter())
-        options.PropertyNamingPolicy <- JsonNamingPolicy.CamelCase
-        options.WriteIndented <- true
-        let json = JsonSerializer.Serialize(project, options)
-        File.WriteAllText(fileName, json)
-
-    let update (msg: Msg) state : State * Cmd<_> =
+    let update (msg: Msg) state : ProgramState * Cmd<_> =
         match msg with
-        | StatusMessage -> state, Cmd.none
-
         | SelectAddTrackFiles ->
             let selectFiles = Dialogs.openFileDialog "Select Arrangement File(s)" Dialogs.xmlFileFilter true
             state, Cmd.OfAsync.perform (fun _ -> selectFiles) () (fun files -> AddTrack files)
@@ -102,7 +86,6 @@ module TopControls =
         | ImportToolkitTemplate files ->
             if files.Length > 0 then
                 let fileName = files.[0]
-
                 let foundArrangements, title = ToolkitImporter.import fileName
 
                 // Try to find an instrumental arrangement to read metadata from
@@ -127,44 +110,46 @@ module TopControls =
                         foundArrangements
                         |> Map.fold foldArrangements []
                         // Add any missing arrangements from the project's templates
-                        |> CombinerProject.addMissingArrangements state.Templates
+                        |> ProgramState.addMissingArrangements state.Templates
 
                     let newTrack = createTrack instArrFile arrangements (Some title)
 
-                    CombinerProject.addTrack newTrack state, Cmd.none
+                    ProgramState.addTrack newTrack state, Cmd.none
                 | None ->
                     state, Cmd.none // TODO: Display a message
             else
                 state, Cmd.none
         
-        | NewProject -> CombinerProject.empty, Cmd.none
+        | NewProject -> ProgramState.init, Cmd.none
 
         | OpenProject files ->
             if files.Length > 0 then
-                let fileName = files.[0]
-                let options = JsonSerializerOptions()
-                options.Converters.Add(JsonFSharpConverter())
-                options.PropertyNamingPolicy <- JsonNamingPolicy.CamelCase
+                let result = Project.load files.[0]
+                match result with 
+                | Ok project ->
+                    // TODO: Check if all the files still exist
 
-                // TODO: Check if all the files still exist
-                // TODO: Error handling on deserialize failure
+                    // Generate the arrangement templates from the first track
+                    let templates = 
+                        match project.Tracks with
+                        | head::_ -> head.Arrangements |> List.map createTemplate |> Templates
+                        | [] -> Templates []
 
-                let json = File.ReadAllText(fileName)
-                let openedProject = JsonSerializer.Deserialize<CombinerProject>(json, options)
-
-                // Generate the arrangement templates from the first track
-                let templates = 
-                    match openedProject.Tracks |> List.tryHead with
-                    | Some head -> head.Arrangements |> List.map createTemplate |> Templates
-                    | None -> Templates []
-
-                { openedProject with Templates = templates }, Cmd.none
+                    { Tracks = project.Tracks
+                      CommonTones = project.CommonTones
+                      CombinationTitle = project.CombinationTitle
+                      AddTrackNamesToLyrics = project.AddTrackNamesToLyrics
+                      CoercePhrases = project.CoercePhrases
+                      Templates = templates
+                      StatusMessage = "Project loaded." }, Cmd.none
+                | Error message ->
+                    { state with StatusMessage = message }, Cmd.none
             else
                 state, Cmd.none
 
         | SaveProject fileName ->
             if not (String.IsNullOrEmpty fileName) then
-                state |> saveProject fileName
+                state |> Project.save fileName
             state, Cmd.none
 
         | SelectToolkitTemplate ->

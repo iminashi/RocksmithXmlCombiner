@@ -1,27 +1,26 @@
 ﻿namespace RSXmlCombiner.FuncUI
 
-open System.Text.Json.Serialization
-
-type CombinerProject = {
+type ProgramState = {
     Tracks : Track list
     CommonTones : CommonTones
-    [<JsonIgnore>]
-    /// Name and type of arrangements that must be found on every track.
+    /// Names and types of arrangements that must be found on every track.
     Templates : Templates
     CombinationTitle : string
     CoercePhrases : bool
-    AddTrackNamesToLyrics : bool }
+    AddTrackNamesToLyrics : bool
+    StatusMessage : string }
 
-module CombinerProject =
-    let empty = {
+module ProgramState =
+    let init = {
         Tracks = []
         Templates = Templates []
         CommonTones = Map.empty
         CombinationTitle = ""
         CoercePhrases = true
-        AddTrackNamesToLyrics = true }
+        AddTrackNamesToLyrics = true
+        StatusMessage = "" }
 
-    let private updateTemplates (Templates currentTemplates) (arrangements : Arrangement list) =
+    let private updateTemplates (arrangements : Arrangement list) (Templates currentTemplates) =
         let newTemplates =
             arrangements
             |> List.filter (fun arr -> currentTemplates |> List.exists (fun temp -> arr.Name = temp.Name) |> not)
@@ -41,11 +40,11 @@ module CombinerProject =
 
         { track with Arrangements = newArrangements }
 
-    let private updateTracks (tracks : Track list) (templates : Templates) =
+    let private updateTracks (templates : Templates) (tracks : Track list) =
         tracks
         |> List.map (updateTrack templates)
 
-    let private updateCommonTones commonTones (Templates templates) =
+    let private updateCommonTones (Templates templates) commonTones =
             let newCommonTones = 
                 templates
                 |> Seq.filter (fun t -> t.ArrangementType |> Types.isInstrumental )
@@ -59,12 +58,12 @@ module CombinerProject =
     /// Adds a new track to the end of the track list of the project.
     let addTrack newTrack project =
         // Add any new arrangements in the track to the templates
-        let templates = updateTemplates project.Templates newTrack.Arrangements
+        let templates = project.Templates |> updateTemplates newTrack.Arrangements
 
         // Update the common tone map from the new templates
-        let commonTones = updateCommonTones project.CommonTones templates
+        let commonTones = project.CommonTones |> updateCommonTones templates
 
         // Add any new templates to the existing tracks
-        let tracks = updateTracks project.Tracks templates
+        let tracks = project.Tracks |> updateTracks templates
         
         { project with Tracks = tracks @ [ newTrack ]; Templates = templates; CommonTones = commonTones }

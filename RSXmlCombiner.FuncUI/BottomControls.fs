@@ -8,22 +8,17 @@ module BottomControls =
     open Avalonia.FuncUI.DSL
     open Avalonia.Layout
 
-    type State = CombinerProject
-
     type Msg = 
     | SelectTargetAudioFile
     | SelectCombinationTargetFolder
     | CombineAudioFiles of targetFile : string
     | CombineArrangements of targetFolder :string
     | UpdateCombinationTitle of newTitle : string
-    | StatusMessage of String
     | CoercePhrasesChanged of bool
     | AddTrackNamesChanged of bool
 
-    let update msg state : State * Cmd<_> =
+    let update msg state : ProgramState * Cmd<_> =
         match msg with
-        | StatusMessage -> state, Cmd.none
-
         | SelectTargetAudioFile -> 
             let targetFile = Dialogs.saveFileDialog "Select Target File" Dialogs.audioFileFilters (Some "combo.wav")
             state, Cmd.OfAsync.perform (fun _ -> targetFile) () (fun f -> CombineAudioFiles f)
@@ -34,7 +29,7 @@ module BottomControls =
                 state, Cmd.none
             else
                 let message = AudioCombiner.combineAudioFiles state.Tracks targetFile
-                state, Cmd.ofMsg (StatusMessage message)
+                { state with StatusMessage = message }, Cmd.none
 
         | CombineArrangements targetFolder ->
             if String.IsNullOrEmpty(targetFolder) then
@@ -42,7 +37,7 @@ module BottomControls =
                 state, Cmd.none
             else
                 ArrangementCombiner.combineArrangements state targetFolder
-                state, Cmd.ofMsg (StatusMessage "Arrangements combined.")
+                { state with StatusMessage = "Arrangements combined." }, Cmd.none
 
         | SelectCombinationTargetFolder ->
             let targetFolder = Dialogs.openFolderDialog "Select Target Folder"

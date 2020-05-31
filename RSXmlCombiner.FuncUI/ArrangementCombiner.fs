@@ -115,7 +115,7 @@ module ArrangementCombiner =
             combiner.Save(Path.Combine(targetFolder, sprintf "Combined_%s_RS2.xml" (arrType.ToString())), coercePhrases)
 
     /// Combines all the arrangements in the project.
-    let combineArrangements project targetFolder  =
+    let combineArrangements (project : ProgramState) targetFolder  =
         let nArrangements = project.Tracks.Head.Arrangements.Length
         for i in 0..nArrangements - 1 do
             match project.Tracks.Head.Arrangements.[i].ArrangementType with

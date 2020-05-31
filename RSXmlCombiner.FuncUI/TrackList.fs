@@ -13,8 +13,6 @@ module TrackList =
     open Avalonia.Input
     open XmlUtils
 
-    type State = CombinerProject
-
     type Msg =
     | RemoveTrackAt of index : int
     | ChangeAudioFile of trackIndex : int
@@ -22,7 +20,6 @@ module TrackList =
     | SelectArrangementFile of trackIndex : int * arrIndex : int
     | ChangeArrangementFile of trackIndex : int * arrIndex : int * string[]
     | ArrangementBaseToneChanged of trackIndex : int * arrIndex : int * baseTone : string
-    | StatusMessage of string
     | RemoveArrangement of trackIndex : int * arrIndex : int
 
     let private changeAudioFile track newFile = { track with AudioFile = Some newFile }
@@ -36,10 +33,8 @@ module TrackList =
         |> List.mapi (fun i t -> if i = trackIndex then { t with Arrangements = changeArrangement t.Arrangements } else t)
 
     /// Updates the model according to the message content.
-    let update (msg: Msg) (state: State) =
+    let update (msg: Msg) (state: ProgramState) =
         match msg with
-        | StatusMessage -> state, Cmd.none
-
         | RemoveTrackAt index ->
             { state with Tracks = state.Tracks |> List.except [ state.Tracks.[index] ] }, Cmd.none
 
@@ -80,7 +75,7 @@ module TrackList =
                     let updatedTracks = updateSingleArrangement state.Tracks trackIndex arrIndex newArr
                     { state with Tracks = updatedTracks }, Cmd.none
 
-                | _ -> state, Cmd.ofMsg (StatusMessage "Incorrect arrangement type")
+                | _ -> { state with StatusMessage = "Incorrect arrangement type" }, Cmd.none
             else
                 state, Cmd.none
 
@@ -97,8 +92,10 @@ module TrackList =
                 let updatedTracks = updateSingleArrangement state.Tracks trackIndex arrIndex newArr
 
                 { state with Tracks = updatedTracks }, Cmd.none
+
             | { Data = None } ->
-                state, Cmd.none // TODO: Error message? (Should not be able to get here)
+                // Should not be able to get here
+                { state with StatusMessage = "Critical program error." }, Cmd.none
 
         | RemoveArrangement (trackIndex, arrIndex) ->
             let newArr =
@@ -109,7 +106,7 @@ module TrackList =
             { state with Tracks = updatedTracks }, Cmd.none
 
     /// Creates the view for an arrangement.
-    let private arrangementTemplate (arr : Arrangement) trackIndex arrIndex (commonTones : CommonTones) dispatch =
+    let private arrangementView (arr : Arrangement) trackIndex arrIndex (commonTones : CommonTones) dispatch =
         let fileName = arr.FileName
         let color =
             match fileName with
@@ -226,7 +223,7 @@ module TrackList =
         ]
        
     /// Creates the view for a track.
-    let private trackTemplate (track : Track) index commonTones dispatch =
+    let private trackView (track : Track) index commonTones dispatch =
         Border.create [
             Border.classes [ "track" ]
             Border.child (
@@ -323,7 +320,7 @@ module TrackList =
                                 StackPanel.create [
                                     StackPanel.orientation Orientation.Horizontal
                                     StackPanel.spacing 10.0
-                                    StackPanel.children <| List.mapi (fun i item -> arrangementTemplate item index i commonTones dispatch :> IView) track.Arrangements
+                                    StackPanel.children <| List.mapi (fun i item -> arrangementView item index i commonTones dispatch :> IView) track.Arrangements
                                 ]
                             ]
                         ]
@@ -333,13 +330,13 @@ module TrackList =
         ]
 
     /// Creates the track list view.
-    let view (state: State) (dispatch : Msg -> Unit) =
+    let view state dispatch =
         // List of tracks
         ScrollViewer.create [
             ScrollViewer.horizontalScrollBarVisibility Primitives.ScrollBarVisibility.Auto
             ScrollViewer.content (
                 StackPanel.create [
-                    StackPanel.children <| List.mapi (fun i item -> trackTemplate item i state.CommonTones dispatch :> IView) state.Tracks
+                    StackPanel.children <| List.mapi (fun i item -> trackView item i state.CommonTones dispatch :> IView) state.Tracks
                 ] 
             )
         ]
