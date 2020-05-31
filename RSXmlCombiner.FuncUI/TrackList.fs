@@ -85,17 +85,20 @@ module TrackList =
                 state, Cmd.none
 
         | ArrangementBaseToneChanged (trackIndex, arrIndex, baseTone) ->
-            let arrangement = state.Tracks.[trackIndex].Arrangements.[arrIndex]
-            let data = {
-                Ordering = (arrangement.Data |> Option.get).Ordering
-                BaseTone = Some baseTone
-                ToneNames = (arrangement.Data |> Option.get).ToneNames
-                ToneReplacements = Map.empty }
+            match state.Tracks.[trackIndex].Arrangements.[arrIndex] with
+            | { Data = Some arrData } as arrangement ->
+                let data = {
+                    Ordering = arrData.Ordering
+                    BaseTone = Some baseTone
+                    ToneNames = arrData.ToneNames
+                    ToneReplacements = Map.empty }
 
-            let newArr = { state.Tracks.[trackIndex].Arrangements.[arrIndex] with Data = Some data }
-            let updatedTracks = updateSingleArrangement state.Tracks trackIndex arrIndex newArr
+                let newArr = { arrangement with Data = Some data }
+                let updatedTracks = updateSingleArrangement state.Tracks trackIndex arrIndex newArr
 
-            { state with Tracks = updatedTracks }, Cmd.none
+                { state with Tracks = updatedTracks }, Cmd.none
+            | { Data = None } ->
+                state, Cmd.none // TODO: Error message? (Should not be able to get here)
 
         | RemoveArrangement (trackIndex, arrIndex) ->
             let newArr =
@@ -176,10 +179,10 @@ module TrackList =
                         ]
                         // File Name
                         yield TextBlock.create [
-                            if fileName |> Option.isSome then
-                                yield TextBlock.text <| Path.GetFileNameWithoutExtension(fileName |> Option.get)
-                            else
-                                yield TextBlock.text "No file"
+                            yield TextBlock.text (
+                                match fileName with
+                                | Some fn -> Path.GetFileNameWithoutExtension(fn)
+                                | None -> "No file")
                             yield TextBlock.width 100.0
                             yield TextBlock.foreground Brushes.DarkGray
                             yield TextBlock.cursor <| Cursor StandardCursorType.Hand
