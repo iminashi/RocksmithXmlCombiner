@@ -65,7 +65,6 @@ namespace RSXmlCombinerGUI.Models
                     else if (itemNode.Element(ad + "ArrangementName").Value == "Vocals"
                           || itemNode.Element(ad + "ArrangementName").Value == "ShowLights")
                     {
-                        // TODO: JVocals
                         foundArrangements.Add(arrType, (arrFn, null));
                     }
                 }

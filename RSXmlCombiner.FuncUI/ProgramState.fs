@@ -8,7 +8,8 @@ type ProgramState = {
     CombinationTitle : string
     CoercePhrases : bool
     AddTrackNamesToLyrics : bool
-    StatusMessage : string }
+    StatusMessage : string
+    ReplacementToneEditor : (int * int) option }
 
 module ProgramState =
     let init = {
@@ -18,7 +19,8 @@ module ProgramState =
         CombinationTitle = ""
         CoercePhrases = true
         AddTrackNamesToLyrics = true
-        StatusMessage = "" }
+        StatusMessage = ""
+        ReplacementToneEditor = None }
 
     let private updateTemplates (arrangements : Arrangement list) (Templates currentTemplates) =
         let newTemplates =

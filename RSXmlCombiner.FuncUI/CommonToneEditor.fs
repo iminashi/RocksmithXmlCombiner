@@ -17,6 +17,8 @@ module CommonToneEditor =
             let names = state.CommonTones |> Map.find title
             let newTones = state.CommonTones |> Map.add title (names |> Array.mapi (fun i name -> if i = index then newName else name))
 
+            // TODO: Update any arrangements that used this tone name as a base tone or a replacement tone 
+
             { state with CommonTones = newTones }, Cmd.none
 
     let private tonesTemplate title (tones : string[]) dispatch =

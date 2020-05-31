@@ -112,6 +112,7 @@ module ArrangementCombiner =
             if not (String.IsNullOrEmpty(combinedTitle)) then
                 combiner.SetTitle(combinedTitle)
 
+            // TODO: Naming of the file
             combiner.Save(Path.Combine(targetFolder, sprintf "Combined_%s_RS2.xml" (arrType.ToString())), coercePhrases)
 
     /// Combines all the arrangements in the project.

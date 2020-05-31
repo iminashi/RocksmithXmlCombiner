@@ -21,16 +21,9 @@ module TrackList =
     | ChangeArrangementFile of trackIndex : int * arrIndex : int * string[]
     | ArrangementBaseToneChanged of trackIndex : int * arrIndex : int * baseTone : string
     | RemoveArrangement of trackIndex : int * arrIndex : int
+    | ShowReplacementToneEditor of trackIndex : int * arrIndex : int
 
     let private changeAudioFile track newFile = { track with AudioFile = Some newFile }
-
-    let private updateSingleArrangement tracks trackIndex arrIndex newArr =
-        let changeArrangement arrList =
-            arrList
-            |> List.mapi (fun i arr -> if i = arrIndex then newArr else arr)
-
-        tracks
-        |> List.mapi (fun i t -> if i = trackIndex then { t with Arrangements = changeArrangement t.Arrangements } else t)
 
     /// Updates the model according to the message content.
     let update (msg: Msg) (state: ProgramState) =
@@ -105,6 +98,9 @@ module TrackList =
 
             { state with Tracks = updatedTracks }, Cmd.none
 
+        | ShowReplacementToneEditor (trackIndex, arrIndex) ->
+            { state with ReplacementToneEditor = Some(trackIndex, arrIndex) }, Cmd.none
+
     /// Creates the view for an arrangement.
     let private arrangementView (arr : Arrangement) trackIndex arrIndex (commonTones : CommonTones) dispatch =
         let fileName = arr.FileName
@@ -161,6 +157,7 @@ module TrackList =
                                             yield Canvas.width 22.0
                                             yield Canvas.height 22.0
                                             yield Canvas.classes [ "removeArr" ]
+                                            // If there is no file set, always hide the remove button
                                             if arr.FileName |> Option.isNone then yield Canvas.isVisible false
                                             yield Canvas.onTapped (fun _ -> RemoveArrangement(trackIndex, arrIndex) |> dispatch)
                                             yield Canvas.children [
@@ -198,24 +195,32 @@ module TrackList =
                                     | None -> names.[1..]
                                 | None -> [||]
 
-                            // Base Tone Combo Box
-                            yield ComboBox.create [
-                                ComboBox.width 100.0
-                                ComboBox.height 30.0
-                                ComboBox.isVisible (instArr.ToneNames.Length = 0 && trackIndex <> 0)
-                                ComboBox.dataItems <| getToneNames()
-                                ComboBox.selectedItem (instArr.BaseTone |> Option.defaultValue "")
-                                ComboBox.onSelectedItemChanged (fun obj -> ArrangementBaseToneChanged(trackIndex, arrIndex, string obj) |> dispatch)
-                                ToolTip.tip "Base Tone"
-                            ]
-                            // Edit Replacement Tones Button
-                            yield Button.create [
-                                Button.content "Tones"
-                                Button.width 100.0
-                                Button.isVisible (instArr.ToneNames.Length > 0)
-                                // TODO: on click
-                                // TODO: warning color
-                            ]
+                            if instArr.ToneNames.Length = 0 && trackIndex <> 0 then
+                                // Base Tone Combo Box
+                                yield ComboBox.create [
+                                    ComboBox.width 100.0
+                                    ComboBox.height 30.0
+                                    ComboBox.margin (0.0, 5.0) 
+                                    ComboBox.dataItems <| getToneNames()
+                                    ComboBox.selectedItem (instArr.BaseTone |> Option.defaultValue "")
+                                    ComboBox.onSelectedItemChanged (fun obj -> ArrangementBaseToneChanged(trackIndex, arrIndex, string obj) |> dispatch)
+                                    ToolTip.tip "Base Tone"
+                                ]
+                            else if instArr.ToneNames.Length > 0 then
+                                // Edit Replacement Tones Button
+                                yield Button.create [
+                                    Button.content "Tones"
+                                    Button.width 100.0
+                                    Button.margin (0.0, 5.0)
+                                    Button.onClick (fun _ -> ShowReplacementToneEditor(trackIndex, arrIndex) |> dispatch)
+                                    Button.borderThickness 0.0
+                                    Button.background (
+                                        if instArr.ToneReplacements.IsEmpty || instArr.ToneReplacements |> Map.exists (fun _ t -> String.IsNullOrEmpty t) then
+                                            Brushes.DarkRed
+                                        else
+                                            Brushes.DarkGreen
+                                    )
+                                ]
                         | _ -> () // Do nothing
                     ]
                 ]

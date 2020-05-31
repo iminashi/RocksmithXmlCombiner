@@ -32,7 +32,6 @@ namespace RSXmlCombinerGUI.ViewModels
 {
     public sealed class TrackListViewModel : ViewModelBase
     {
-        // TODO: Convert into some kind of message log
         [Reactive]
         public string StatusMessage { get; set; } = " ";
 
@@ -134,8 +133,6 @@ namespace RSXmlCombinerGUI.ViewModels
                         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                         WriteIndented = true
                     };
-
-                    // TODO: Check if all the files still exist
 
                     string json = File.ReadAllText(fileNames[0]);
                     var project = JsonSerializer.Deserialize<ProjectDto>(json, options);
@@ -296,8 +293,6 @@ namespace RSXmlCombinerGUI.ViewModels
 
         private void CombineVocalsArrangement(string targetFolder)
         {
-            // TODO: Always generate lyrics file if AddTrackNamesToLyrics is true?
-
             var arrCombine = Tracks[0].Arrangements.FirstOrDefault(a => a.ArrangementType == ArrangementType.Vocals);
             if (arrCombine is null)
                 return;

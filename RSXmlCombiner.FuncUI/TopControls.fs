@@ -141,7 +141,8 @@ module TopControls =
                       AddTrackNamesToLyrics = project.AddTrackNamesToLyrics
                       CoercePhrases = project.CoercePhrases
                       Templates = templates
-                      StatusMessage = "Project loaded." }, Cmd.none
+                      StatusMessage = "Project loaded."
+                      ReplacementToneEditor = None }, Cmd.none
                 | Error message ->
                     { state with StatusMessage = message }, Cmd.none
             else

@@ -1,9 +1,8 @@
 ﻿namespace RSXmlCombiner.FuncUI
 
-open System
-
 module BottomControls =
     open Elmish
+    open System
     open Avalonia.Controls
     open Avalonia.FuncUI.DSL
     open Avalonia.Layout
@@ -64,15 +63,8 @@ module BottomControls =
                             Button.fontSize 20.0
                             Button.onClick (fun _ -> dispatch SelectTargetAudioFile)
                             // Only enable the button if there is more than one track and every track has an audio file
-                            Button.isEnabled (state.Tracks.Length > 1 && state.Tracks |> List.forall (fun track -> track.AudioFile |> Option.isSome))
+                            Button.isEnabled (state.Tracks.Length > 1 && state.Tracks |> List.forall hasAudioFile)
                         ]
-                        // Combine Audio Error Text
-                        //TextBlock.create [
-                        //    TextBlock.fontSize 20.0
-                        //    TextBlock.foreground "red"
-                        //    TextBlock.horizontalAlignment HorizontalAlignment.Center
-                        //    TextBlock.text "ERROR"
-                        //]
                     ]
                 ]
 
@@ -96,7 +88,7 @@ module BottomControls =
                         StackPanel.create [
                             StackPanel.verticalAlignment VerticalAlignment.Center
                             StackPanel.children [
-                                // Coerce Phrases Check Box
+                                // Coerce Phrases Checkbox
                                 CheckBox.create [
                                     CheckBox.content "Coerce to 100 Phrases"
                                     CheckBox.isChecked state.CoercePhrases
@@ -104,7 +96,7 @@ module BottomControls =
                                     CheckBox.onUnchecked (fun _ -> CoercePhrasesChanged false |> dispatch)
                                     ToolTip.tip "Will combine phrases and sections so the resulting arrangements have a max of 100 phrases and sections."
                                 ]
-                                // Add Track Names to Lyrics Check Box
+                                // Add Track Names to Lyrics Checkbox
                                 CheckBox.create [
                                     CheckBox.content "Add Track Names to Lyrics"
                                     CheckBox.isChecked state.AddTrackNamesToLyrics

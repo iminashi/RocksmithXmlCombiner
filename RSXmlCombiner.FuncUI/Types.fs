@@ -93,6 +93,8 @@ module Types =
         SongLength : float32
         Arrangements : Arrangement list }
 
+    let hasAudioFile track = track.AudioFile |> Option.isSome
+
     type Templates = Templates of Arrangement list
 
     let getTones fileName =
@@ -126,3 +128,11 @@ module Types =
 
     let createTemplate arr =
         { Name = createArrName arr; ArrangementType = arr.ArrangementType; FileName = None; Data = None }
+
+    let updateSingleArrangement tracks trackIndex arrIndex newArr =
+        let changeArrangement arrList =
+            arrList
+            |> List.mapi (fun i arr -> if i = arrIndex then newArr else arr)
+
+        tracks
+        |> List.mapi (fun i t -> if i = trackIndex then { t with Arrangements = changeArrangement t.Arrangements } else t)
