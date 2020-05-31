@@ -6,7 +6,6 @@ module TrackList =
     open Elmish
     open Avalonia.Media
     open Avalonia.Controls
-    open Avalonia.Controls.Primitives
     open Avalonia.Controls.Shapes
     open Avalonia.FuncUI.DSL
     open Avalonia.FuncUI.Types
@@ -150,8 +149,8 @@ module TrackList =
                                     TextBlock.classes [ "h2"]
                                     TextBlock.text arr.Name
                                     TextBlock.foreground color
-                                    TextBlock.cursor (Cursor(StandardCursorType.Hand))
-                                    TextBlock.onTapped (fun _ -> dispatch (SelectArrangementFile(trackIndex, arrIndex)))
+                                    TextBlock.cursor <| Cursor StandardCursorType.Hand
+                                    TextBlock.onTapped (fun _ -> SelectArrangementFile(trackIndex, arrIndex) |> dispatch)
                                 ]
                                 // Remove arrangement file button
                                 ContentControl.create [
@@ -163,7 +162,7 @@ module TrackList =
                                             yield Canvas.height 22.0
                                             yield Canvas.classes [ "removeArr" ]
                                             if arr.FileName |> Option.isNone then yield Canvas.isVisible false
-                                            yield Canvas.onTapped (fun _ -> dispatch (RemoveArrangement(trackIndex, arrIndex)))
+                                            yield Canvas.onTapped (fun _ -> RemoveArrangement(trackIndex, arrIndex) |> dispatch)
                                             yield Canvas.children [
                                                 Path.create [
                                                     Path.fill Brushes.DarkRed
@@ -178,13 +177,13 @@ module TrackList =
                         // File Name
                         yield TextBlock.create [
                             if fileName |> Option.isSome then
-                                yield TextBlock.text (Path.GetFileNameWithoutExtension(fileName |> Option.get))
+                                yield TextBlock.text <| Path.GetFileNameWithoutExtension(fileName |> Option.get)
                             else
                                 yield TextBlock.text "No file"
                             yield TextBlock.width 100.0
                             yield TextBlock.foreground Brushes.DarkGray
-                            yield TextBlock.cursor (Cursor(StandardCursorType.Hand))
-                            yield TextBlock.onTapped (fun _ -> dispatch (SelectArrangementFile(trackIndex, arrIndex)))
+                            yield TextBlock.cursor <| Cursor StandardCursorType.Hand
+                            yield TextBlock.onTapped (fun _ -> SelectArrangementFile(trackIndex, arrIndex) |> dispatch)
                             yield ToolTip.tip (fileName |> Option.defaultValue "Click to select a file.")
                         ]
 
@@ -204,9 +203,9 @@ module TrackList =
                                 ComboBox.width 100.0
                                 ComboBox.height 30.0
                                 ComboBox.isVisible (instArr.ToneNames.Length = 0 && trackIndex <> 0)
-                                ComboBox.dataItems (getToneNames())
+                                ComboBox.dataItems <| getToneNames()
                                 ComboBox.selectedItem (instArr.BaseTone |> Option.defaultValue "")
-                                ComboBox.onSelectedItemChanged (fun obj -> dispatch (ArrangementBaseToneChanged(trackIndex, arrIndex, string obj)))
+                                ComboBox.onSelectedItemChanged (fun obj -> ArrangementBaseToneChanged(trackIndex, arrIndex, string obj) |> dispatch)
                                 ToolTip.tip "Base Tone"
                             ]
                             // Edit Replacement Tones Button
@@ -262,7 +261,7 @@ module TrackList =
                                     Button.margin (2.0, 0.0, 5.0, 0.0)
                                     Button.content "X"
                                     Button.classes [ "close" ]
-                                    Button.onClick (fun _ -> dispatch (RemoveTrackAt index))
+                                    Button.onClick (fun _ -> RemoveTrackAt index |> dispatch)
                                 ]
 
                                 // Audio Part
@@ -280,8 +279,8 @@ module TrackList =
                                             TextBlock.horizontalAlignment HorizontalAlignment.Center
                                             TextBlock.foreground Brushes.DarkGray
                                             TextBlock.maxWidth 100.0
-                                            TextBlock.cursor (Cursor(StandardCursorType.Hand))
-                                            TextBlock.onTapped (fun _ -> dispatch (ChangeAudioFile(index)))
+                                            TextBlock.cursor <| Cursor StandardCursorType.Hand
+                                            TextBlock.onTapped (fun _ -> ChangeAudioFile index |> dispatch)
                                             TextBlock.text (track.AudioFile |> Option.defaultValue "None selected" |> Path.GetFileName)
                                             ToolTip.tip (track.AudioFile |> Option.defaultValue "Click to select a file.")
                                         ]
@@ -300,7 +299,7 @@ module TrackList =
                                                         TextBlock.verticalAlignment VerticalAlignment.Center
                                                     ]
                                                     yield NumericUpDown.create [
-                                                        NumericUpDown.value (track.TrimAmount |> double)
+                                                        NumericUpDown.value <| double track.TrimAmount
                                                         NumericUpDown.minimum 0.0
                                                         NumericUpDown.verticalAlignment VerticalAlignment.Center
                                                         NumericUpDown.width 75.0
@@ -321,7 +320,7 @@ module TrackList =
                                 StackPanel.create [
                                     StackPanel.orientation Orientation.Horizontal
                                     StackPanel.spacing 10.0
-                                    StackPanel.children (List.mapi (fun i item -> arrangementTemplate item index i commonTones dispatch :> IView) track.Arrangements)
+                                    StackPanel.children <| List.mapi (fun i item -> arrangementTemplate item index i commonTones dispatch :> IView) track.Arrangements
                                 ]
                             ]
                         ]
@@ -334,10 +333,10 @@ module TrackList =
     let view (state: State) (dispatch : Msg -> Unit) =
         // List of tracks
         ScrollViewer.create [
-            ScrollViewer.horizontalScrollBarVisibility ScrollBarVisibility.Auto
+            ScrollViewer.horizontalScrollBarVisibility Primitives.ScrollBarVisibility.Auto
             ScrollViewer.content (
                 StackPanel.create [
-                    StackPanel.children (List.mapi (fun i item -> trackTemplate item i state.CommonTones dispatch :> IView) state.Tracks)
+                    StackPanel.children <| List.mapi (fun i item -> trackTemplate item i state.CommonTones dispatch :> IView) state.Tracks
                 ] 
             )
         ]

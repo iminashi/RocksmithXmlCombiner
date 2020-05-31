@@ -45,9 +45,9 @@ module CommonToneEditor =
                         Grid.column 1
                         Grid.row (i + 1)
                         TextBox.margin 2.0
-                        TextBox.text (tones.[i])
+                        TextBox.text tones.[i]
                         TextBox.isEnabled (i = 0 || not (String.IsNullOrEmpty(tones.[i - 1])))
-                        TextBox.onTextChanged ((fun text -> dispatch (UpdateToneName(title, i, text))), SubPatchOptions.OnChangeOf title)
+                        TextBox.onTextChanged ((fun text -> UpdateToneName(title, i, text) |> dispatch), SubPatchOptions.OnChangeOf title)
                     ]
             ]
         ]

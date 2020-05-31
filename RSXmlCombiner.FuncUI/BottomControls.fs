@@ -92,7 +92,7 @@ module BottomControls =
                             TextBox.watermark "Combined Title"
                             TextBox.text state.CombinationTitle
                             TextBox.verticalAlignment VerticalAlignment.Center
-                            TextBox.onTextChanged (fun text -> dispatch (UpdateCombinationTitle text))
+                            TextBox.onTextChanged (UpdateCombinationTitle >> dispatch)
                             TextBox.width 200.0
                             ToolTip.tip "Combined Title"
                         ]
@@ -105,16 +105,16 @@ module BottomControls =
                                 CheckBox.create [
                                     CheckBox.content "Coerce to 100 Phrases"
                                     CheckBox.isChecked state.CoercePhrases
-                                    CheckBox.onChecked (fun _ -> dispatch (CoercePhrasesChanged(true)))
-                                    CheckBox.onUnchecked (fun _ -> dispatch (CoercePhrasesChanged(false)))
+                                    CheckBox.onChecked (fun _ -> CoercePhrasesChanged true |> dispatch)
+                                    CheckBox.onUnchecked (fun _ -> CoercePhrasesChanged false |> dispatch)
                                     ToolTip.tip "Will combine phrases and sections so the resulting arrangements have a max of 100 phrases and sections."
                                 ]
                                 // Add Track Names to Lyrics Check Box
                                 CheckBox.create [
                                     CheckBox.content "Add Track Names to Lyrics"
                                     CheckBox.isChecked state.AddTrackNamesToLyrics
-                                    CheckBox.onChecked (fun _ -> dispatch (AddTrackNamesChanged(true)))
-                                    CheckBox.onUnchecked (fun _ -> dispatch (AddTrackNamesChanged(false)))
+                                    CheckBox.onChecked (fun _ -> AddTrackNamesChanged true |> dispatch)
+                                    CheckBox.onUnchecked (fun _ -> AddTrackNamesChanged false |> dispatch)
                                     CheckBox.margin (0.0, 5.0, 0.0, 0.0) 
                                 ]
                             ]

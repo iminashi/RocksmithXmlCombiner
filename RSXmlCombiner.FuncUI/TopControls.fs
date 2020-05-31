@@ -218,18 +218,18 @@ module TopControls =
                         Button.create [
                             Button.content "New Project"
                             Button.onClick (fun _ -> dispatch NewProject)
-                            Button.hotKey (KeyGesture.Parse "Ctrl+N") // TODO: Hook up hot keys
+                            //Button.hotKey <| KeyGesture.Parse "Ctrl+N" // TODO: Hook up hot keys
                         ]
                         Button.create [
                             Button.content "Open Project..."
                             Button.onClick (fun _ -> dispatch SelectOpenProjectFile)
-                            Button.hotKey (KeyGesture.Parse "Ctrl+O")
+                            //Button.hotKey <| KeyGesture.Parse "Ctrl+O"
                         ]
                         Button.create [
                             Button.content "Save Project..."
                             Button.onClick (fun _ -> dispatch SelectSaveProjectFile)
                             Button.isEnabled (state.Tracks.Length > 0)
-                            Button.hotKey (KeyGesture.Parse "Ctrl+S")
+                            //Button.hotKey <| KeyGesture.Parse "Ctrl+S"
                         ]
                     ]
                 ]
