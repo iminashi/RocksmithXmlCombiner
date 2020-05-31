@@ -187,23 +187,29 @@ module TrackList =
                         // Optional Tone Controls
                         match arr.Data with
                         | Some instArr ->
-                            let getToneNames() = 
+                            let getBaseToneNames() = 
                                 match Map.tryFind arr.Name commonTones with
                                 | Some names ->
-                                    match names |> Array.tryFindIndexBack (fun t -> not (String.IsNullOrEmpty(t))) with
-                                    | Some lastNonNullIndex -> names.[1..lastNonNullIndex] // Exclude the first one (Base Tone)
+                                    match names |> Array.tryFindIndex String.IsNullOrEmpty with
+                                    | Some firstEmptyIndex -> names.[1..(firstEmptyIndex - 1)] // Exclude the first one (Base Tone)
                                     | None -> names.[1..]
                                 | None -> [||]
 
                             if instArr.ToneNames.Length = 0 && trackIndex <> 0 then
+                                let selectedTone = instArr.BaseTone |> Option.defaultValue ""
                                 // Base Tone Combo Box
                                 yield ComboBox.create [
                                     ComboBox.width 100.0
                                     ComboBox.height 30.0
                                     ComboBox.margin (0.0, 5.0) 
-                                    ComboBox.dataItems <| getToneNames()
-                                    ComboBox.selectedItem (instArr.BaseTone |> Option.defaultValue "")
-                                    ComboBox.onSelectedItemChanged (fun obj -> ArrangementBaseToneChanged(trackIndex, arrIndex, string obj) |> dispatch)
+                                    ComboBox.dataItems <| getBaseToneNames()
+                                    ComboBox.selectedItem selectedTone
+                                    ComboBox.onSelectedItemChanged ((fun obj -> 
+                                        match obj with
+                                        | null -> () // TODO: Investigate where the null values are coming from
+                                        | s when string s <> selectedTone ->
+                                            ArrangementBaseToneChanged(trackIndex, arrIndex, string obj) |> dispatch
+                                        | _ -> ()), SubPatchOptions.OnChangeOf selectedTone)
                                     ToolTip.tip "Base Tone"
                                 ]
                             else if instArr.ToneNames.Length > 0 then
