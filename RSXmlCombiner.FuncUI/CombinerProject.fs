@@ -1,7 +1,6 @@
 ﻿namespace RSXmlCombiner.FuncUI
 
 module CombinerProject =
-    open Types
 
     let private updateTemplates (Templates currentTemplates) (arrangements : Arrangement list) =
         let newTemplates =

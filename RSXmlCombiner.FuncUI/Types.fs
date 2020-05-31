@@ -1,8 +1,8 @@
 ﻿namespace RSXmlCombiner.FuncUI
 
+[<AutoOpen>]
 module Types =
     open System.Text.Json.Serialization
-    open System.IO
     open System
     open Rocksmith2014Xml
 

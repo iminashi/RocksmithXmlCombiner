@@ -2,7 +2,6 @@
 
 module Shell =
     open System
-    open Types
     open Elmish
     open Avalonia
     open Avalonia.Controls

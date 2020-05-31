@@ -6,7 +6,6 @@ module BottomControls =
     open Elmish
     open Avalonia.Controls
     open Avalonia.FuncUI.DSL
-    open Types
     open Avalonia.Layout
 
     type State = CombinerProject

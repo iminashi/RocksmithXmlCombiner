@@ -11,7 +11,6 @@ module TopControls =
     open System.IO
     open System.Text.Json
     open System.Text.Json.Serialization
-    open Types
     open Rocksmith2014Xml
     open XmlUtils
 

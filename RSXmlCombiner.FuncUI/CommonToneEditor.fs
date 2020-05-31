@@ -5,7 +5,6 @@ module CommonToneEditor =
     open Elmish
     open Avalonia.Controls
     open Avalonia.FuncUI.DSL
-    open Types
     open Avalonia.Layout
     open Avalonia.FuncUI.Types
 

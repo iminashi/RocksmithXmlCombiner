@@ -5,7 +5,6 @@ module ArrangementCombiner =
     open System.IO
     open Rocksmith2014Xml
     open XmlCombiners
-    open Types
 
     /// Combines the show light arrangements if all tracks have one set.
     let private combineShowLights tracks index targetFolder =

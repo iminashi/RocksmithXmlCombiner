@@ -12,7 +12,6 @@ module TrackList =
     open Avalonia.FuncUI.Types
     open Avalonia.Layout
     open Avalonia.Input
-    open Types
     open XmlUtils
 
     type State = CombinerProject

@@ -6,7 +6,6 @@ module AudioCombiner =
     open System.IO
     open System.Globalization
     open System.Diagnostics
-    open Types
 
     /// Creates the command line arguments for sox.
     let private createArguments (tracks : Track list) targetFile =

@@ -5,7 +5,6 @@ module ToolkitImporter =
     open System.IO
     open System.Linq
     open System.Xml.Linq
-    open Types
 
     let private ad = XNamespace.Get "http://schemas.datacontract.org/2004/07/RocksmithToolkitLib.DLCPackage"
     let private d4p1 = XNamespace.Get "http://schemas.datacontract.org/2004/07/RocksmithToolkitLib.DLCPackage.AggregateGraph"
