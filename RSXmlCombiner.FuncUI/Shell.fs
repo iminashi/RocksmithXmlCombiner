@@ -68,17 +68,26 @@ module Shell =
             StackPanel.children [
                 Grid.create [
                     Grid.columnDefinitions "150, 150"
-                    Grid.rowDefinitions (Seq.replicate data.ToneNames.Length "*" |> String.concat ",")
+                    Grid.rowDefinitions (Seq.replicate (data.ToneNames.Length + 1)  "*" |> String.concat ",")
                     Grid.children [
+                        yield TextBlock.create [
+                            TextBlock.text "Tone Name"    
+                            TextBlock.fontSize 16.0
+                        ]
+                        yield TextBlock.create [
+                            Grid.column 1
+                            TextBlock.text "Replace With"    
+                            TextBlock.fontSize 16.0
+                        ]
                         for (i, tone) in data.ToneNames |> List.indexed do
                             yield TextBlock.create [
-                                    Grid.row i
+                                    Grid.row (i + 1)
                                     TextBlock.margin 2.0
                                     TextBlock.text tone
                                     TextBlock.verticalAlignment VerticalAlignment.Center
                                   ]
                             yield ComboBox.create [
-                                    yield Grid.row i
+                                    yield Grid.row (i + 1)
                                     yield Grid.column 1
                                     yield ComboBox.margin 2.0
                                     yield ComboBox.height 30.0
@@ -96,6 +105,7 @@ module Shell =
                     Button.fontSize 15.0
                     Button.horizontalAlignment HorizontalAlignment.Center
                     Button.width 120.0
+                    Button.margin 5.0
                     Button.onClick (fun _ -> ToneReplacementClosed |> dispatch)
                 ]
             ]

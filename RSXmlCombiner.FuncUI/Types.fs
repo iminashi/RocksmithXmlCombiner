@@ -126,6 +126,7 @@ module Types =
         | Some data -> createNamePrefix data.Ordering + arr.ArrangementType.ToString()
         | None -> arrTypeHumanized arr.ArrangementType
 
+    /// Creates a template (no file name or arrangement data) from the given arrangement.
     let createTemplate arr =
         { Name = createArrName arr; ArrangementType = arr.ArrangementType; FileName = None; Data = None }
 
