@@ -206,7 +206,9 @@ module TrackList =
                                     ComboBox.selectedItem selectedTone
                                     ComboBox.onSelectedItemChanged ((fun obj -> 
                                         match obj with
-                                        | null -> () // TODO: Investigate where the null values are coming from
+                                        // Null values are sent when the Items collection is changed together with the selected item
+                                        // Probably related: https://github.com/AvaloniaUI/Avalonia/issues/4048
+                                        | null -> ()
                                         | s when string s <> selectedTone ->
                                             ArrangementBaseToneChanged(trackIndex, arrIndex, string obj) |> dispatch
                                         | _ -> ()), SubPatchOptions.OnChangeOf selectedTone)
