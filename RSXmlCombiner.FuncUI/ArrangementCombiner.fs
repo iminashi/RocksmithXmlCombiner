@@ -23,7 +23,7 @@ module ArrangementCombiner =
         let displayTime =
             // Make sure that the title does not overlap with existing lyrics
             if vocals.Count > 0 && vocals.[0].Time < startBeat + defaultDisplayTime then
-                startBeat - vocals.[0].Time - 0.1f
+                vocals.[0].Time - startBeat - 0.1f
             else
                 defaultDisplayTime
 
@@ -92,8 +92,6 @@ module ArrangementCombiner =
 
     /// Combines the instrumental arrangements at the given index if all tracks have one set.
     let private combineInstrumental (tracks : Track list) index targetFolder combinedTitle coercePhrases =
-        let arrType = tracks.[0].Arrangements.[index].ArrangementType
-
         if tracks |> List.forall (fun t -> t.Arrangements.[index].FileName |> Option.isSome) then
             let combiner = InstrumentalCombiner()
 
@@ -109,11 +107,16 @@ module ArrangementCombiner =
 
                 combiner.AddNext(next, tracks.[i].TrimAmount, (i = tracks.Length - 1))
 
-            if not (String.IsNullOrEmpty(combinedTitle)) then
+            if not <| String.IsNullOrEmpty combinedTitle then
                 combiner.SetTitle(combinedTitle)
 
-            // TODO: Naming of the file
-            combiner.Save(Path.Combine(targetFolder, sprintf "Combined_%s_RS2.xml" (arrType.ToString())), coercePhrases)
+            // Remove periods and replace spaces with underscores in the arrangement name
+            let name = 
+                tracks.[0].Arrangements.[index].Name
+                |> String.filter (fun c -> c <> '.')
+                |> String.map (fun c -> if c = ' ' then '_' else c)
+
+            combiner.Save(Path.Combine(targetFolder, sprintf "Combined_%s_RS2.xml" name), coercePhrases)
 
     /// Combines all the arrangements in the project.
     let combineArrangements (project : ProgramState) targetFolder  =
