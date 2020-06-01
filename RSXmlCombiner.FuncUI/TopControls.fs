@@ -53,7 +53,11 @@ module TopControls =
             let arrangementFolder state fileName =
                 match XmlHelper.GetRootElementName(fileName) with
                 | "song" ->
-                    (createInstrumental fileName None None) :: state
+                    let arr = createInstrumental fileName None None
+                    if state |> List.exists (fun a -> a.Name = arr.Name) then
+                        state
+                    else
+                        arr :: state
                 | "vocals" ->
                     { Name = "Vocals"; FileName = Some fileName; ArrangementType = ArrangementType.Vocals; Data = None  } :: state
                 | "showlights" when state |> alreadyHasShowlights |> not ->
