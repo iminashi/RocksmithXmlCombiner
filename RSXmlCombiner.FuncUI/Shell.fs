@@ -60,7 +60,7 @@ module Shell =
             state.CommonTones
             |> Map.find arrangement.Name
             |> Seq.skip 1 // Skip the base tone name
-            |> Seq.filter (fun t -> not (String.IsNullOrEmpty(t)))
+            |> Seq.filter (String.IsNullOrEmpty >> not)
 
         StackPanel.create [
             StackPanel.horizontalAlignment HorizontalAlignment.Center

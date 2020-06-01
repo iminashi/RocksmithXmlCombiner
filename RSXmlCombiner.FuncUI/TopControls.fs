@@ -79,7 +79,7 @@ module TopControls =
         match msg with
         | SelectAddTrackFiles ->
             let selectFiles = Dialogs.openFileDialog "Select Arrangement File(s)" Dialogs.xmlFileFilter true
-            state, Cmd.OfAsync.perform (fun _ -> selectFiles) () (fun files -> AddTrack files)
+            state, Cmd.OfAsync.perform (fun _ -> selectFiles) () AddTrack
 
         | AddTrack fileNames -> 
             if fileNames.Length > 0 then
@@ -159,15 +159,15 @@ module TopControls =
 
         | SelectToolkitTemplate ->
             let files = Dialogs.openFileDialog "Select Toolkit Template" Dialogs.toolkitTemplateFilter false
-            state, Cmd.OfAsync.perform (fun _ -> files) () (fun files -> ImportToolkitTemplate files)
+            state, Cmd.OfAsync.perform (fun _ -> files) () ImportToolkitTemplate
 
         | SelectOpenProjectFile ->
             let files = Dialogs.openFileDialog "Select Project File" Dialogs.projectFileFilter false
-            state, Cmd.OfAsync.perform (fun _ -> files) () (fun files -> OpenProject files)
+            state, Cmd.OfAsync.perform (fun _ -> files) () OpenProject
 
         | SelectSaveProjectFile ->
             let targetFile = Dialogs.saveFileDialog "Save Project As" Dialogs.projectFileFilter (Some "combo.rscproj")
-            state, Cmd.OfAsync.perform (fun _ -> targetFile) () (fun file -> SaveProject file)
+            state, Cmd.OfAsync.perform (fun _ -> targetFile) () SaveProject
 
     let view state dispatch =
         // Top Panel

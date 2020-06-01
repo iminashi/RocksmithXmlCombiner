@@ -187,11 +187,12 @@ module TrackList =
                         // Optional Tone Controls
                         match arr.Data with
                         | Some instArr ->
-                            let getBaseToneNames() = 
+                            let getBaseToneNames = 
                                 match Map.tryFind arr.Name commonTones with
                                 | Some names ->
                                     match names |> Array.tryFindIndex String.IsNullOrEmpty with
-                                    | Some firstEmptyIndex -> names.[1..(firstEmptyIndex - 1)] // Exclude the first one (Base Tone)
+                                    // Exclude the first one which is the base tone for the combined arrangement
+                                    | Some firstEmptyIndex -> names.[1..(firstEmptyIndex - 1)]
                                     | None -> names.[1..]
                                 | None -> [||]
 
@@ -202,7 +203,7 @@ module TrackList =
                                     ComboBox.width 100.0
                                     ComboBox.height 30.0
                                     ComboBox.margin (0.0, 5.0) 
-                                    ComboBox.dataItems <| getBaseToneNames()
+                                    ComboBox.dataItems <| getBaseToneNames
                                     ComboBox.selectedItem selectedTone
                                     ComboBox.onSelectedItemChanged ((fun obj -> 
                                         match obj with

@@ -20,7 +20,7 @@ module BottomControls =
         match msg with
         | SelectTargetAudioFile -> 
             let targetFile = Dialogs.saveFileDialog "Select Target File" Dialogs.audioFileFilters (Some "combo.wav")
-            state, Cmd.OfAsync.perform (fun _ -> targetFile) () (fun f -> CombineAudioFiles f)
+            state, Cmd.OfAsync.perform (fun _ -> targetFile) () CombineAudioFiles
 
         | CombineAudioFiles targetFile ->
             if String.IsNullOrEmpty targetFile then
@@ -40,7 +40,7 @@ module BottomControls =
 
         | SelectCombinationTargetFolder ->
             let targetFolder = Dialogs.openFolderDialog "Select Target Folder"
-            state, Cmd.OfAsync.perform (fun _ -> targetFolder) () (fun f -> CombineArrangements f)
+            state, Cmd.OfAsync.perform (fun _ -> targetFolder) () CombineArrangements
 
         | UpdateCombinationTitle newTitle -> { state with CombinationTitle = newTitle }, Cmd.none
 

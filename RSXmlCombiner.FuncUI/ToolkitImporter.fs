@@ -37,7 +37,7 @@ module ToolkitImporter =
         let title = xdoc.Element(ad + "SongInfo").Element(ad + "SongDisplayName").Value;
     
         // If there is no ArrangementName tag, assume that it is an old template file
-        if arrangements.First().Element(ad + "ArrangementName") = null then
+        if arrangements.First().Element(ad + "ArrangementName") |> isNull then
             importOld arrangements templatePath, title
         else
             // Map ArrangementType to file name * base tone name
