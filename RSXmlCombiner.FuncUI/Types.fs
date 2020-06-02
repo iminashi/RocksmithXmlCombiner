@@ -30,9 +30,9 @@ module Types =
 
     type InstrumentalArrangementData = {
         Ordering : ArrangementOrdering
-        BaseTone : string option
+        BaseToneIndex : int
         ToneNames : string list
-        ToneReplacements : Map<string, string> }
+        ToneReplacements : Map<string, int> }
 
     type Arrangement = {
         Name : string
@@ -46,7 +46,7 @@ module Types =
         | ArrangementOrdering.Bonus -> "Bonus "
         | _ -> ""
 
-    let createInstrumental fileName (baseTone : string option) (arrType : ArrangementType option) =
+    let createInstrumental fileName (arrType : ArrangementType option) =
         let song = RS2014Song.Load(fileName)
         let arrangementType =
             match arrType with
@@ -75,7 +75,7 @@ module Types =
 
         let arrData = {
             Ordering = ordering
-            BaseTone = Option.ofObj song.ToneBase |> Option.orElse baseTone
+            BaseToneIndex = -1
             ToneNames = toneNames
             ToneReplacements = Map.empty }
 

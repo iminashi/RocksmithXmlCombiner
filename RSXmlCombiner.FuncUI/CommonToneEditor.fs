@@ -17,48 +17,14 @@ module CommonToneEditor =
             let names = state.CommonTones |> Map.find title
             let oldName = names.[index]
             if oldName = newName then
-                // OnTextChanged may fire with the same value when setting the it from code
+                // OnTextChanged may fire with the same value when setting it from code
                 state, Cmd.none
             else 
                 let newTones = 
                     state.CommonTones
                     |> Map.add title (names |> Array.mapi (fun i name -> if i = index then newName else name))
 
-                let updatedTracks =
-                    // Update the arrangement's base tone on the first track
-                    if index = 0 then
-                        let first = state.Tracks.Head
-                        let arr = first.Arrangements |> List.find (fun a -> a.Name = title)
-                        let updatedArr =
-                            match arr.Data with
-                            | Some arrData ->
-                                let newData = { arrData with BaseTone = Some newName }
-                                { arr with Data = Some newData }
-                            | None -> arr
-
-                        let updatedArrangements = first.Arrangements |> List.map (fun a -> if a = arr then updatedArr else a)
-                        let updatedFirst = { first with Arrangements = updatedArrangements}
-                    
-                        updatedFirst :: List.tail state.Tracks
-                    else
-                        // Update the tone name on any arrangement that used this as a replacement tone
-                        state.Tracks |> List.map (fun track ->
-                            let arr = track.Arrangements |> List.find (fun a -> a.Name = title)
-                            let updatedArr =
-                                match arr.Data with
-                                | Some arrData ->
-                                    let updatedTones = arrData.ToneReplacements |> Map.map (fun _ t -> if t = oldName then newName else t)
-                                    let updatedBaseTone =
-                                        match arrData.BaseTone with
-                                        | Some bTone when bTone = oldName -> Some newName
-                                        | current -> current
-                                    let newData = { arrData with ToneReplacements = updatedTones; BaseTone = updatedBaseTone }
-                                    { arr with Data = Some newData }
-                                | None -> arr
-                            let updatedArrangements = track.Arrangements |> List.map (fun a -> if a = arr then updatedArr else a)
-                            { track with Arrangements = updatedArrangements })
-
-                { state with CommonTones = newTones; Tracks = updatedTracks }, Cmd.none
+                { state with CommonTones = newTones }, Cmd.none
 
     let private tonesTemplate title (tones : string[]) dispatch =
         let leftSide = [| "Base"; "Tone A"; "Tone B"; "Tone C"; "Tone D" |]

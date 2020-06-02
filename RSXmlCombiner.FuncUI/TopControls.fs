@@ -32,7 +32,7 @@ module TopControls =
             | _ -> ()
         | _ -> ()
 
-    let private createTrack instArrFile arrangements (title : string option) =
+    let private createTrack instArrFile (title : string option) arrangements =
         let song = RS2014Song.Load(instArrFile)
         { Title = title |> Option.defaultValue song.Title
           AudioFile = None
@@ -53,7 +53,7 @@ module TopControls =
             let arrangementFolder state fileName =
                 match XmlHelper.GetRootElementName(fileName) with
                 | "song" ->
-                    let arr = createInstrumental fileName None None
+                    let arr = createInstrumental fileName None
                     if state |> List.exists (fun a -> a.Name = arr.Name) then
                         state
                     else
@@ -65,15 +65,15 @@ module TopControls =
                 //| "showlights" -> Cannot have more than one show lights arrangement
                 | _ -> state // StatusMessage = "Unknown arrangement type for file {Path.GetFileName(arr)}";
         
-            let arrangements = 
+            let newState = 
                 arrangementFileNames
                 |> Array.fold arrangementFolder []
                 // Add any missing arrangements from the project's templates
                 |> ProgramState.addMissingArrangements state.Templates
+                |> createTrack instArrFile None
+                |> ProgramState.addTrack state
 
-            let newTrack = createTrack instArrFile arrangements None
-
-            ProgramState.addTrack newTrack state, Cmd.none
+            newState, Cmd.none
 
     let update (msg: Msg) state : ProgramState * Cmd<_> =
         match msg with
@@ -95,32 +95,32 @@ module TopControls =
                 // Try to find an instrumental arrangement to read metadata from
                 let instArrType = foundArrangements |> Map.tryFindKey (fun arrType _ -> isInstrumental arrType)
                 match instArrType with
+                | None ->
+                    { state with StatusMessage = "Could not find an instrumental arrangement in the template." }, Cmd.none
                 | Some instArrType ->
-                    let instArrFile, _ = foundArrangements.[instArrType]
+                    let instArrFile = foundArrangements.[instArrType]
                     
-                    let foldArrangements (state : Arrangement list) arrType (fileName, baseTone) =
+                    let foldArrangements (state : Arrangement list) arrType fileName =
                         let arrangement =
                             match arrType with
                             | t when isInstrumental t ->
                                 // Respect the arrangement type from the Toolkit template
-                                createInstrumental fileName baseTone (Some arrType)
+                                createInstrumental fileName (Some arrType)
                             | _ -> { FileName = Some fileName
                                      ArrangementType = arrType
                                      Name = arrTypeHumanized arrType
                                      Data = None }
                         arrangement :: state
 
-                    let arrangements = 
+                    let newState = 
                         foundArrangements
                         |> Map.fold foldArrangements []
                         // Add any missing arrangements from the project's templates
                         |> ProgramState.addMissingArrangements state.Templates
+                        |> createTrack instArrFile (Some title)
+                        |> ProgramState.addTrack state
 
-                    let newTrack = createTrack instArrFile arrangements (Some title)
-
-                    ProgramState.addTrack newTrack state, Cmd.none
-                | None ->
-                    state, Cmd.none // TODO: Display a message
+                    newState, Cmd.none
             else
                 state, Cmd.none
         

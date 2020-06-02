@@ -1,5 +1,7 @@
 ﻿namespace RSXmlCombiner.FuncUI
 
+open System
+
 type ProgramState = {
     Tracks : Track list
     CommonTones : CommonTones
@@ -58,7 +60,7 @@ module ProgramState =
             |> Map.fold (fun commonTones name toneNames -> commonTones |> Map.add name toneNames) newCommonTones
 
     /// Adds a new track to the end of the track list of the project.
-    let addTrack newTrack project =
+    let addTrack project newTrack =
         // Add any new arrangements in the track to the templates
         let templates = project.Templates |> updateTemplates newTrack.Arrangements
 
@@ -69,3 +71,12 @@ module ProgramState =
         let tracks = project.Tracks |> updateTracks templates
         
         { project with Tracks = tracks @ [ newTrack ]; Templates = templates; CommonTones = commonTones }
+
+    let getReplacementToneNames arrName commonTones =
+        match Map.tryFind arrName commonTones with
+        | Some names ->
+            match names |> Array.tryFindIndex String.IsNullOrEmpty with
+            // Exclude the first one which is the base tone for the combined arrangement
+            | Some firstEmptyIndex -> names.[1..(firstEmptyIndex - 1)]
+            | None -> names.[1..]
+        | None -> [||]

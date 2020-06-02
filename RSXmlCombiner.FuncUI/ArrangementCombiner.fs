@@ -53,19 +53,20 @@ module ArrangementCombiner =
 
             combiner.Save(Path.Combine(targetFolder, sprintf "Combined_%s_RS2.xml" tracks.[0].Arrangements.[index].Name))
 
-    let private replaceToneNames (song : RS2014Song) (toneReplacements : Map<string, string>) =
+    let private replaceToneNames (song : RS2014Song) (toneReplacements : Map<string, int>) (commonTones : string array) =
         // Replace the tone names of the defined tones and the tone changes
         for kv in toneReplacements do
-            if song.ToneBase = kv.Key then song.ToneBase <- kv.Value
-            if song.ToneA = kv.Key then song.ToneA <- kv.Value
-            if song.ToneB = kv.Key then song.ToneB <- kv.Value
-            if song.ToneC = kv.Key then song.ToneC <- kv.Value
-            if song.ToneD = kv.Key then song.ToneD <- kv.Value
+            let newToneName = commonTones.[kv.Value + 1] // First one is the base tone
+            if song.ToneBase = kv.Key then song.ToneBase <- newToneName
+            if song.ToneA = kv.Key then song.ToneA <- newToneName
+            if song.ToneB = kv.Key then song.ToneB <- newToneName
+            if song.ToneC = kv.Key then song.ToneC <- newToneName
+            if song.ToneD = kv.Key then song.ToneD <- newToneName
 
             if not (song.ToneChanges |> isNull) then
                 for tone in song.ToneChanges do
                     if tone.Name = kv.Key then
-                        tone.Name <- kv.Value
+                        tone.Name <- newToneName
 
         // Make sure that there are no duplicate names in the defined tones
         let uniqueTones : Set<string> = Set.ofSeq [
@@ -91,7 +92,10 @@ module ArrangementCombiner =
         uniqueTones |> Set.fold folder 'A' |> ignore
 
     /// Combines the instrumental arrangements at the given index if all tracks have one set.
-    let private combineInstrumental (tracks : Track list) index targetFolder combinedTitle coercePhrases =
+    let private combineInstrumental (project : ProgramState) index targetFolder =
+        let tracks = project.Tracks
+        let commonTones = project.CommonTones |> Map.find tracks.[0].Arrangements.[index].Name
+
         if tracks |> List.forall (fun t -> t.Arrangements.[index].FileName |> Option.isSome) then
             let combiner = InstrumentalCombiner()
 
@@ -100,15 +104,18 @@ module ArrangementCombiner =
                 let arrData = arr.Data |> Option.get
                 let next = RS2014Song.Load(arr.FileName |> Option.get)
 
+                if i = 0 then
+                    next.ToneBase <- commonTones.[0]
+                else if arrData.BaseToneIndex <> -1 then
+                    next.ToneBase <- commonTones.[arrData.BaseToneIndex + 1] // First one is the base tone
+
                 if not arrData.ToneNames.IsEmpty then
-                    replaceToneNames next arrData.ToneReplacements
-                else
-                    next.ToneBase <- arrData.BaseTone |> Option.get
+                    replaceToneNames next arrData.ToneReplacements commonTones
 
                 combiner.AddNext(next, tracks.[i].TrimAmount, (i = tracks.Length - 1))
 
-            if not <| String.IsNullOrEmpty combinedTitle then
-                combiner.SetTitle(combinedTitle)
+            if not <| String.IsNullOrEmpty project.CombinationTitle then
+                combiner.SetTitle(project.CombinationTitle)
 
             // Remove periods and replace spaces with underscores in the arrangement name
             let name = 
@@ -116,7 +123,7 @@ module ArrangementCombiner =
                 |> String.filter (fun c -> c <> '.')
                 |> String.map (fun c -> if c = ' ' then '_' else c)
 
-            combiner.Save(Path.Combine(targetFolder, sprintf "Combined_%s_RS2.xml" name), coercePhrases)
+            combiner.Save(Path.Combine(targetFolder, sprintf "Combined_%s_RS2.xml" name), project.CoercePhrases)
 
     /// Combines all the arrangements in the project.
     let combineArrangements (project : ProgramState) targetFolder  =
@@ -124,7 +131,7 @@ module ArrangementCombiner =
         for i in 0..nArrangements - 1 do
             match project.Tracks.Head.Arrangements.[i].ArrangementType with
             | aType when isInstrumental aType ->
-                combineInstrumental project.Tracks i targetFolder project.CombinationTitle project.CoercePhrases
+                combineInstrumental project i targetFolder
 
             | ArrangementType.Vocals | ArrangementType.JVocals ->
                 combineVocals project.Tracks i targetFolder project.AddTrackNamesToLyrics

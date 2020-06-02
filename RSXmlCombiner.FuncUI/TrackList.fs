@@ -19,7 +19,7 @@ module TrackList =
     | ChangeAudioFileResult of trackIndex : int * newFile:string[]
     | SelectArrangementFile of trackIndex : int * arrIndex : int
     | ChangeArrangementFile of trackIndex : int * arrIndex : int * string[]
-    | ArrangementBaseToneChanged of trackIndex : int * arrIndex : int * baseTone : string
+    | ArrangementBaseToneChanged of trackIndex : int * arrIndex : int * toneIndex : int
     | RemoveArrangement of trackIndex : int * arrIndex : int
     | ShowReplacementToneEditor of trackIndex : int * arrIndex : int
 
@@ -56,7 +56,7 @@ module TrackList =
                 match rootName, arrangement.ArrangementType with
                 // For instrumental arrangements, create an arrangement from the file, preserving the arrangement type and name
                 | "song", t when isInstrumental t ->
-                    let newArr = { createInstrumental fileName None (Some t) with Name = arrangement.Name }
+                    let newArr = { createInstrumental fileName (Some t) with Name = arrangement.Name }
                     let updatedTracks = updateSingleArrangement state.Tracks trackIndex arrIndex newArr
                     { state with Tracks = updatedTracks }, Cmd.none
 
@@ -72,14 +72,10 @@ module TrackList =
             else
                 state, Cmd.none
 
-        | ArrangementBaseToneChanged (trackIndex, arrIndex, baseTone) ->
+        | ArrangementBaseToneChanged (trackIndex, arrIndex, toneIndex) ->
             match state.Tracks.[trackIndex].Arrangements.[arrIndex] with
             | { Data = Some arrData } as arrangement ->
-                let data = {
-                    Ordering = arrData.Ordering
-                    BaseTone = Some baseTone
-                    ToneNames = arrData.ToneNames
-                    ToneReplacements = Map.empty }
+                let data = { arrData with BaseToneIndex = toneIndex }
 
                 let newArr = { arrangement with Data = Some data }
                 let updatedTracks = updateSingleArrangement state.Tracks trackIndex arrIndex newArr
@@ -186,33 +182,19 @@ module TrackList =
 
                         // Optional Tone Controls
                         match arr.Data with
+                        | None -> () // Do nothing
                         | Some instArr ->
-                            let getBaseToneNames = 
-                                match Map.tryFind arr.Name commonTones with
-                                | Some names ->
-                                    match names |> Array.tryFindIndex String.IsNullOrEmpty with
-                                    // Exclude the first one which is the base tone for the combined arrangement
-                                    | Some firstEmptyIndex -> names.[1..(firstEmptyIndex - 1)]
-                                    | None -> names.[1..]
-                                | None -> [||]
+                            let baseToneNames = ProgramState.getReplacementToneNames arr.Name commonTones
 
                             if instArr.ToneNames.Length = 0 && trackIndex <> 0 then
-                                let selectedTone = instArr.BaseTone |> Option.defaultValue ""
                                 // Base Tone Combo Box
                                 yield ComboBox.create [
                                     ComboBox.width 100.0
                                     ComboBox.height 30.0
                                     ComboBox.margin (0.0, 5.0) 
-                                    ComboBox.dataItems <| getBaseToneNames
-                                    ComboBox.selectedItem selectedTone
-                                    ComboBox.onSelectedItemChanged ((fun obj -> 
-                                        match obj with
-                                        // Null values are sent when the Items collection is changed together with the selected item
-                                        // Probably related: https://github.com/AvaloniaUI/Avalonia/issues/4048
-                                        | null -> ()
-                                        | s when string s <> selectedTone ->
-                                            ArrangementBaseToneChanged(trackIndex, arrIndex, string obj) |> dispatch
-                                        | _ -> ()), SubPatchOptions.OnChangeOf selectedTone)
+                                    ComboBox.dataItems baseToneNames
+                                    ComboBox.selectedIndex instArr.BaseToneIndex
+                                    ComboBox.onSelectedIndexChanged (fun toneIndex -> if toneIndex <> -1 then ArrangementBaseToneChanged(trackIndex, arrIndex, toneIndex) |> dispatch)
                                     ToolTip.tip "Base Tone"
                                 ]
                             else if instArr.ToneNames.Length > 0 then
@@ -224,13 +206,13 @@ module TrackList =
                                     Button.onClick (fun _ -> ShowReplacementToneEditor(trackIndex, arrIndex) |> dispatch)
                                     Button.borderThickness 0.0
                                     Button.background (
-                                        if instArr.ToneReplacements.IsEmpty || instArr.ToneReplacements |> Map.exists (fun _ t -> String.IsNullOrEmpty t) then
+                                        if instArr.ToneReplacements.IsEmpty 
+                                           || instArr.ToneReplacements |> Map.exists (fun _ ti -> ti = -1 || ti >= baseToneNames.Length) then
                                             Brushes.DarkRed
                                         else
                                             Brushes.DarkGreen
                                     )
                                 ]
-                        | _ -> () // Do nothing
                     ]
                 ]
             )

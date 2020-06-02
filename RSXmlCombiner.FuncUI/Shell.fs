@@ -19,7 +19,7 @@ module Shell =
         | TopControlsMsg of TopControls.Msg
         | BottomControlsMsg of BottomControls.Msg
         | ToneReplacementClosed
-        | SetReplacementTone of trackIndex : int * arrIndex : int * toneName : string * replacementName : string
+        | SetReplacementTone of trackIndex : int * arrIndex : int * toneName : string * replacementIndex : int
 
     let init () = ProgramState.init, Cmd.none
 
@@ -43,10 +43,10 @@ module Shell =
 
         | ToneReplacementClosed -> { state with ReplacementToneEditor = None }, Cmd.none
 
-        | SetReplacementTone (trackIndex, arrIndex, toneName, replacementName) ->
+        | SetReplacementTone (trackIndex, arrIndex, toneName, replacementIndex) ->
             let arr = state.Tracks.[trackIndex].Arrangements.[arrIndex]
             let data = arr.Data |> Option.get
-            let updatedReplacements = data.ToneReplacements |> Map.add toneName replacementName
+            let updatedReplacements = data.ToneReplacements |> Map.add toneName replacementIndex
             let updatedData = { data with ToneReplacements = updatedReplacements }
             let updatedArr = { arr with Data = Some updatedData }
             let updatedTracks = updateSingleArrangement state.Tracks trackIndex arrIndex updatedArr
@@ -56,11 +56,7 @@ module Shell =
     let private replacementToneView state trackIndex arrIndex dispatch =
         let arrangement = state.Tracks.[trackIndex].Arrangements.[arrIndex]
         let data = arrangement.Data |> Option.get
-        let commonTones =
-            state.CommonTones
-            |> Map.find arrangement.Name
-            |> Seq.skip 1 // Skip the base tone name
-            |> Seq.filter (String.IsNullOrEmpty >> not)
+        let replacementToneNames = ProgramState.getReplacementToneNames arrangement.Name state.CommonTones
 
         StackPanel.create [
             StackPanel.horizontalAlignment HorizontalAlignment.Center
@@ -87,16 +83,16 @@ module Shell =
                                     TextBlock.verticalAlignment VerticalAlignment.Center
                                   ]
                             yield ComboBox.create [
-                                    yield Grid.row (i + 1)
-                                    yield Grid.column 1
-                                    yield ComboBox.margin 2.0
-                                    yield ComboBox.height 30.0
-                                    yield ComboBox.dataItems commonTones
-                                    match data.ToneReplacements |> Map.tryFind tone with
-                                    | Some replacement ->
-                                        yield ComboBox.selectedItem replacement
-                                    | None -> ()
-                                    yield ComboBox.onSelectedItemChanged (fun item -> SetReplacementTone(trackIndex, arrIndex, tone, (string item)) |> dispatch)
+                                    Grid.row (i + 1)
+                                    Grid.column 1
+                                    ComboBox.margin 2.0
+                                    ComboBox.height 30.0
+                                    ComboBox.dataItems replacementToneNames
+                                    ComboBox.selectedIndex (
+                                        match data.ToneReplacements |> Map.tryFind tone with
+                                        | Some index -> index
+                                        | None -> -1)
+                                    ComboBox.onSelectedIndexChanged (fun item -> SetReplacementTone(trackIndex, arrIndex, tone, item) |> dispatch)
                                   ]
                     ]
                 ]
