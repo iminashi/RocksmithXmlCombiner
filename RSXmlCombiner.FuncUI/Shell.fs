@@ -131,10 +131,7 @@ module Shell =
                                     // Status Bar with Message
                                     Border.create [
                                         Border.classes [ "statusbar" ]
-                                        Border.minHeight 28.0
-                                        Border.background "#222222"
                                         Border.dock Dock.Bottom
-                                        Border.padding 5.0
                                         Border.child (TextBlock.create [ TextBlock.text state.StatusMessage ])
                                     ]
 

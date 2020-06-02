@@ -76,6 +76,12 @@
     <Setter Property="Border.CornerRadius" Value="4"/>
   </Style>
 
+  <Style Selector="Border.statusbar">
+    <Setter Property="Background" Value="#222222"/>
+    <Setter Property="Padding" Value="5"/>
+    <Setter Property="MinHeight" Value="28"/>
+  </Style>
+
   <!--<Style Selector="Border.statusbar TextBlock">
     <Style.Animations>
       <Animation Duration="0:0:1">

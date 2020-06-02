@@ -96,7 +96,7 @@ module TopControls =
                 let instArrType = foundArrangements |> Map.tryFindKey (fun arrType _ -> isInstrumental arrType)
                 match instArrType with
                 | None ->
-                    { state with StatusMessage = "Could not find an instrumental arrangement in the template." }, Cmd.none
+                    { state with StatusMessage = "Could not find any instrumental arrangements in the template." }, Cmd.none
                 | Some instArrType ->
                     let instArrFile = foundArrangements.[instArrType]
                     
@@ -120,7 +120,7 @@ module TopControls =
                         |> createTrack instArrFile (Some title)
                         |> ProgramState.addTrack state
 
-                    newState, Cmd.none
+                    { newState with StatusMessage = sprintf "%i arrangements imported." foundArrangements.Count }, Cmd.none
             else
                 state, Cmd.none
         
@@ -172,7 +172,7 @@ module TopControls =
 
     let view state dispatch =
         // Top Panel
-        let (Templates templates) = state.Templates
+        //let (Templates templates) = state.Templates
         Grid.create [
             DockPanel.dock Dock.Top
             Grid.margin (15.0, 0.0)
@@ -196,10 +196,10 @@ module TopControls =
                     ]
                 ]
 
-                ComboBox.create [
-                    Grid.column 1
-                    ComboBox.dataItems templates
-                ]
+                //ComboBox.create [
+                //    Grid.column 1
+                //    ComboBox.dataItems templates
+                //]
 
                 // Right Side Panel
                 StackPanel.create [
