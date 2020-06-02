@@ -17,14 +17,16 @@ namespace XmlCombiners
 
         public void Save(string fileName, bool coercePhrases = false)
         {
+            if (CombinedArrangement is null)
+                throw new InvalidOperationException("Cannot save an empty arrangement.");
+
             CleanupToneChanges(CombinedArrangement);
 
-            // Only combine phrases if there is only one DD level
-            //if (CombinedArrangement.Levels.Count == 1)
-                CombinePhrases(CombinedArrangement);
+            CombinePhrases(CombinedArrangement);
 
             CombineChords(CombinedArrangement);
 
+            // TODO: Make this work with DD levels
             if (coercePhrases && CombinedArrangement.Levels.Count == 1)
                 CoercePhrasesAndSections(CombinedArrangement);
 
@@ -146,6 +148,8 @@ namespace XmlCombiners
                 {
                     if (song.Phrases[j].Name == song.Phrases[i].Name)
                     {
+                        // If there are DD levels, all the phrases should have unique names
+                        // There may be multiple noguitar phrases that can be combined
                         if (song.Levels.Count > 1)
                             Debug.Assert(song.Phrases[j].Name == "noguitar");
 

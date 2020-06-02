@@ -98,22 +98,16 @@ module Types =
     type Templates = Templates of Arrangement list
 
     let getTones fileName =
-        let song = RS2014Song.Load(fileName)
+        let toneNames = RS2014Song.ReadToneNames(fileName)
 
-        let bt = song.ToneBase |> Option.ofObj
-        let toneNames =
-            match song.ToneChanges with
-            | null -> []
-            | tones when tones.Count > 0 ->
-                [
-                    if not (String.IsNullOrEmpty(song.ToneA)) then yield song.ToneA
-                    if not (String.IsNullOrEmpty(song.ToneB)) then yield song.ToneB
-                    if not (String.IsNullOrEmpty(song.ToneC)) then yield song.ToneC
-                    if not (String.IsNullOrEmpty(song.ToneD)) then yield song.ToneD
-                ]
-            | _ -> []
+        let baseTone = toneNames.[0] |> Option.ofObj
+        let toneNamesList = 
+            toneNames
+            |> Seq.skip 1
+            |> Seq.filter (String.IsNullOrEmpty >> not)
+            |> Seq.toList
 
-        bt, toneNames
+        baseTone, toneNamesList
 
     let arrTypeHumanized arrType =
         match arrType with

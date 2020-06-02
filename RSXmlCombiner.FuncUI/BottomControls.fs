@@ -35,7 +35,7 @@ module BottomControls =
                 // User canceled the dialog
                 state, Cmd.none
             else
-                ArrangementCombiner.combineArrangements state targetFolder
+                ArrangementCombiner.combine state targetFolder
                 { state with StatusMessage = "Arrangements combined." }, Cmd.none
 
         | SelectCombinationTargetFolder ->
@@ -43,7 +43,6 @@ module BottomControls =
             state, Cmd.OfAsync.perform (fun _ -> targetFolder) () CombineArrangements
 
         | UpdateCombinationTitle newTitle -> { state with CombinationTitle = newTitle }, Cmd.none
-
         | CoercePhrasesChanged value -> { state with CoercePhrases = value }, Cmd.none
         | AddTrackNamesChanged value -> { state with AddTrackNamesToLyrics = value }, Cmd.none
 

@@ -50,7 +50,8 @@ module ToolkitImporter =
                     //let baseTone = itemNode.Element(ad + "ToneBase").Value;
     
                     state.Add(arrType, arrFn);
-                else if itemNode.Element(ad + "ArrangementName").Value.EndsWith("Vocals") || itemNode.Element(ad + "ArrangementName").Value = "ShowLights" then
+                else if itemNode.Element(ad + "ArrangementName").Value.EndsWith("Vocals")
+                        || itemNode.Element(ad + "ArrangementName").Value = "ShowLights" then
                     state.Add(arrType, arrFn);
                 else
                     state

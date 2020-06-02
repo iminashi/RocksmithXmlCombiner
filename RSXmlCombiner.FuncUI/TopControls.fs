@@ -132,6 +132,7 @@ module TopControls =
                 match result with 
                 | Ok project ->
                     // TODO: Check if all the files still exist
+                    // TODO: Check if the tones names in the files have been changed
 
                     // Generate the arrangement templates from the first track
                     let templates = 

@@ -27,7 +27,7 @@ module CommonToneEditor =
                 { state with CommonTones = newTones }, Cmd.none
 
     let private tonesTemplate title (tones : string[]) dispatch =
-        let leftSide = [| "Base"; "Tone A"; "Tone B"; "Tone C"; "Tone D" |]
+        let labels = [| "Base"; "Tone A"; "Tone B"; "Tone C"; "Tone D" |]
 
         Grid.create [
             Grid.columnDefinitions "60,150"
@@ -43,7 +43,7 @@ module CommonToneEditor =
                     yield TextBlock.create [
                         Grid.row (i + 1)
                         TextBlock.margin (8.0, 2.0, 0.0, 2.0)
-                        TextBlock.text leftSide.[i]
+                        TextBlock.text labels.[i]
                         TextBlock.verticalAlignment VerticalAlignment.Center
                     ]
                     yield TextBox.create [
@@ -51,7 +51,7 @@ module CommonToneEditor =
                         Grid.row (i + 1)
                         TextBox.margin 2.0
                         TextBox.text tones.[i]
-                        TextBox.isEnabled (i = 0 || not (String.IsNullOrEmpty(tones.[i - 1])))
+                        TextBox.isEnabled (i = 0 || not <| String.IsNullOrEmpty(tones.[i - 1]))
                         TextBox.onTextChanged ((fun text -> UpdateToneName(title, i, text) |> dispatch), SubPatchOptions.OnChangeOf title)
                     ]
             ]
