@@ -15,10 +15,14 @@ namespace XmlCombiners
 
         private int ArrangementNumber { get; set; }
 
+        private float TempoSum { get; set; }
+
         public void Save(string fileName, bool coercePhrases = false)
         {
             if (CombinedArrangement is null)
                 throw new InvalidOperationException("Cannot save an empty arrangement.");
+
+            CombinedArrangement.AverageTempo = TempoSum / ArrangementNumber;
 
             CleanupToneChanges(CombinedArrangement);
 
@@ -98,7 +102,7 @@ namespace XmlCombiners
             CombineTones(CombinedArrangement, next, startTime);
 
             CombinedArrangement.SongLength += next.SongLength - trimAmount;
-            CombinedArrangement.AverageTempo = (CombinedArrangement.AverageTempo + next.AverageTempo) / 2;
+            TempoSum += next.AverageTempo;
             CombineArrangementProperties(CombinedArrangement, next);
         }
 
