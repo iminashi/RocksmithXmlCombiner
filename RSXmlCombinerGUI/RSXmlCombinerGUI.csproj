@@ -9,7 +9,7 @@
   
   <Target Name="Copy Sox Win" AfterTargets="Build" Condition=" '$(OS)' == 'Windows_NT' ">
     <ItemGroup>
-      <SoxTool Include="$(ProjectDir)\Tools\Win\sox\*.*" />
+      <SoxTool Include="$(ProjectDir)\..\tools\windows\sox\*.*" />
     </ItemGroup>
 
     <Copy SourceFiles="@(SoxTool)" DestinationFolder="$(TargetDir)\tools\sox\" SkipUnchangedFiles="true" />
@@ -95,9 +95,6 @@
     <Reference Include="XmlUtils">
       <HintPath>..\lib\XmlUtils.dll</HintPath>
     </Reference>
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Tools\Win\sox\" />
   </ItemGroup>
 
 </Project>

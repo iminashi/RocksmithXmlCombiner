@@ -9,6 +9,14 @@
     <Product>Rocksmith 2014 XML Combiner</Product>
   </PropertyGroup>
 
+  <Target Name="Copy Sox Win" AfterTargets="Build" Condition=" '$(OS)' == 'Windows_NT' ">
+    <ItemGroup>
+      <SoxTool Include="$(ProjectDir)\..\tools\windows\sox\*.*" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(SoxTool)" DestinationFolder="$(TargetDir)\tools\sox\" SkipUnchangedFiles="true" />
+  </Target>
+
   <ItemGroup>
     <Page Include="Styles.xaml">
       <Generator>MSBuild:Compile</Generator>
