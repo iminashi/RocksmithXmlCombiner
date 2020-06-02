@@ -20,6 +20,7 @@ module Shell =
         | BottomControlsMsg of BottomControls.Msg
         | ToneReplacementClosed
         | SetReplacementTone of trackIndex : int * arrIndex : int * toneName : string * replacementIndex : int
+        | ProjectViewActiveChanged of bool
 
     let init () = ProgramState.init, Cmd.none
 
@@ -53,6 +54,9 @@ module Shell =
 
             { state with Tracks = updatedTracks }, Cmd.none
 
+        | ProjectViewActiveChanged active ->
+            { state with ProjectViewActive = active }, Cmd.none
+
     let private replacementToneView state trackIndex arrIndex dispatch =
         let arrangement = state.Tracks.[trackIndex].Arrangements.[arrIndex]
         let data = arrangement.Data |> Option.get
@@ -61,6 +65,7 @@ module Shell =
         StackPanel.create [
             StackPanel.horizontalAlignment HorizontalAlignment.Center
             StackPanel.verticalAlignment VerticalAlignment.Center
+            StackPanel.onKeyDown (fun e -> if e.Key = Key.Enter then dispatch ToneReplacementClosed)
             StackPanel.children [
                 Grid.create [
                     Grid.columnDefinitions "150, 150"
@@ -117,6 +122,7 @@ module Shell =
                 TabControl.viewItems [
                     TabItem.create [
                         TabItem.header "Tracks"
+                        TabItem.onIsSelectedChanged (fun selected -> ProjectViewActiveChanged(selected) |> dispatch)
                         TabItem.content (
                             DockPanel.create [
                                 DockPanel.children [

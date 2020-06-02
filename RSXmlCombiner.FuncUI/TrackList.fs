@@ -98,7 +98,7 @@ module TrackList =
             { state with ReplacementToneEditor = Some(trackIndex, arrIndex) }, Cmd.none
 
     /// Creates the view for an arrangement.
-    let private arrangementView (arr : Arrangement) trackIndex arrIndex (commonTones : CommonTones) dispatch =
+    let private arrangementView (arr : Arrangement) trackIndex arrIndex state dispatch =
         let fileName = arr.FileName
         let color =
             match fileName with
@@ -184,9 +184,11 @@ module TrackList =
                         match arr.Data with
                         | None -> () // Do nothing
                         | Some instArr ->
-                            let baseToneNames = ProgramState.getReplacementToneNames arr.Name commonTones
+                            let baseToneNames = ProgramState.getReplacementToneNames arr.Name state.CommonTones
 
-                            if instArr.ToneNames.Length = 0 && trackIndex <> 0 then
+                            // The selection on the combo box is lost if the tone name at that index is edited in the common tone editor
+                            // As a workaround, yield the combo box only when the project view is active
+                            if instArr.ToneNames.Length = 0 && trackIndex <> 0 && state.ProjectViewActive then
                                 // Base Tone Combo Box
                                 yield ComboBox.create [
                                     ComboBox.width 100.0
@@ -219,7 +221,7 @@ module TrackList =
         ]
        
     /// Creates the view for a track.
-    let private trackView (track : Track) index commonTones dispatch =
+    let private trackView (track : Track) index state dispatch =
         Border.create [
             Border.classes [ "track" ]
             Border.child (
@@ -316,7 +318,7 @@ module TrackList =
                                 StackPanel.create [
                                     StackPanel.orientation Orientation.Horizontal
                                     StackPanel.spacing 10.0
-                                    StackPanel.children <| List.mapi (fun i item -> arrangementView item index i commonTones dispatch :> IView) track.Arrangements
+                                    StackPanel.children <| List.mapi (fun i item -> arrangementView item index i state dispatch :> IView) track.Arrangements
                                 ]
                             ]
                         ]
@@ -332,7 +334,7 @@ module TrackList =
             ScrollViewer.horizontalScrollBarVisibility Primitives.ScrollBarVisibility.Auto
             ScrollViewer.content (
                 StackPanel.create [
-                    StackPanel.children <| List.mapi (fun i item -> trackView item i state.CommonTones dispatch :> IView) state.Tracks
+                    StackPanel.children <| List.mapi (fun i item -> trackView item i state dispatch :> IView) state.Tracks
                 ] 
             )
         ]

@@ -146,7 +146,8 @@ module TopControls =
                       CoercePhrases = project.CoercePhrases
                       Templates = templates
                       StatusMessage = "Project loaded."
-                      ReplacementToneEditor = None }, Cmd.none
+                      ReplacementToneEditor = None
+                      ProjectViewActive = true }, Cmd.none
                 | Error message ->
                     { state with StatusMessage = message }, Cmd.none
             else
