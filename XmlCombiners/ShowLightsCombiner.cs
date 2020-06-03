@@ -5,14 +5,14 @@ namespace XmlCombiners
     public sealed class ShowLightsCombiner
     {
         private ShowLights? CombinedShowlights { get; set; }
-        private float SongLength { get; set; }
+        private int SongLength { get; set; }
 
         public void Save(string fileName)
         {
             CombinedShowlights?.Save(fileName);
         }
 
-        public void AddNext(ShowLights next, float songLength, float trimAmount)
+        public void AddNext(ShowLights next, int songLength, int trimAmount)
         {
             // Adding first arrangement
             if(CombinedShowlights is null)
@@ -23,7 +23,7 @@ namespace XmlCombiners
                 return;
             }
 
-            float startTime = SongLength - trimAmount;
+            int startTime = SongLength - trimAmount;
 
             UpdateShowLights(next, startTime);
             CombinedShowlights.AddRange(next);
@@ -31,7 +31,7 @@ namespace XmlCombiners
             SongLength += songLength - trimAmount;
         }
 
-        private void UpdateShowLights(ShowLights showLights, float startTime)
+        private void UpdateShowLights(ShowLights showLights, int startTime)
         {
             foreach (var sl in showLights)
             {

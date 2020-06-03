@@ -33,7 +33,7 @@ module TopControls =
         | _ -> ()
 
     let private createTrack instArrFile (title : string option) arrangements =
-        let song = RS2014Song.Load(instArrFile)
+        let song = InstrumentalArrangement.Load(instArrFile)
         { Title = title |> Option.defaultValue song.Title
           AudioFile = None
           SongLength = song.SongLength

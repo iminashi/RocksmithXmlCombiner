@@ -5,14 +5,14 @@ namespace XmlCombiners
     public sealed class VocalsCombiner
     {
         private Vocals? CombinedVocals { get; set; }
-        private float SongLength { get; set; }
+        private int SongLength { get; set; }
 
         public void Save(string fileName)
         {
             CombinedVocals?.Save(fileName);
         }
 
-        public void AddNext(Vocals? next, float songLength, float trimAmount)
+        public void AddNext(Vocals? next, int songLength, int trimAmount)
         {
             // Adding first arrangement
             if(CombinedVocals is null)
@@ -27,7 +27,7 @@ namespace XmlCombiners
                 return;
             }
 
-            float startTime = SongLength - trimAmount;
+            int startTime = SongLength - trimAmount;
 
             UpdateVocals(next, startTime);
             CombinedVocals.AddRange(next);
@@ -35,7 +35,7 @@ namespace XmlCombiners
             SongLength += songLength - trimAmount;
         }
 
-        private void AddFirst(Vocals? next, float songLength)
+        private void AddFirst(Vocals? next, int songLength)
         {
             if (next is Vocals)
                 CombinedVocals = next;
@@ -45,7 +45,7 @@ namespace XmlCombiners
             SongLength = songLength;
         }
 
-        private void UpdateVocals(Vocals vocals, float startTime)
+        private void UpdateVocals(Vocals vocals, int startTime)
         {
             foreach (var vocal in vocals)
             {

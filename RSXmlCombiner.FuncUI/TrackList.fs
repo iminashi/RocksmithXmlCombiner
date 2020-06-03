@@ -22,6 +22,7 @@ module TrackList =
     | ArrangementBaseToneChanged of trackIndex : int * arrIndex : int * toneIndex : int
     | RemoveArrangement of trackIndex : int * arrIndex : int
     | ShowReplacementToneEditor of trackIndex : int * arrIndex : int
+    | TrimAmountChanged of trackIndex : int * trimAmunt : double
 
     let private changeAudioFile track newFile = { track with AudioFile = Some newFile }
 
@@ -96,6 +97,11 @@ module TrackList =
 
         | ShowReplacementToneEditor (trackIndex, arrIndex) ->
             { state with ReplacementToneEditor = Some(trackIndex, arrIndex) }, Cmd.none
+
+        | TrimAmountChanged (trackIndex, trimAmount) ->
+            let trim = int (Math.Round(trimAmount * 1000.0))
+            let newTracks = state.Tracks |> List.mapi (fun i t -> if i = trackIndex then { t with TrimAmount = trim } else t) 
+            { state with Tracks = newTracks }, Cmd.none
 
     /// Creates the view for an arrangement.
     let private arrangementView (arr : Arrangement) trackIndex arrIndex state dispatch =
@@ -297,11 +303,12 @@ module TrackList =
                                                         TextBlock.verticalAlignment VerticalAlignment.Center
                                                     ]
                                                     yield NumericUpDown.create [
-                                                        NumericUpDown.value <| double track.TrimAmount
+                                                        NumericUpDown.value <| (double track.TrimAmount) / 1000.0
                                                         NumericUpDown.minimum 0.0
                                                         NumericUpDown.verticalAlignment VerticalAlignment.Center
                                                         NumericUpDown.width 75.0
                                                         NumericUpDown.formatString "F3"
+                                                        NumericUpDown.onValueChanged (fun trim -> TrimAmountChanged(index, trim) |> dispatch)
                                                         ToolTip.tip "Sets the amount of time in seconds to be trimmed from the start of the audio and each arrangements."
                                                     ]
                                                     yield TextBlock.create [

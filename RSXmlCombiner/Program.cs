@@ -1,7 +1,6 @@
 ﻿using Rocksmith2014Xml;
 
 using System;
-using System.Globalization;
 using XmlCombiners;
 
 namespace RSXmlCombinerCLI
@@ -21,11 +20,11 @@ namespace RSXmlCombinerCLI
                 return;
             }
 
-            float trimSilenceAmount = 0f;
+            int trimSilenceAmount = 0;
             var fileNames = args.AsSpan();
             if (args[0].StartsWith("-"))
             {
-                trimSilenceAmount = float.Parse(args[0].Substring(1), NumberFormatInfo.InvariantInfo);
+                trimSilenceAmount = Utils.TimeCodeFromFloatString(args[0].Substring(1));
                 Console.WriteLine($"Trimming leading silence from each subsequent file by {trimSilenceAmount:F3}s");
                 fileNames = fileNames.Slice(1);
             }
@@ -34,18 +33,18 @@ namespace RSXmlCombinerCLI
 
             for (int i = 0; i < fileNames.Length; i++)
             {
-                RS2014Song next = RS2014Song.Load(fileNames[i]);
+                var next = InstrumentalArrangement.Load(fileNames[i]);
                 if (HasDDLevels(next, fileNames[i]))
                     return;
 
                 combiner.AddNext(next, trimSilenceAmount, i == fileNames.Length - 1);
             }
 
-            string combinedFileName = $"Combined_{combiner.ArrangementType}_RS2.xml";
+            string combinedFileName = $"Combined_{combiner.CombinedArrangement!.Arrangement}_RS2.xml";
             combiner.Save(combinedFileName);
         }
 
-        private static bool HasDDLevels(RS2014Song song, string fileName)
+        private static bool HasDDLevels(InstrumentalArrangement song, string fileName)
         {
             if (song.Levels.Count > 1)
             {

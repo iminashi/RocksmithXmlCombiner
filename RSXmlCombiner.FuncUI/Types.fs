@@ -47,7 +47,7 @@ module Types =
         | _ -> ""
 
     let createInstrumental fileName (arrType : ArrangementType option) =
-        let song = RS2014Song.Load(fileName)
+        let song = InstrumentalArrangement.Load(fileName)
         let arrangementType =
             match arrType with
             | Some t -> t
@@ -88,9 +88,9 @@ module Types =
 
     type Track = {
         Title : string
-        TrimAmount : float32
+        TrimAmount : int
         AudioFile : string option
-        SongLength : float32
+        SongLength : int
         Arrangements : Arrangement list }
 
     let hasAudioFile track = track.AudioFile |> Option.isSome
@@ -98,7 +98,7 @@ module Types =
     type Templates = Templates of Arrangement list
 
     let getTones fileName =
-        let toneNames = RS2014Song.ReadToneNames(fileName)
+        let toneNames = InstrumentalArrangement.ReadToneNames(fileName)
 
         let baseTone = toneNames.[0] |> Option.ofObj
         let toneNamesList = 

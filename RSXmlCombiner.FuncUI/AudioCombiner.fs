@@ -4,8 +4,8 @@ module AudioCombiner =
     open System.Text
     open System
     open System.IO
-    open System.Globalization
     open System.Diagnostics
+    open Rocksmith2014Xml
 
     /// Creates the command line arguments for sox.
     let private createArguments (tracks : Track list) targetFile =
@@ -13,7 +13,7 @@ module AudioCombiner =
         
         for t in tracks.[1..] do
             // Format example: "|sox foo.wav -p trim 5.500"
-            let next = sprintf " \"|sox \\\"%s\\\" -p trim %s\"" (t.AudioFile |> Option.get) (t.TrimAmount.ToString("F3", NumberFormatInfo.InvariantInfo))
+            let next = sprintf " \"|sox \\\"%s\\\" -p trim %s\"" (t.AudioFile |> Option.get) (Utils.TimeCodeToString(t.TrimAmount))
             arguments.Append(next) |> ignore
 
         arguments.Append(sprintf " \"%s\"" targetFile).ToString()

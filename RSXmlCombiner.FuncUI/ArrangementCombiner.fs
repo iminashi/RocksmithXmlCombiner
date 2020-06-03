@@ -17,22 +17,22 @@ module ArrangementCombiner =
             combiner.Save(Path.Combine(targetFolder, "Combined_Showlights_RS2.xml"))
 
     /// Inserts the given title at the beginning of the given vocals arrangement.
-    let private addTitle (vocals : Vocals) (title : string) (startBeat : float32) =
-        let defaultDisplayTime = 3.0f
+    let private addTitle (vocals : Vocals) (title : string) (startBeat : int) =
+        let defaultDisplayTime = 3000
 
         let displayTime =
             // Make sure that the title does not overlap with existing lyrics
             if vocals.Count > 0 && vocals.[0].Time < startBeat + defaultDisplayTime then
-                vocals.[0].Time - startBeat - 0.1f
+                vocals.[0].Time - startBeat - 100
             else
                 defaultDisplayTime
 
         // Don't add the title if it will be displayed for less than half a second
-        if displayTime > 0.5f then
+        if displayTime > 500 then
             let words = title.Split(' ')
-            let length = displayTime / (float32 words.Length)
+            let length = displayTime / words.Length
             for i = words.Length - 1 downto 0 do
-                vocals.Insert(0, Vocal(startBeat + (length * (float32 i)), length, words.[i]))
+                vocals.Insert(0, Vocal(startBeat + (length * i), length, words.[i]))
 
     // Combines the vocals arrangements if at least one track has one.
     let private combineVocals (tracks : Track list) index targetFolder addTitles =
@@ -53,7 +53,7 @@ module ArrangementCombiner =
 
             combiner.Save(Path.Combine(targetFolder, sprintf "Combined_%s_RS2.xml" tracks.[0].Arrangements.[index].Name))
 
-    let private replaceToneNames (song : RS2014Song) (toneReplacements : Map<string, int>) (commonTones : string array) =
+    let private replaceToneNames (song : InstrumentalArrangement) (toneReplacements : Map<string, int>) (commonTones : string array) =
         // Replace the tone names of the defined tones and the tone changes
         for kv in toneReplacements do
             let newToneName = commonTones.[kv.Value + 1] // First one is the base tone
@@ -102,7 +102,7 @@ module ArrangementCombiner =
             for i = 0 to tracks.Length - 1 do
                 let arr = tracks.[i].Arrangements.[index]
                 let arrData = arr.Data |> Option.get
-                let next = RS2014Song.Load(arr.FileName |> Option.get)
+                let next = InstrumentalArrangement.Load(arr.FileName |> Option.get)
 
                 if i = 0 then
                     next.ToneBase <- commonTones.[0]
