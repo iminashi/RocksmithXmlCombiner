@@ -3,13 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30104.148
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RSXmlCombinerCLI", "RSXmlCombiner\RSXmlCombinerCLI.csproj", "{F8DF7AE0-CA46-4E42-95A3-3BEA113BEEAB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RSXmlCombiner.CLI", "RSXmlCombiner.CLI\RSXmlCombiner.CLI.csproj", "{F8DF7AE0-CA46-4E42-95A3-3BEA113BEEAB}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "XmlCombiners", "XmlCombiners\XmlCombiners.csproj", "{9C2ABC2F-BF49-42C8-AD76-73D303C8FFF8}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RSXmlCombinerGUI", "RSXmlCombinerGUI\RSXmlCombinerGUI.csproj", "{23510084-6322-450A-9D0F-F2052CBB19E4}"
-EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "RSXmlCombiner.FuncUI", "RSXmlCombiner.FuncUI\RSXmlCombiner.FuncUI.fsproj", "{09C1AF89-9EB6-4957-89ED-77381D60139F}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "RSXmlCombiner.GUI", "RSXmlCombiner.GUI\RSXmlCombiner.GUI.fsproj", "{09C1AF89-9EB6-4957-89ED-77381D60139F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -25,10 +23,6 @@ Global
 		{9C2ABC2F-BF49-42C8-AD76-73D303C8FFF8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9C2ABC2F-BF49-42C8-AD76-73D303C8FFF8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9C2ABC2F-BF49-42C8-AD76-73D303C8FFF8}.Release|Any CPU.Build.0 = Release|Any CPU
-		{23510084-6322-450A-9D0F-F2052CBB19E4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{23510084-6322-450A-9D0F-F2052CBB19E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{23510084-6322-450A-9D0F-F2052CBB19E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{23510084-6322-450A-9D0F-F2052CBB19E4}.Release|Any CPU.Build.0 = Release|Any CPU
 		{09C1AF89-9EB6-4957-89ED-77381D60139F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{09C1AF89-9EB6-4957-89ED-77381D60139F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{09C1AF89-9EB6-4957-89ED-77381D60139F}.Release|Any CPU.ActiveCfg = Release|Any CPU
