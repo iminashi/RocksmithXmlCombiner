@@ -129,10 +129,9 @@ module TrackList =
                     StackPanel.classes [ "arrangement" ]
                     StackPanel.children [
                         // Header
-                        yield StackPanel.create [
-                            StackPanel.orientation Orientation.Horizontal
-                            StackPanel.spacing 4.0
-                            StackPanel.children [
+                        yield Grid.create [
+                            Grid.columnDefinitions "auto,auto,*"
+                            Grid.children [
                                 // Arrangement Icon
                                 Path.create [
                                     Path.fill color
@@ -144,6 +143,8 @@ module TrackList =
                                 ]
                                 // Arrangement name
                                 TextBlock.create [
+                                    Grid.column 1
+                                    TextBlock.margin (4.0, 0.0, 0.0, 0.0 )
                                     TextBlock.classes [ "h2"]
                                     TextBlock.text arr.Name
                                     TextBlock.foreground color
@@ -152,6 +153,8 @@ module TrackList =
                                 ]
                                 // Remove arrangement file button
                                 ContentControl.create [
+                                    Grid.column 2
+                                    ContentControl.horizontalAlignment HorizontalAlignment.Right
                                     ContentControl.width 22.0
                                     ContentControl.height 22.0
                                     ContentControl.content (

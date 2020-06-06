@@ -12,7 +12,7 @@ module AudioCombiner =
         let arguments = StringBuilder(sprintf "--multi−threaded --buffer 131072 -S \"%s\"" (tracks.Head.AudioFile |> Option.get))
         
         for t in tracks.[1..] do
-            // Format example: "|sox foo.wav -p trim 5.500"
+            // Format example: "|sox \"foo.wav\" -p trim 5.500"
             let next = sprintf " \"|sox \\\"%s\\\" -p trim %s\"" (t.AudioFile |> Option.get) (Utils.TimeCodeToString(t.TrimAmount))
             arguments.Append(next) |> ignore
 
