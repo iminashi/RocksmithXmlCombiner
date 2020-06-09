@@ -103,6 +103,7 @@ module Shell =
                 ]
                 Button.create [
                     Button.content "OK"
+                    Button.isDefault true
                     Button.fontSize 15.0
                     Button.horizontalAlignment HorizontalAlignment.Center
                     Button.width 120.0
