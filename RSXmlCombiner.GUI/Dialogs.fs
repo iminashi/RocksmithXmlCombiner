@@ -38,8 +38,6 @@ module Dialogs =
         dialog.Title <- title
         dialog.Filters <- filters
         dialog.AllowMultiple <- allowMultiple
-        match directory with
-        | Some dir -> dialog.Directory <- dir
-        | None -> ()
+        directory |> Option.iter (fun dir -> dialog.Directory <- dir)
         let window = (Application.Current.ApplicationLifetime :?> ApplicationLifetimes.ClassicDesktopStyleApplicationLifetime).MainWindow
         dialog.ShowAsync(window) |> Async.AwaitTask
