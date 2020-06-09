@@ -5,9 +5,9 @@ module TopControls =
     open Avalonia.Layout
     open Avalonia.Controls
     open Avalonia.FuncUI.DSL
-    open Avalonia.FuncUI.Types
     open Avalonia.Input
     open System
+    open System.IO
     open Rocksmith2014Xml
     open XmlUtils
 
@@ -78,7 +78,7 @@ module TopControls =
     let update (msg: Msg) state : ProgramState * Cmd<_> =
         match msg with
         | SelectAddTrackFiles ->
-            let selectFiles = Dialogs.openFileDialog "Select Arrangement File(s)" Dialogs.xmlFileFilter true
+            let selectFiles = Dialogs.openFileDialog "Select Arrangement File(s)" Dialogs.xmlFileFilter true None
             state, Cmd.OfAsync.perform (fun _ -> selectFiles) () AddTrack
 
         | AddTrack fileNames -> 
@@ -131,13 +131,33 @@ module TopControls =
                 let result = Project.load files.[0]
                 match result with 
                 | Ok project ->
-                    // TODO: Check if all the files still exist
-                    // TODO: Check if the tones names in the files have been changed
+                    // TODO: Check if the tone names in the files have been changed
+
+                    // Create lists of missing audio and arrangement files
+                    let missingAudioFiles, missingArrangementFiles =
+                        (([], []), project.Tracks)
+                        ||> List.fold (fun state track ->
+                            let missingAudioFiles =
+                                match track.AudioFile with
+                                | Some file when not <| File.Exists(file) -> file :: (fst state)
+                                | _ -> fst state
+                            let missingArrangementFiles =
+                                ([], track.Arrangements)
+                                ||> List.fold (fun missing arr -> 
+                                        match arr.FileName with
+                                        | Some file when not <| File.Exists(file) -> file :: missing
+                                        | _ -> missing)
+                            missingAudioFiles, (snd state) @ missingArrangementFiles)
+
+                    let statusMessage =
+                        match missingAudioFiles, missingArrangementFiles with
+                        | [], [] -> "Project loaded."
+                        | _, _ -> "WARNING: Some of the files referenced in the project could not be found!"
 
                     // Generate the arrangement templates from the first track
                     let templates = 
                         match project.Tracks with
-                        | head::_ -> head.Arrangements |> List.map createTemplate |> Templates
+                        | head::_ -> head.Arrangements |> (List.map createTemplate >> Templates)
                         | [] -> Templates []
 
                     { Tracks = project.Tracks
@@ -146,7 +166,7 @@ module TopControls =
                       AddTrackNamesToLyrics = project.AddTrackNamesToLyrics
                       CoercePhrases = project.CoercePhrases
                       Templates = templates
-                      StatusMessage = "Project loaded."
+                      StatusMessage = statusMessage
                       ReplacementToneEditor = None
                       ProjectViewActive = true }, Cmd.none
                 | Error message ->
@@ -160,11 +180,11 @@ module TopControls =
             state, Cmd.none
 
         | SelectToolkitTemplate ->
-            let files = Dialogs.openFileDialog "Select Toolkit Template" Dialogs.toolkitTemplateFilter false
+            let files = Dialogs.openFileDialog "Select Toolkit Template" Dialogs.toolkitTemplateFilter false None
             state, Cmd.OfAsync.perform (fun _ -> files) () ImportToolkitTemplate
 
         | SelectOpenProjectFile ->
-            let files = Dialogs.openFileDialog "Select Project File" Dialogs.projectFileFilter false
+            let files = Dialogs.openFileDialog "Select Project File" Dialogs.projectFileFilter false None
             state, Cmd.OfAsync.perform (fun _ -> files) () OpenProject
 
         | SelectSaveProjectFile ->
@@ -173,7 +193,6 @@ module TopControls =
 
     let view state dispatch =
         // Top Panel
-        //let (Templates templates) = state.Templates
         Grid.create [
             DockPanel.dock Dock.Top
             Grid.margin (15.0, 0.0)
@@ -197,6 +216,7 @@ module TopControls =
                     ]
                 ]
 
+                //let (Templates templates) = state.Templates
                 //ComboBox.create [
                 //    Grid.column 1
                 //    ComboBox.dataItems templates

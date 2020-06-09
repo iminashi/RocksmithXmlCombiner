@@ -33,7 +33,8 @@ module TrackList =
             { state with Tracks = state.Tracks |> List.except [ state.Tracks.[index] ] }, Cmd.none
 
         | ChangeAudioFile trackIndex ->
-            let selectFiles = Dialogs.openFileDialog "Select Audio File" Dialogs.audioFileFilters false
+            let initialDir = state.Tracks.[trackIndex].AudioFile |> Option.map Path.GetDirectoryName
+            let selectFiles = Dialogs.openFileDialog "Select Audio File" Dialogs.audioFileFilters false initialDir
             state, Cmd.OfAsync.perform (fun _ -> selectFiles) trackIndex (fun files -> ChangeAudioFileResult(trackIndex, files))
 
         | ChangeAudioFileResult (trackIndex, files) ->
@@ -45,7 +46,8 @@ module TrackList =
                 state, Cmd.none
 
         | SelectArrangementFile (trackIndex, arrIndex) ->
-            let files = Dialogs.openFileDialog "Select Arrangement File" Dialogs.xmlFileFilter false
+            let initialDir = state.Tracks.[trackIndex].Arrangements.[arrIndex].FileName |> Option.map Path.GetDirectoryName
+            let files = Dialogs.openFileDialog "Select Arrangement File" Dialogs.xmlFileFilter false initialDir
             state, Cmd.OfAsync.perform (fun _ -> files) () (fun f -> ChangeArrangementFile (trackIndex, arrIndex, f))
 
         | ChangeArrangementFile (trackIndex, arrIndex, files) ->
@@ -106,6 +108,11 @@ module TrackList =
     /// Creates the view for an arrangement.
     let private arrangementView (arr : Arrangement) trackIndex arrIndex state dispatch =
         let fileName = arr.FileName
+        let fileNameBrush =
+            match fileName with
+            | Some fn when not <| File.Exists(fn) -> Brushes.Red
+            | _ -> Brushes.DarkGray
+
         let color =
             match fileName with
             | Some ->
@@ -183,7 +190,7 @@ module TrackList =
                                 | Some fn -> Path.GetFileNameWithoutExtension(fn)
                                 | None -> "No file")
                             yield TextBlock.width 100.0
-                            yield TextBlock.foreground Brushes.DarkGray
+                            yield TextBlock.foreground fileNameBrush
                             yield TextBlock.cursor <| Cursor StandardCursorType.Hand
                             yield TextBlock.onTapped (fun _ -> SelectArrangementFile(trackIndex, arrIndex) |> dispatch)
                             yield ToolTip.tip (fileName |> Option.defaultValue "Click to select a file.")
@@ -231,6 +238,11 @@ module TrackList =
        
     /// Creates the view for a track.
     let private trackView (track : Track) index state dispatch =
+        let audioFileBrush =
+            match track.AudioFile with
+            | Some fn when not <| File.Exists(fn) -> Brushes.Red
+            | _ -> Brushes.DarkGray
+
         Border.create [
             Border.classes [ "track" ]
             Border.child (
@@ -284,7 +296,7 @@ module TrackList =
                                         // Audio File Name
                                         TextBlock.create [
                                             TextBlock.horizontalAlignment HorizontalAlignment.Center
-                                            TextBlock.foreground Brushes.DarkGray
+                                            TextBlock.foreground audioFileBrush
                                             TextBlock.maxWidth 100.0
                                             TextBlock.cursor <| Cursor StandardCursorType.Hand
                                             TextBlock.onTapped (fun _ -> ChangeAudioFile index |> dispatch)

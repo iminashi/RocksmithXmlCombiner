@@ -11,7 +11,7 @@ module Dialogs =
         filter.Name <- name
         List(seq { filter })
 
-    let audioFileFilters = createFilters "Audio Files" (seq { "wav"; "ogg"})
+    let audioFileFilters = createFilters "Audio Files" (seq { "wav"; "ogg" })
     let xmlFileFilter = createFilters "Rocksmith Arrangement Files" (seq { "xml" })
     let projectFileFilter = createFilters "Project Files" (seq { "rscproj" })
     let toolkitTemplateFilter = createFilters "Toolkit Templates" (seq { "dlc.xml" })
@@ -33,10 +33,13 @@ module Dialogs =
         let window = (Application.Current.ApplicationLifetime :?> ApplicationLifetimes.ClassicDesktopStyleApplicationLifetime).MainWindow
         dialog.ShowAsync(window) |> Async.AwaitTask
 
-    let openFileDialog title filters allowMultiple =
+    let openFileDialog title filters allowMultiple directory =
         let dialog = OpenFileDialog()
         dialog.Title <- title
         dialog.Filters <- filters
         dialog.AllowMultiple <- allowMultiple
+        match directory with
+        | Some dir -> dialog.Directory <- dir
+        | None -> ()
         let window = (Application.Current.ApplicationLifetime :?> ApplicationLifetimes.ClassicDesktopStyleApplicationLifetime).MainWindow
         dialog.ShowAsync(window) |> Async.AwaitTask
