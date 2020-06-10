@@ -26,9 +26,7 @@ module Dialogs =
         let dialog = SaveFileDialog()
         dialog.Title <- title
         dialog.Filters <- filters
-        match initialFileName with
-        | Some fn -> dialog.InitialFileName <- fn
-        | None -> ()
+        initialFileName |> Option.iter (fun fn -> dialog.InitialFileName <- fn)
 
         let window = (Application.Current.ApplicationLifetime :?> ApplicationLifetimes.ClassicDesktopStyleApplicationLifetime).MainWindow
         dialog.ShowAsync(window) |> Async.AwaitTask
@@ -39,5 +37,6 @@ module Dialogs =
         dialog.Filters <- filters
         dialog.AllowMultiple <- allowMultiple
         directory |> Option.iter (fun dir -> dialog.Directory <- dir)
+
         let window = (Application.Current.ApplicationLifetime :?> ApplicationLifetimes.ClassicDesktopStyleApplicationLifetime).MainWindow
         dialog.ShowAsync(window) |> Async.AwaitTask
