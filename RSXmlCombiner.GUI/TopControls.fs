@@ -32,10 +32,10 @@ module TopControls =
             | _ -> ()
         | _ -> ()
 
-    let private createTrack instArrFile (title : string option) arrangements =
+    let private createTrack instArrFile (title : string option) (audioFile : string option) arrangements =
         let song = InstrumentalArrangement.Load(instArrFile)
         { Title = title |> Option.defaultValue song.Title
-          AudioFile = None
+          AudioFile = audioFile
           SongLength = song.SongLength
           TrimAmount = song.StartBeat
           Arrangements = arrangements |> List.sortBy (fun a -> a.ArrangementType) }
@@ -70,7 +70,7 @@ module TopControls =
                 |> Array.fold arrangementFolder []
                 // Add any missing arrangements from the project's templates
                 |> ProgramState.addMissingArrangements state.Templates
-                |> createTrack instArrFile None
+                |> createTrack instArrFile None None
                 |> ProgramState.addTrack state
 
             newState, Cmd.none
@@ -90,7 +90,17 @@ module TopControls =
         | ImportToolkitTemplate files ->
             if files.Length > 0 then
                 let fileName = files.[0]
-                let foundArrangements, title = ToolkitImporter.import fileName
+                let foundArrangements, title, audioFilePath = ToolkitImporter.import fileName
+
+                let audioFile =
+                    let wav = Path.ChangeExtension(audioFilePath, "wav")
+                    let ogg = Path.ChangeExtension(audioFilePath, "ogg")
+                    if File.Exists wav then
+                        Some wav
+                    elif File.Exists ogg then
+                        Some ogg
+                    else
+                        None
 
                 // Try to find an instrumental arrangement to read metadata from
                 let instArrType = foundArrangements |> Map.tryFindKey (fun arrType _ -> isInstrumental arrType)
@@ -117,7 +127,7 @@ module TopControls =
                         |> Map.fold foldArrangements []
                         // Add any missing arrangements from the project's templates
                         |> ProgramState.addMissingArrangements state.Templates
-                        |> createTrack instArrFile (Some title)
+                        |> createTrack instArrFile (Some title) audioFile
                         |> ProgramState.addTrack state
 
                     { newState with StatusMessage = sprintf "%i arrangements imported." foundArrangements.Count }, Cmd.none
