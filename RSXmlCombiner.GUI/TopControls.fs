@@ -183,7 +183,8 @@ module TopControls =
                       Templates = templates
                       StatusMessage = statusMessage
                       ReplacementToneEditor = None
-                      ProjectViewActive = true }, Cmd.none
+                      ProjectViewActive = true
+                      OpenProjectFile = Some (files.[0]) }, Cmd.none
                 | Error message ->
                     { state with StatusMessage = message }, Cmd.none
             else
@@ -192,7 +193,9 @@ module TopControls =
         | SaveProject fileName ->
             if not (String.IsNullOrEmpty fileName) then
                 state |> Project.save fileName
-            state, Cmd.none
+                { state with OpenProjectFile = Some fileName }, Cmd.none
+            else
+                state, Cmd.none
 
         | SelectToolkitTemplate ->
             let files = Dialogs.openFileDialog "Select Toolkit Template" Dialogs.toolkitTemplateFilter false None
@@ -203,7 +206,8 @@ module TopControls =
             state, Cmd.OfAsync.perform (fun _ -> files) () OpenProject
 
         | SelectSaveProjectFile ->
-            let targetFile = Dialogs.saveFileDialog "Save Project As" Dialogs.projectFileFilter (Some "combo.rscproj")
+            let initialDir = state.OpenProjectFile |> Option.map Path.GetDirectoryName
+            let targetFile = Dialogs.saveFileDialog "Save Project As" Dialogs.projectFileFilter (Some "combo.rscproj") initialDir
             state, Cmd.OfAsync.perform (fun _ -> targetFile) () SaveProject
 
     let view state dispatch =

@@ -12,7 +12,8 @@ type ProgramState = {
     AddTrackNamesToLyrics : bool
     StatusMessage : string
     ReplacementToneEditor : (int * int) option
-    ProjectViewActive : bool }
+    ProjectViewActive : bool
+    OpenProjectFile : string option }
 
 module ProgramState =
     let init = {
@@ -24,7 +25,8 @@ module ProgramState =
         AddTrackNamesToLyrics = true
         StatusMessage = ""
         ReplacementToneEditor = None
-        ProjectViewActive = true }
+        ProjectViewActive = true
+        OpenProjectFile = None }
 
     let private updateTemplates (arrangements : Arrangement list) (Templates currentTemplates) =
         let newTemplates =

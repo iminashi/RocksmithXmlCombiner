@@ -16,17 +16,20 @@ module Dialogs =
     let projectFileFilter = createFilters "Project Files" (seq { "rscproj" })
     let toolkitTemplateFilter = createFilters "Toolkit Templates" (seq { "dlc.xml" })
 
-    let openFolderDialog title =
+    let openFolderDialog title directory =
         let dialog = OpenFolderDialog()
         dialog.Title <- title
+        directory |> Option.iter (fun dir -> dialog.Directory <- dir)
+
         let window = (Application.Current.ApplicationLifetime :?> ApplicationLifetimes.ClassicDesktopStyleApplicationLifetime).MainWindow
         dialog.ShowAsync(window) |> Async.AwaitTask
 
-    let saveFileDialog title filters initialFileName =
+    let saveFileDialog title filters initialFileName directory =
         let dialog = SaveFileDialog()
         dialog.Title <- title
         dialog.Filters <- filters
         initialFileName |> Option.iter (fun fn -> dialog.InitialFileName <- fn)
+        directory |> Option.iter (fun dir -> dialog.Directory <- dir)
 
         let window = (Application.Current.ApplicationLifetime :?> ApplicationLifetimes.ClassicDesktopStyleApplicationLifetime).MainWindow
         dialog.ShowAsync(window) |> Async.AwaitTask

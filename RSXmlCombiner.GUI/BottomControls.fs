@@ -3,6 +3,7 @@
 module BottomControls =
     open Elmish
     open System
+    open System.IO
     open Avalonia.Controls
     open Avalonia.FuncUI.DSL
     open Avalonia.Layout
@@ -18,8 +19,9 @@ module BottomControls =
 
     let update msg state : ProgramState * Cmd<_> =
         match msg with
-        | SelectTargetAudioFile -> 
-            let targetFile = Dialogs.saveFileDialog "Select Target File" Dialogs.audioFileFilters (Some "combo.wav")
+        | SelectTargetAudioFile ->
+            let initialDir = state.OpenProjectFile |> Option.map Path.GetDirectoryName
+            let targetFile = Dialogs.saveFileDialog "Select Target File" Dialogs.audioFileFilters (Some "combo.wav") initialDir
             state, Cmd.OfAsync.perform (fun _ -> targetFile) () CombineAudioFiles
 
         | CombineAudioFiles targetFile ->
@@ -39,7 +41,8 @@ module BottomControls =
                 { state with StatusMessage = "Arrangements combined." }, Cmd.none
 
         | SelectCombinationTargetFolder ->
-            let targetFolder = Dialogs.openFolderDialog "Select Target Folder"
+            let initialDir = state.OpenProjectFile |> Option.map Path.GetDirectoryName
+            let targetFolder = Dialogs.openFolderDialog "Select Target Folder" initialDir
             state, Cmd.OfAsync.perform (fun _ -> targetFolder) () CombineArrangements
 
         | UpdateCombinationTitle newTitle -> { state with CombinationTitle = newTitle }, Cmd.none
