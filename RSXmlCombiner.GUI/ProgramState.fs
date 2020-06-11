@@ -46,9 +46,7 @@ module ProgramState =
 
         { track with Arrangements = newArrangements }
 
-    let private updateTracks (templates : Templates) (tracks : Track list) =
-        tracks
-        |> List.map (updateTrack templates)
+    let private updateTracks (templates : Templates) = List.map (updateTrack templates)
 
     let private updateCommonTones (Templates templates) commonTones =
             let newCommonTones = 
@@ -59,7 +57,7 @@ module ProgramState =
 
             // Preserve the current tone names
             commonTones
-            |> Map.fold (fun commonTones name toneNames -> commonTones |> Map.add name toneNames) newCommonTones
+            |> Map.fold (fun commonTones arrName toneNames -> commonTones |> Map.add arrName toneNames) newCommonTones
 
     /// Adds a new track to the end of the track list of the project.
     let addTrack project newTrack =

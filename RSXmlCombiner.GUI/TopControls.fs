@@ -100,7 +100,12 @@ module TopControls =
                     elif File.Exists ogg then
                         Some ogg
                     else
-                        None
+                        // Try to find the _fixed.ogg from an unpacked psarc file
+                        let oggFixed = audioFilePath.Substring(0, audioFilePath.Length - 4) + "_fixed.ogg"
+                        if File.Exists oggFixed then
+                            Some oggFixed
+                        else
+                            None
 
                 // Try to find an instrumental arrangement to read metadata from
                 let instArrType = foundArrangements |> Map.tryFindKey (fun arrType _ -> isInstrumental arrType)

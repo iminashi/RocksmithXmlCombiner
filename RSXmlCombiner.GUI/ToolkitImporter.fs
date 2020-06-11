@@ -45,11 +45,10 @@ module ToolkitImporter =
                 let arrFn = Path.Combine(templatePath, itemNode.Element(ad + "SongXml").Element(d4p1 + "File").Value)
                 let arrType = ArrangementType.Parse(itemNode.Element(ad + "ArrangementName").Value)
     
-                // Only include primary arrangements (represent = true)
-                if itemNode.Element(ad + "Represent").Value = "true" then
-                    state.Add(arrType, arrFn)
-                else if itemNode.Element(ad + "ArrangementName").Value.EndsWith("Vocals")
-                        || itemNode.Element(ad + "ArrangementName").Value = "ShowLights" then
+                // Only include primary arrangements (represent = true), any vocals and show lights
+                if itemNode.Element(ad + "Represent").Value = "true"
+                   || itemNode.Element(ad + "ArrangementName").Value.EndsWith("Vocals")
+                   || itemNode.Element(ad + "ArrangementName").Value = "ShowLights" then
                     state.Add(arrType, arrFn)
                 else
                     state
