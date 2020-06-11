@@ -45,7 +45,7 @@ module ToolkitImporter =
                 let isMainArr = itemNode.Element(ad + "Represent").Value = "true"
                 
                 // Only include primary arrangements (represent = true), any vocals and show lights
-                if isMainArr || isVocals arrType || arrType = ArrangementType.ShowLights then
+                if isMainArr || isOther arrType then
                     state.Add(arrType, arrFn)
                 else
                     state

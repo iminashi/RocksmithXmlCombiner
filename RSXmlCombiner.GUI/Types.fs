@@ -17,14 +17,16 @@ module Types =
         | JVocals =    0b000100000
         | ShowLights = 0b001000000
 
-    let instrumentalArrangement = ArrangementType.Lead ||| ArrangementType.Rhythm ||| ArrangementType.Combo ||| ArrangementType.Bass
-    let vocalsArrangement = ArrangementType.Vocals ||| ArrangementType.JVocals
+    let private instrumentalArrangement = ArrangementType.Lead ||| ArrangementType.Rhythm ||| ArrangementType.Combo ||| ArrangementType.Bass
+    let private vocalsArrangement = ArrangementType.Vocals ||| ArrangementType.JVocals
+    let private otherArrangement = vocalsArrangement ||| ArrangementType.ShowLights
 
-    let isInstrumental arrType =
-        (arrType &&& instrumentalArrangement) <> ArrangementType.Unknown
-
-    let isVocals arrType =
-        (arrType &&& vocalsArrangement) <> ArrangementType.Unknown
+    /// Tests if the arrangement type is lead, rhythm, bass or combo.
+    let isInstrumental arrType = (arrType &&& instrumentalArrangement) <> ArrangementType.Unknown
+    /// Tests if the arrangement type is vocals or j-vocals.
+    let isVocals arrType = (arrType &&& vocalsArrangement) <> ArrangementType.Unknown
+    /// Tests if the arrangement type is vocals, j-vocals or show lights.
+    let isOther arrType = (arrType &&& otherArrangement) <> ArrangementType.Unknown
 
     type ArrangementOrdering = Main | Alternative | Bonus
 
