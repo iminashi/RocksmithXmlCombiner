@@ -29,9 +29,10 @@ namespace XmlCombiners
 
             CombineChords(CombinedArrangement);
 
-            // TODO: Make this work with DD levels
             if (coercePhrases && CombinedArrangement.Levels.Count == 1)
                 CoercePhrasesAndSections(CombinedArrangement);
+            else if (coercePhrases)
+                CoercePhrasesAndSectionsDD(CombinedArrangement);
 
             CombinedArrangement.Save(fileName);
             Console.WriteLine($"Saved combined file as {fileName}");
@@ -250,6 +251,85 @@ namespace XmlCombiners
             CombinedArrangement.TitleSort = combinedTitle;
         }
 
+        private bool IsAlwaysPair((PhraseIteration first, PhraseIteration second) pair, int startIndex, PhraseIterationCollection phraseIterations)
+        {
+            for (int i = startIndex + 1; i < phraseIterations.Count - 2; i++)
+            {
+                if (phraseIterations[i].PhraseId == pair.first.PhraseId && phraseIterations[i + 1].PhraseId != pair.second.PhraseId)
+                    return false;
+                if (phraseIterations[i].PhraseId == pair.second.PhraseId && phraseIterations[i - 1].PhraseId != pair.first.PhraseId)
+                    return false;
+            }
+
+            return true;
+        }
+
+        private void RemovePhraseIterations(int phraseId, PhraseIterationCollection phraseIterations)
+        {
+            for (int i = phraseIterations.Count - 1; i >= 0; i--)
+            {
+                if (phraseIterations[i].PhraseId == phraseId)
+                    phraseIterations.RemoveAt(i);
+                else if (phraseIterations[i].PhraseId > phraseId)
+                    phraseIterations[i].PhraseId--;
+            }
+        }
+
+        private void CoercePhrasesAndSectionsDD(InstrumentalArrangement arr)
+        {
+            var phraseIterations = arr.PhraseIterations;
+            bool combined = true;
+
+            // Get rid of new linked difficulties to make life easier
+            arr.NewLinkedDiffs.Clear();
+
+            bool isSameDifficulty(PhraseIteration i1, PhraseIteration i2)
+                => arr.Phrases[i1.PhraseId].MaxDifficulty == arr.Phrases[i2.PhraseId].MaxDifficulty;
+
+            // Combine phrase iteration pairs
+            while (phraseIterations.Count > 100)
+            {
+                if (!combined)
+                    break;
+                combined = false;
+
+                for (int i = 1; i < phraseIterations.Count - 2; i++)
+                {
+                    if (phraseIterations.Count <= 100)
+                        break;
+
+                    (PhraseIteration first, PhraseIteration second) pair = (phraseIterations[i], phraseIterations[i + 1]);
+
+                    // Check if the phrases have the same max difficulty, they always appear as a pair and neither is a noguitar phrase
+                    if (!isSameDifficulty(pair.first, pair.second) || !IsAlwaysPair(pair, i + 1, phraseIterations) || pair.first.HeroLevels is null || pair.second.HeroLevels is null)
+                        continue;
+
+                    combined = true;
+
+                    // Remove second phrase of pair
+                    arr.Phrases.RemoveAt(pair.second.PhraseId);
+
+                    // Remove sections
+                    for (int pi = 0; pi < phraseIterations.Count; pi++)
+                    {
+                        if (phraseIterations[pi].PhraseId == pair.second.PhraseId)
+                        {
+                            for (int si = arr.Sections.Count - 1; si >= 0; si--)
+                            {
+                                if (arr.Sections[si].Time == phraseIterations[pi].Time)
+                                    arr.Sections.RemoveAt(si);
+                            }
+                        }
+                    }
+
+                    // Remove phrase iterations and adjust phrase IDs
+                    RemovePhraseIterations(pair.second.PhraseId, phraseIterations);
+                }
+            }
+
+            UpdateSectionNumbers(arr);
+        }
+
         private void CoercePhrasesAndSections(InstrumentalArrangement song)
         {
             var phraseIterations = song.PhraseIterations;
@@ -271,7 +351,7 @@ namespace XmlCombiners
             {
                 // Search for the smallest section
                 int smallestIndex = 1;
-                float smallestLength = float.MaxValue;
+                int smallestLength = int.MaxValue;
                 for (int i = 1; i < song.Sections.Count - 2; i++)
                 {
                     // Skip noguitar sections and sections surrounded by noguitar sections
@@ -282,7 +362,7 @@ namespace XmlCombiners
                         continue;
                     }
 
-                    float length = song.Sections[i + 1].Time - song.Sections[i].Time;
+                    int length = song.Sections[i + 1].Time - song.Sections[i].Time;
                     if (length < smallestLength)
                     {
                         smallestIndex = i;
@@ -307,8 +387,8 @@ namespace XmlCombiners
                 }
                 else
                 {
-                    float prevLength = song.Sections[smallestIndex].Time - song.Sections[smallestIndex - 1].Time;
-                    float nextLength = song.Sections[smallestIndex + 2].Time - song.Sections[smallestIndex + 1].Time;
+                    int prevLength = song.Sections[smallestIndex].Time - song.Sections[smallestIndex - 1].Time;
+                    int nextLength = song.Sections[smallestIndex + 2].Time - song.Sections[smallestIndex + 1].Time;
 
                     if ((prevLength < nextLength && song.Sections[smallestIndex - 1].Name != "noguitar") || song.Sections[smallestIndex + 1].Name == "noguitar")
                     {
@@ -330,7 +410,7 @@ namespace XmlCombiners
 
         private void RemoveExtraBeats(InstrumentalArrangement song)
         {
-            float songLength = song.SongLength;
+            int songLength = song.SongLength;
 
             for (int i = song.Ebeats.Count - 1; i >= 0; i--)
             {

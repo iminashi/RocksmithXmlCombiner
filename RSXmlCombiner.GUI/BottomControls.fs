@@ -93,7 +93,7 @@ module BottomControls =
                                     CheckBox.isChecked state.CoercePhrases
                                     CheckBox.onChecked (fun _ -> CoercePhrasesChanged true |> dispatch)
                                     CheckBox.onUnchecked (fun _ -> CoercePhrasesChanged false |> dispatch)
-                                    ToolTip.tip "Combines phrases and sections so that the resulting arrangements have a max of 100 phrases and sections.\n\nCurrently only works when combining files without DD."
+                                    ToolTip.tip "Combines phrases and sections so that the resulting arrangements have a max of 100 phrases and sections."
                                 ]
                                 // Add Track Names to Lyrics Checkbox
                                 CheckBox.create [
