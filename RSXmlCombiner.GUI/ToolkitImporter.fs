@@ -12,18 +12,16 @@ module ToolkitImporter =
     let private importOld (arrangements : IEnumerable<XElement>) templatePath =
         let folder (state :  Map<ArrangementType, string>) (itemNode : XElement) =
             let bonusArr = itemNode.Element(ad + "BonusArr").Value = "true"
-            let mutable arrType = ArrangementType.Unknown
 
             // Try to read the arrangement type from the name
-            if ArrangementType.TryParse(itemNode.Element(ad + "Name").Value, &arrType) then
-                if not (bonusArr || state.ContainsKey(arrType)) then
-                    let arrFn = Path.Combine(templatePath, itemNode.Element(ad + "SongXml").Element(d4p1 + "File").Value)
-
-                    state.Add(arrType, arrFn);
-                else
-                    state
-            else
-                state
+            let success, arrType = ArrangementType.TryParse(itemNode.Element(ad + "Name").Value)
+            
+            match success, arrType with
+            | true, t when not (bonusArr || state.ContainsKey t) ->
+                let arrFn = Path.Combine(templatePath, itemNode.Element(ad + "SongXml").Element(d4p1 + "File").Value)
+                
+                state.Add(t, arrFn);
+            | _ -> state
 
         arrangements |> Seq.fold folder Map.empty
     
@@ -37,18 +35,17 @@ module ToolkitImporter =
         let audioFile = Path.Combine(templatePath, xdoc.Element(ad + "OggPath").Value)
     
         // If there is no ArrangementName tag, assume that it is an old template file
-        if arrangements.First().Element(ad + "ArrangementName") |> isNull then
+        if isNull <| arrangements.First().Element(ad + "ArrangementName") then
             importOld arrangements templatePath, title, audioFile
         else
             // Map ArrangementType to file name
             let folder (state : Map<ArrangementType, string>) (itemNode : XElement) =
                 let arrFn = Path.Combine(templatePath, itemNode.Element(ad + "SongXml").Element(d4p1 + "File").Value)
                 let arrType = ArrangementType.Parse(itemNode.Element(ad + "ArrangementName").Value)
-    
+                let isMainArr = itemNode.Element(ad + "Represent").Value = "true"
+                
                 // Only include primary arrangements (represent = true), any vocals and show lights
-                if itemNode.Element(ad + "Represent").Value = "true"
-                   || itemNode.Element(ad + "ArrangementName").Value.EndsWith("Vocals")
-                   || itemNode.Element(ad + "ArrangementName").Value = "ShowLights" then
+                if isMainArr || isVocals arrType || arrType = ArrangementType.ShowLights then
                     state.Add(arrType, arrFn)
                 else
                     state
