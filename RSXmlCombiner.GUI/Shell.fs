@@ -62,89 +62,111 @@ module Shell =
         let data = arrangement.Data |> Option.get
         let replacementToneNames = ProgramState.getReplacementToneNames arrangement.Name state.CommonTones
 
-        StackPanel.create [
-            StackPanel.horizontalAlignment HorizontalAlignment.Center
-            StackPanel.verticalAlignment VerticalAlignment.Center
-            StackPanel.children [
-                Grid.create [
-                    Grid.columnDefinitions "150, 150"
-                    Grid.rowDefinitions (Seq.replicate (data.ToneNames.Length + 1) "*" |> String.concat ",")
-                    Grid.children [
-                        yield TextBlock.create [
-                            TextBlock.text "Tone Name"    
-                            TextBlock.fontSize 16.0
-                        ]
-                        yield TextBlock.create [
-                            Grid.column 1
-                            TextBlock.text "Replace With"    
-                            TextBlock.fontSize 16.0
-                        ]
-                        for (i, tone) in data.ToneNames |> List.indexed do
-                            yield TextBlock.create [
-                                    Grid.row (i + 1)
-                                    TextBlock.margin 2.0
-                                    TextBlock.text tone
-                                    TextBlock.verticalAlignment VerticalAlignment.Center
-                                  ]
-                            yield ComboBox.create [
-                                    Grid.row (i + 1)
+        DockPanel.create [
+            DockPanel.background "#77000000"
+            DockPanel.children [
+                Border.create [
+                    Border.padding 20.0
+                    Border.cornerRadius 5.0
+                    Border.horizontalAlignment HorizontalAlignment.Center
+                    Border.verticalAlignment VerticalAlignment.Center
+                    Border.background "#444444"
+                    Border.child (
+                        Grid.create [
+                            Grid.columnDefinitions "150, 150"
+                            Grid.rowDefinitions (Seq.replicate (data.ToneNames.Length + 3) "*" |> String.concat ",")
+                            Grid.children [
+                                yield TextBlock.create [
+                                    Grid.columnSpan 2
+                                    TextBlock.horizontalAlignment HorizontalAlignment.Center
+                                    TextBlock.fontSize 18.0
+                                    TextBlock.text (sprintf "%s - %s" state.Tracks.[trackIndex].Title arrangement.Name)
+                                ]
+                                yield TextBlock.create [
+                                    Grid.row 1
+                                    TextBlock.text "Tone Name"    
+                                    TextBlock.fontSize 16.0
+                                ]
+                                yield TextBlock.create [
+                                    Grid.row 1
                                     Grid.column 1
-                                    ComboBox.margin 2.0
-                                    ComboBox.height 30.0
-                                    ComboBox.dataItems replacementToneNames
-                                    ComboBox.selectedIndex (
-                                        match data.ToneReplacements |> Map.tryFind tone with
-                                        | Some index -> index
-                                        | None -> -1)
-                                    ComboBox.onSelectedIndexChanged (fun item -> SetReplacementTone(trackIndex, arrIndex, tone, item) |> dispatch)
-                                  ]
-                    ]
-                ]
-                Button.create [
-                    Button.content "OK"
-                    Button.isDefault true
-                    Button.fontSize 15.0
-                    Button.horizontalAlignment HorizontalAlignment.Center
-                    Button.width 120.0
-                    Button.margin 5.0
-                    Button.onClick (fun _ -> ToneReplacementClosed |> dispatch)
+                                    TextBlock.text "Replace With"    
+                                    TextBlock.fontSize 16.0
+                                ]
+                                for (i, tone) in data.ToneNames |> List.indexed do
+                                    yield TextBlock.create [
+                                            Grid.row (i + 2)
+                                            TextBlock.margin 2.0
+                                            TextBlock.text tone
+                                            TextBlock.verticalAlignment VerticalAlignment.Center
+                                          ]
+                                    yield ComboBox.create [
+                                            Grid.row (i + 2)
+                                            Grid.column 1
+                                            ComboBox.margin 2.0
+                                            ComboBox.height 30.0
+                                            ComboBox.dataItems replacementToneNames
+                                            ComboBox.selectedIndex (
+                                                match data.ToneReplacements |> Map.tryFind tone with
+                                                | Some index -> index
+                                                | None -> -1)
+                                            ComboBox.onSelectedIndexChanged (fun item -> SetReplacementTone(trackIndex, arrIndex, tone, item) |> dispatch)
+                                          ]
+                                yield Button.create [
+                                    Grid.row (data.ToneNames.Length + 2)
+                                    Grid.columnSpan 2
+                                    Button.content "OK"
+                                    Button.isDefault true
+                                    Button.fontSize 15.0
+                                    Button.horizontalAlignment HorizontalAlignment.Center
+                                    Button.width 120.0
+                                    Button.margin 5.0
+                                    Button.onClick (fun _ -> ToneReplacementClosed |> dispatch)
+                                ]
+                            ]
+                        ]
+                    )
                 ]
             ]
         ]
 
     let view state dispatch =
-        match state.ReplacementToneEditor with
-        | Some (trackIndex, arrIndex) ->
-            replacementToneView state trackIndex arrIndex dispatch :> IView
-        | None ->
-            TabControl.create [
-                TabControl.tabStripPlacement Dock.Top
-                TabControl.viewItems [
-                    TabItem.create [
-                        TabItem.header "Tracks"
-                        TabItem.onIsSelectedChanged (fun selected -> ProjectViewActiveChanged(selected) |> dispatch)
-                        TabItem.content (
-                            DockPanel.create [
-                                DockPanel.children [
-                                    TopControls.view state (TopControlsMsg >> dispatch)
+        TabControl.create [
+            TabControl.tabStripPlacement Dock.Top
+            TabControl.viewItems [
+                TabItem.create [
+                    TabItem.header "Tracks"
+                    TabItem.onIsSelectedChanged (fun selected -> ProjectViewActiveChanged(selected) |> dispatch)
+                    TabItem.content (
+                        Grid.create [
+                            Grid.children [
+                                yield DockPanel.create [
+                                    DockPanel.children [
+                                        TopControls.view state (TopControlsMsg >> dispatch)
 
-                                    // Status Bar with Message
-                                    Border.create [
-                                        Border.classes [ "statusbar" ]
-                                        Border.dock Dock.Bottom
-                                        Border.child (TextBlock.create [ TextBlock.text state.StatusMessage ])
+                                        // Status Bar with Message
+                                        Border.create [
+                                            Border.classes [ "statusbar" ]
+                                            Border.dock Dock.Bottom
+                                            Border.child (TextBlock.create [ TextBlock.text state.StatusMessage ])
+                                        ]
+
+                                        BottomControls.view state (BottomControlsMsg >> dispatch)
+
+                                        TrackList.view state (TrackListMsg >> dispatch)
                                     ]
-
-                                    BottomControls.view state (BottomControlsMsg >> dispatch)
-
-                                    TrackList.view state (TrackListMsg >> dispatch)
                                 ]
+                                match state.ReplacementToneEditor with
+                                | Some (trackIndex, arrIndex) ->
+                                    yield replacementToneView state trackIndex arrIndex dispatch :> IView
+                                | None -> ()
                             ]
-                        )
-                    ]
-                    TabItem.create [
-                        TabItem.header "Common Tones"
-                        TabItem.content (CommonToneEditor.view state (CommonTonesMsg >> dispatch))
-                    ]
+                        ]
+                    )
                 ]
-            ] :> IView
+                TabItem.create [
+                    TabItem.header "Common Tones"
+                    TabItem.content (CommonToneEditor.view state (CommonTonesMsg >> dispatch))
+                ]
+            ]
+        ] :> IView
