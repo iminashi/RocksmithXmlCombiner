@@ -46,7 +46,11 @@ module TrackList =
                 state, Cmd.none
 
         | SelectArrangementFile (trackIndex, arrIndex) ->
-            let initialDir = state.Tracks.[trackIndex].Arrangements.[arrIndex].FileName |> Option.map Path.GetDirectoryName
+            let initialDir =
+                state.Tracks.[trackIndex].Arrangements.[arrIndex].FileName
+                // If no file is set, use the directory of the first arrangement that has a file
+                |> Option.orElse (state.Tracks.[trackIndex].Arrangements |> List.tryPick (fun a -> a.FileName))
+                |> Option.map Path.GetDirectoryName
             let files = Dialogs.openFileDialog "Select Arrangement File" Dialogs.xmlFileFilter false initialDir
             state, Cmd.OfAsync.perform (fun _ -> files) () (fun f -> ChangeArrangementFile (trackIndex, arrIndex, f))
 
