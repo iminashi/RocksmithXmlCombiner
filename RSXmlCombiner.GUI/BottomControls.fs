@@ -29,7 +29,7 @@ module BottomControls =
                 // User canceled the dialog
                 state, Cmd.none
             else
-                let message = AudioCombiner.combineAudioFiles state.Tracks targetFile
+                let message = NAudioCombiner.combineAudioFiles state.Tracks targetFile
                 { state with StatusMessage = message }, Cmd.none
 
         | CombineArrangements targetFolder ->

@@ -31,8 +31,8 @@ namespace XmlCombiners
 
             if (coercePhrases && CombinedArrangement.Levels.Count == 1)
                 CoercePhrasesAndSections(CombinedArrangement);
-            else if (coercePhrases)
-                CoercePhrasesAndSectionsDD(CombinedArrangement);
+            //else if (coercePhrases)
+            //    CoercePhrasesAndSectionsDD(CombinedArrangement);
 
             CombinedArrangement.Save(fileName);
             Console.WriteLine($"Saved combined file as {fileName}");

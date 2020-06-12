@@ -9,14 +9,6 @@
     <Product>Rocksmith 2014 XML Combiner</Product>
   </PropertyGroup>
 
-  <Target Name="Copy Sox Win" AfterTargets="Build" Condition=" '$(OS)' == 'Windows_NT' ">
-    <ItemGroup>
-      <SoxTool Include="$(ProjectDir)\..\tools\windows\sox\*.*" />
-    </ItemGroup>
-
-    <Copy SourceFiles="@(SoxTool)" DestinationFolder="$(TargetDir)\tools\sox\" SkipUnchangedFiles="true" />
-  </Target>
-
   <ItemGroup>
     <Page Include="Styles.xaml">
       <Generator>MSBuild:Compile</Generator>
@@ -28,7 +20,7 @@
     <Compile Include="ProgramState.fs" />
     <Compile Include="Project.fs" />
     <Compile Include="ArrangementCombiner.fs" />
-    <Compile Include="AudioCombiner.fs" />
+    <Compile Include="NAudioCombiner.fs" />
     <Compile Include="ToolkitImporter.fs" />
     <Compile Include="CommonToneEditor.fs" />
     <Compile Include="TrackList.fs" />
@@ -45,6 +37,7 @@
     <PackageReference Include="JaggerJo.Avalonia.FuncUI" Version="0.4.0" />
     <PackageReference Include="JaggerJo.Avalonia.FuncUI.DSL" Version="0.4.1" />
     <PackageReference Include="JaggerJo.Avalonia.FuncUI.Elmish" Version="0.4.0" />
+    <PackageReference Include="NAudio" Version="1.10.0" />
   </ItemGroup>
 
   <ItemGroup>
