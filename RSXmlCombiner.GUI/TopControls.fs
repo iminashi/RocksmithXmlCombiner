@@ -207,7 +207,8 @@ module TopControls =
 
         | SelectSaveProjectFile ->
             let initialDir = state.OpenProjectFile |> Option.map Path.GetDirectoryName
-            let targetFile = Dialogs.saveFileDialog "Save Project As" Dialogs.projectFileFilter (Some "combo.rscproj") initialDir
+            let initialFile = state.OpenProjectFile |> Option.map Path.GetFileName |> Option.orElse (Some "combo.rscproj")
+            let targetFile = Dialogs.saveFileDialog "Save Project As" Dialogs.projectFileFilter initialFile initialDir
             state, Cmd.OfAsync.perform (fun _ -> targetFile) () SaveProject
 
     let view state dispatch =
