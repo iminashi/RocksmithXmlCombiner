@@ -16,14 +16,18 @@
     <Setter Property="Background" Value="Transparent"/>
   </Style>
 
-  <Style Selector="Button.close:pointerover">
-    <Setter Property="Background" Value="DarkRed"/>
+  <Style Selector="Path.close">
+    <Setter Property="Fill" Value="Gray"/>
   </Style>
 
-  <Style Selector="Button.close /template/ ContentPresenter">
+  <Style Selector="Path.close:pointerover">
+    <Setter Property="Fill" Value="DarkRed"/>
+  </Style>
+
+  <!--<Style Selector="Button.close /template/ ContentPresenter">
     <Setter Property="Border.CornerRadius" Value="0"/>
     <Setter Property="Border.BorderThickness" Value="0"/>
-  </Style>
+  </Style>-->
   
   <Style Selector="TextBlock.h1">
     <Setter Property="FontSize" Value="20"/>

@@ -263,25 +263,24 @@ module TrackList =
                             StackPanel.orientation Orientation.Horizontal
                             StackPanel.children [
                                 // Delete button
-                                //Path.create [
-                                //    Path.data Icons.close
-                                //    Path.fill "Red"
-                                //    Path.margin (0.0, 0.0, 20.0, 0.0)
-                                //    Path.verticalAlignment VerticalAlignment.Center
-                                //    Path.onTapped (fun _ -> dispatch (RemoveTrackAt index))
-                                //    Path.classes [ "close" ]
-                                //    Path.cursor (Cursor(StandardCursorType.Hand))
-                                //    Path.renderTransform (ScaleTransform(1.5, 1.5))
-                                //]
-    
-                                Button.create [
-                                    Button.verticalAlignment VerticalAlignment.Center
-                                    Button.fontSize 18.0
-                                    Button.margin (2.0, 0.0, 5.0, 0.0)
-                                    Button.content "X"
-                                    Button.classes [ "close" ]
-                                    Button.onClick (fun _ -> RemoveTrackAt index |> dispatch)
+                                Path.create [
+                                    Path.data Icons.close
+                                    Path.margin (2.0, 0.0, 5.0, 0.0)
+                                    Path.verticalAlignment VerticalAlignment.Center
+                                    Path.onTapped (fun _ -> RemoveTrackAt index |> dispatch)
+                                    Path.classes [ "close" ]
+                                    Path.cursor <| Cursor StandardCursorType.Hand
+                                    Path.renderTransform <| ScaleTransform(1.5, 1.5)
                                 ]
+    
+                                //Button.create [
+                                //    Button.verticalAlignment VerticalAlignment.Center
+                                //    Button.fontSize 18.0
+                                //    Button.margin (2.0, 0.0, 5.0, 0.0)
+                                //    Button.content "X"
+                                //    Button.classes [ "close" ]
+                                //    Button.onClick (fun _ -> RemoveTrackAt index |> dispatch)
+                                //]
 
                                 // Audio Part
                                 StackPanel.create [
