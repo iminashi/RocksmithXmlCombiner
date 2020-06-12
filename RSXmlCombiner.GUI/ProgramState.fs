@@ -78,7 +78,7 @@ module ProgramState =
         match Map.tryFind arrName commonTones with
         | Some names ->
             match names |> Array.tryFindIndex String.IsNullOrEmpty with
-            // Exclude the first one which is the base tone for the combined arrangement
+            // Exclude the first one, which is the base tone for the combined arrangement
             | Some firstEmptyIndex -> names.[1..(firstEmptyIndex - 1)]
             | None -> names.[1..]
         | None -> [||]

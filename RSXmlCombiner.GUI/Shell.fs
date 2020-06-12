@@ -65,11 +65,10 @@ module Shell =
         StackPanel.create [
             StackPanel.horizontalAlignment HorizontalAlignment.Center
             StackPanel.verticalAlignment VerticalAlignment.Center
-            StackPanel.onKeyDown (fun e -> if e.Key = Key.Enter then dispatch ToneReplacementClosed)
             StackPanel.children [
                 Grid.create [
                     Grid.columnDefinitions "150, 150"
-                    Grid.rowDefinitions (Seq.replicate (data.ToneNames.Length + 1)  "*" |> String.concat ",")
+                    Grid.rowDefinitions (Seq.replicate (data.ToneNames.Length + 1) "*" |> String.concat ",")
                     Grid.children [
                         yield TextBlock.create [
                             TextBlock.text "Tone Name"    
