@@ -20,15 +20,16 @@
     <Setter Property="Fill" Value="Gray"/>
   </Style>
 
-  <Style Selector="Path.close:pointerover">
+  <Style Selector="ContentControl.close">
+    <Setter Property="VerticalAlignment" Value="Center"/>
+    <Setter Property="HorizontalAlignment" Value="Center"/>
+    <Setter Property="Background" Value="Transparent"/>
+  </Style>
+
+  <Style Selector="ContentControl.close:pointerover Path">
     <Setter Property="Fill" Value="DarkRed"/>
   </Style>
 
-  <!--<Style Selector="Button.close /template/ ContentPresenter">
-    <Setter Property="Border.CornerRadius" Value="0"/>
-    <Setter Property="Border.BorderThickness" Value="0"/>
-  </Style>-->
-  
   <Style Selector="TextBlock.h1">
     <Setter Property="FontSize" Value="20"/>
     <Setter Property="FontWeight" Value="Bold"/>

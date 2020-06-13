@@ -301,7 +301,7 @@ namespace XmlCombiners
                     (PhraseIteration first, PhraseIteration second) pair = (phraseIterations[i], phraseIterations[i + 1]);
 
                     // Check if the phrases have the same max difficulty, they always appear as a pair and neither is a noguitar phrase
-                    if (!isSameDifficulty(pair.first, pair.second) || !IsAlwaysPair(pair, i + 1, phraseIterations) || pair.first.HeroLevels is null || pair.second.HeroLevels is null)
+                    if (pair.first.PhraseId + 1 != pair.second.PhraseId || !isSameDifficulty(pair.first, pair.second) || !IsAlwaysPair(pair, i + 1, phraseIterations) || pair.first.HeroLevels is null || pair.second.HeroLevels is null)
                         continue;
 
                     combined = true;

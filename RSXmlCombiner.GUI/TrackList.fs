@@ -30,7 +30,7 @@ module TrackList =
     let update (msg: Msg) (state: ProgramState) =
         match msg with
         | RemoveTrackAt index ->
-            { state with Tracks = state.Tracks |> List.except [ state.Tracks.[index] ] }, Cmd.none
+            { state with Tracks = state.Tracks |> List.except (seq { state.Tracks.[index] }) }, Cmd.none
 
         | ChangeAudioFile trackIndex ->
             let initialDir = state.Tracks.[trackIndex].AudioFile |> Option.map Path.GetDirectoryName
@@ -219,7 +219,7 @@ module TrackList =
                                     ComboBox.onSelectedIndexChanged (fun toneIndex -> if toneIndex <> -1 then ArrangementBaseToneChanged(trackIndex, arrIndex, toneIndex) |> dispatch)
                                     ToolTip.tip "Base Tone"
                                 ]
-                            else if instArr.ToneNames.Length > 0 then
+                            elif instArr.ToneNames.Length > 0 then
                                 // Edit Replacement Tones Button
                                 yield Button.create [
                                     Button.content "Tones"
@@ -253,6 +253,7 @@ module TrackList =
                 DockPanel.create [
                     DockPanel.margin (5.0, 0.0, 0.0, 0.0)
                     DockPanel.children [
+                        // Track Number and Title
                         StackPanel.create [
                             StackPanel.orientation Orientation.Horizontal
                             StackPanel.dock Dock.Top
@@ -266,25 +267,20 @@ module TrackList =
                         StackPanel.create [
                             StackPanel.orientation Orientation.Horizontal
                             StackPanel.children [
-                                // Delete button
-                                Path.create [
-                                    Path.data Icons.close
-                                    Path.margin (2.0, 0.0, 5.0, 0.0)
-                                    Path.verticalAlignment VerticalAlignment.Center
-                                    Path.onTapped (fun _ -> RemoveTrackAt index |> dispatch)
-                                    Path.classes [ "close" ]
-                                    Path.cursor <| Cursor StandardCursorType.Hand
-                                    Path.renderTransform <| ScaleTransform(1.5, 1.5)
+                                // Delete Track Button
+                                ContentControl.create [
+                                    ContentControl.classes [ "close" ]
+                                    ContentControl.margin (2.0, 0.0, 5.0, 0.0)
+                                    ContentControl.renderTransform <| ScaleTransform(1.5, 1.5)
+                                    ContentControl.cursor <| Cursor StandardCursorType.Hand
+                                    ContentControl.onTapped (fun _ -> RemoveTrackAt index |> dispatch)
+                                    ContentControl.content (
+                                        Path.create [
+                                            Path.data Icons.close
+                                            Path.classes [ "close" ]
+                                        ]
+                                    )
                                 ]
-    
-                                //Button.create [
-                                //    Button.verticalAlignment VerticalAlignment.Center
-                                //    Button.fontSize 18.0
-                                //    Button.margin (2.0, 0.0, 5.0, 0.0)
-                                //    Button.content "X"
-                                //    Button.classes [ "close" ]
-                                //    Button.onClick (fun _ -> RemoveTrackAt index |> dispatch)
-                                //]
 
                                 // Audio Part
                                 StackPanel.create [
