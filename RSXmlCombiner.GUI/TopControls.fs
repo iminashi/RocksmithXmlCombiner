@@ -47,8 +47,7 @@ module TopControls =
             { state with StatusMessage = "Please select at least one instrumental Rocksmith arrangement." }, Cmd.none
 
         | Some instArrFile ->
-            let alreadyHasShowlights (arrs : Arrangement list) =
-                arrs |> List.exists (fun a -> a.ArrangementType = ArrangementType.ShowLights)
+            let alreadyHas arrType = List.exists (fun a -> a.ArrangementType = arrType)
 
             let arrangementFolder state fileName =
                 match XmlHelper.GetRootElementName(fileName) with
@@ -58,9 +57,9 @@ module TopControls =
                         state
                     else
                         arr :: state
-                | "vocals" ->
+                | "vocals" when state |> alreadyHas ArrangementType.Vocals |> not ->
                     { Name = "Vocals"; FileName = Some fileName; ArrangementType = ArrangementType.Vocals; Data = None  } :: state
-                | "showlights" when state |> alreadyHasShowlights |> not ->
+                | "showlights" when state |> alreadyHas ArrangementType.ShowLights |> not ->
                     { Name = "Show Lights"; FileName = Some fileName; ArrangementType = ArrangementType.ShowLights; Data = None } :: state
                 //| "showlights" -> Cannot have more than one show lights arrangement
                 | _ -> state // StatusMessage = "Unknown arrangement type for file {Path.GetFileName(arr)}";
