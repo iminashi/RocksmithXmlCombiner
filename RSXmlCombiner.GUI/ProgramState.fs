@@ -13,6 +13,7 @@ type ProgramState = {
     StatusMessage : string
     ReplacementToneEditor : (int * int) option
     ProjectViewActive : bool
+    AudioCombinerProgress : float option
     OpenProjectFile : string option }
 
 module ProgramState =
@@ -26,6 +27,7 @@ module ProgramState =
         StatusMessage = ""
         ReplacementToneEditor = None
         ProjectViewActive = true
+        AudioCombinerProgress = None
         OpenProjectFile = None }
 
     let private updateTemplates (arrangements : Arrangement list) (Templates currentTemplates) =

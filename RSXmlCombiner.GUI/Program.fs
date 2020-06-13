@@ -16,12 +16,18 @@ type MainWindow() as this =
         base.Height <- 800.0
         base.MinWidth <- 900.0
         base.MinHeight <- 450.0
+
+        let audioCombinerProgress initialModel =
+            let sub dispatch =
+                AudioCombiner.progress.ProgressChanged.Add(fun x -> Shell.Msg.CombineAudioProgressChanged(x) |> dispatch)
+            Cmd.ofSub sub
         
         //this.VisualRoot.VisualRoot.Renderer.DrawFps <- true
         //this.VisualRoot.VisualRoot.Renderer.DrawDirtyRects <- true
 
         Elmish.Program.mkProgram Shell.init Shell.update Shell.view
         |> Program.withHost this
+        |> Program.withSubscription audioCombinerProgress
         |> Program.run
 
         

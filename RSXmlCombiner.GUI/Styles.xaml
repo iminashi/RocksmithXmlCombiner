@@ -82,8 +82,6 @@
   </Style>
 
   <Style Selector="Border.statusbar">
-    <Setter Property="BorderThickness" Value="0, 2, 0, 0"/>
-    <Setter Property="BorderBrush" Value="#181818"/>
     <Setter Property="Background" Value="#282828"/>
     <Setter Property="Padding" Value="5"/>
     <Setter Property="MinHeight" Value="28"/>

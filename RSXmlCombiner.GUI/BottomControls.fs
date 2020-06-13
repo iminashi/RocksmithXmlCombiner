@@ -16,21 +16,25 @@ module BottomControls =
     | UpdateCombinationTitle of newTitle : string
     | CoercePhrasesChanged of bool
     | AddTrackNamesChanged of bool
+    | CombineAudioCompleted of message : string
 
     let update msg state : ProgramState * Cmd<_> =
         match msg with
         | SelectTargetAudioFile ->
             let initialDir = state.OpenProjectFile |> Option.map Path.GetDirectoryName
-            let targetFile = Dialogs.saveFileDialog "Select Target File" Dialogs.audioFileFiltersSave (Some "combo.wav") initialDir
-            state, Cmd.OfAsync.perform (fun _ -> targetFile) () CombineAudioFiles
+            let dialog = Dialogs.saveFileDialog "Select Target File" Dialogs.audioFileFiltersSave (Some "combo.wav")
+            state, Cmd.OfAsync.perform dialog initialDir CombineAudioFiles
 
         | CombineAudioFiles targetFile ->
             if String.IsNullOrEmpty targetFile then
                 // User canceled the dialog
                 state, Cmd.none
             else
-                let message = AudioCombiner.combineAudioFiles state.Tracks targetFile
-                { state with StatusMessage = message }, Cmd.none
+                let task = AudioCombiner.combineAudioFiles state.Tracks
+                { state with AudioCombinerProgress = Some(0.0) }, Cmd.OfAsync.perform task targetFile CombineAudioCompleted
+        
+        | CombineAudioCompleted message ->
+            { state with StatusMessage = message; AudioCombinerProgress = None }, Cmd.none
 
         | CombineArrangements targetFolder ->
             if String.IsNullOrEmpty(targetFolder) then
@@ -42,8 +46,8 @@ module BottomControls =
 
         | SelectCombinationTargetFolder ->
             let initialDir = state.OpenProjectFile |> Option.map Path.GetDirectoryName
-            let targetFolder = Dialogs.openFolderDialog "Select Target Folder" initialDir
-            state, Cmd.OfAsync.perform (fun _ -> targetFolder) () CombineArrangements
+            let dialog = Dialogs.openFolderDialog "Select Target Folder"
+            state, Cmd.OfAsync.perform dialog initialDir CombineArrangements
 
         | UpdateCombinationTitle newTitle -> { state with CombinationTitle = newTitle }, Cmd.none
         | CoercePhrasesChanged value -> { state with CoercePhrases = value }, Cmd.none
@@ -65,7 +69,7 @@ module BottomControls =
                             Button.fontSize 20.0
                             Button.onClick (fun _ -> dispatch SelectTargetAudioFile)
                             // Only enable the button if there is more than one track and every track has an audio file
-                            Button.isEnabled (state.Tracks.Length > 1 && state.Tracks |> List.forall hasAudioFile)
+                            Button.isEnabled (state.AudioCombinerProgress |> Option.isNone && (state.Tracks.Length > 1 && state.Tracks |> List.forall hasAudioFile))
                         ]
                     ]
                 ]

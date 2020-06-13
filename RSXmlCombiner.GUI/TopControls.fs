@@ -177,6 +177,7 @@ module TopControls =
                       StatusMessage = statusMessage
                       ReplacementToneEditor = None
                       ProjectViewActive = true
+                      AudioCombinerProgress = None
                       OpenProjectFile = Some (files.[0]) }, Cmd.none
                 | Error message ->
                     { state with StatusMessage = message }, Cmd.none

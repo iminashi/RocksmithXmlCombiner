@@ -7,6 +7,8 @@ module AudioCombiner =
     open NAudio.Vorbis
     open NAudio.Wave.SampleProviders
 
+    let progress = Progress<float>()
+
     /// Copies from the reader to the writer with the given amount in milliseconds trimmed from the start.
     let private addTrimmed (reader : WaveStream) (writer : WaveFileWriter) (trim : int) =
         let bytesPerMillisecond = float reader.WaveFormat.AverageBytesPerSecond / 1000.0
@@ -14,9 +16,11 @@ module AudioCombiner =
         let trimStart = startPos - startPos % reader.WaveFormat.BlockAlign
 
         reader.Position <- int64 trimStart
-        reader.CopyTo writer
 
-        writer.Flush()
+        async {
+            do! reader.CopyToAsync writer |> Async.AwaitTask
+            do! writer.FlushAsync() |> Async.AwaitTask
+        }
 
     let private getReader (fileName : string option) =
         match fileName with
@@ -27,24 +31,28 @@ module AudioCombiner =
 
     /// Combines the audio files of the given tracks into the target file.
     let combineAudioFiles (tracks : Track list) (targetFile : string) =
-        try
-            use first = getReader tracks.Head.AudioFile
-            use writer = new WaveFileWriter(targetFile, first.WaveFormat)
-            addTrimmed first writer 0
+        async {
+            try
+                use first = getReader tracks.Head.AudioFile
+                use writer = new WaveFileWriter(targetFile, first.WaveFormat)
+                do! addTrimmed first writer 0
 
-            for t in tracks.Tail do
-                use fileReader = getReader t.AudioFile
-                if not <| fileReader.WaveFormat.Equals(writer.WaveFormat) then
-                    let error =
-                        let targetFormat = writer.WaveFormat
-                        let currFormat = fileReader.WaveFormat
-                        sprintf "Different wave format. Target format: %iHz, %i bits, %i channels. File %s: %iHz, %i bits, %i channels."
-                            targetFormat.SampleRate targetFormat.BitsPerSample targetFormat.Channels
-                            (t.AudioFile |> Option.get |> Path.GetFileName)
-                            currFormat.SampleRate currFormat.BitsPerSample currFormat.Channels
-                    failwith error
-                addTrimmed fileReader writer t.TrimAmount
+                for i, t in tracks.Tail |> List.indexed do
+                    (progress :> IProgress<float>).Report(float(i + 1) / (float tracks.Length))
 
-            sprintf "Audio files combined as %s" targetFile
-        with
-        e -> sprintf "Error: %s" e.Message
+                    use fileReader = getReader t.AudioFile
+                    if not <| fileReader.WaveFormat.Equals(writer.WaveFormat) then
+                        let error =
+                            let targetFormat = writer.WaveFormat
+                            let currFormat = fileReader.WaveFormat
+                            sprintf "Different wave format. Target format: %iHz, %i bits, %i channels. File %s: %iHz, %i bits, %i channels."
+                                targetFormat.SampleRate targetFormat.BitsPerSample targetFormat.Channels
+                                (t.AudioFile |> Option.get |> Path.GetFileName)
+                                currFormat.SampleRate currFormat.BitsPerSample currFormat.Channels
+                        failwith error
+                    do! addTrimmed fileReader writer t.TrimAmount
+
+                return sprintf "Audio files combined as %s" targetFile
+            with
+            e -> return sprintf "Error: %s" e.Message
+        }

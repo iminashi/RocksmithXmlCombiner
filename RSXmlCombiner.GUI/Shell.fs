@@ -21,6 +21,7 @@ module Shell =
         | ToneReplacementClosed
         | SetReplacementTone of trackIndex : int * arrIndex : int * toneName : string * replacementIndex : int
         | ProjectViewActiveChanged of bool
+        | CombineAudioProgressChanged of float
 
     let init () = ProgramState.init, Cmd.none
 
@@ -54,8 +55,9 @@ module Shell =
 
             { state with Tracks = updatedTracks }, Cmd.none
 
-        | ProjectViewActiveChanged active ->
-            { state with ProjectViewActive = active }, Cmd.none
+        | ProjectViewActiveChanged active -> { state with ProjectViewActive = active }, Cmd.none
+
+        | CombineAudioProgressChanged progress -> { state with AudioCombinerProgress = Some(progress) }, Cmd.none
 
     let private replacementToneView state trackIndex arrIndex dispatch =
         let arrangement = state.Tracks.[trackIndex].Arrangements.[arrIndex]
@@ -150,6 +152,15 @@ module Shell =
                                             Border.dock Dock.Bottom
                                             Border.child (TextBlock.create [ TextBlock.text state.StatusMessage ])
                                         ]
+
+                                        ProgressBar.create [
+                                              Border.dock Dock.Bottom
+                                              ProgressBar.background "#181818"
+                                              ProgressBar.height 2.0
+                                              ProgressBar.minHeight 2.0
+                                              ProgressBar.value (state.AudioCombinerProgress |> Option.defaultValue 0.0)
+                                              ProgressBar.maximum 1.0
+                                          ]
 
                                         BottomControls.view state (BottomControlsMsg >> dispatch)
 
