@@ -91,6 +91,29 @@ module ArrangementCombiner =
 
         uniqueTones |> Set.fold folder 'A' |> ignore
 
+    /// Updates the metadata of the instrumental arrangement file to match the given arrangement.
+    let private updateArrangementMetadata arr (combined : InstrumentalArrangement) =
+        combined.Arrangement <- arr.ArrangementType.ToString()
+
+        let arrProps = combined.ArrangementProperties
+        arrProps.PathBass <- 0uy
+        arrProps.PathLead <- 0uy
+        arrProps.PathRhythm <- 0uy
+        arrProps.Represent <- 0uy
+        arrProps.BonusArrangement <- 0uy
+
+        match arr.ArrangementType with
+        | ArrangementType.Lead -> arrProps.PathLead <- 1uy
+        | ArrangementType.Rhythm | ArrangementType.Combo -> arrProps.PathRhythm <- 1uy
+        | ArrangementType.Bass -> arrProps.PathBass <- 1uy
+        | _ -> ()
+
+        let data = arr.Data |> Option.get
+        match data.Ordering with
+        | ArrangementOrdering.Main -> arrProps.Represent <- 1uy
+        | ArrangementOrdering.Bonus -> arrProps.BonusArrangement <- 1uy
+        | _ -> ()
+
     /// Combines the instrumental arrangements at the given index if all tracks have one set.
     let private combineInstrumental (project : ProgramState) index targetFolder =
         let tracks = project.Tracks
@@ -122,6 +145,9 @@ module ArrangementCombiner =
                 tracks.[0].Arrangements.[index].Name
                 |> String.filter (fun c -> c <> '.')
                 |> String.map (fun c -> if c = ' ' then '_' else c)
+
+            // The metadata might be wrong if, for example, a lead file was used as the first file of the combined rhythm arrangement
+            updateArrangementMetadata tracks.[0].Arrangements.[index] combiner.CombinedArrangement
 
             combiner.Save(Path.Combine(targetFolder, sprintf "Combined_%s_RS2.xml" name), project.CoercePhrases)
 
