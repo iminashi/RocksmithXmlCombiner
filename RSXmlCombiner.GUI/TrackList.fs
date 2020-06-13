@@ -26,6 +26,14 @@ module TrackList =
 
     let private changeAudioFile track newFile = { track with AudioFile = Some newFile }
 
+    let private getInitialDir (fileName : string option) state trackIndex =
+        fileName
+        // If no file is set, use the directory of the first arrangement that has a file
+        |> Option.orElse (state.Tracks.[trackIndex].Arrangements |> List.tryPick (fun a -> a.FileName))
+        |> Option.map Path.GetDirectoryName
+
+    let private getArr trackIndex arrIndex state = state.Tracks.[trackIndex].Arrangements.[arrIndex]
+
     /// Updates the model according to the message content.
     let update (msg: Msg) (state: ProgramState) =
         match msg with
@@ -33,8 +41,8 @@ module TrackList =
             { state with Tracks = state.Tracks |> List.except (seq { state.Tracks.[index] }) }, Cmd.none
 
         | ChangeAudioFile trackIndex ->
-            let initialDir = state.Tracks.[trackIndex].AudioFile |> Option.map Path.GetDirectoryName
-            let selectFiles = Dialogs.openFileDialog "Select Audio File" Dialogs.audioFileFilters false initialDir
+            let initialDir = getInitialDir state.Tracks.[trackIndex].AudioFile state trackIndex
+            let selectFiles = Dialogs.openFileDialog "Select Audio File" Dialogs.audioFileFiltersOpen false initialDir
             state, Cmd.OfAsync.perform (fun _ -> selectFiles) trackIndex (fun files -> ChangeAudioFileResult(trackIndex, files))
 
         | ChangeAudioFileResult (trackIndex, files) ->
@@ -46,11 +54,7 @@ module TrackList =
                 state, Cmd.none
 
         | SelectArrangementFile (trackIndex, arrIndex) ->
-            let initialDir =
-                state.Tracks.[trackIndex].Arrangements.[arrIndex].FileName
-                // If no file is set, use the directory of the first arrangement that has a file
-                |> Option.orElse (state.Tracks.[trackIndex].Arrangements |> List.tryPick (fun a -> a.FileName))
-                |> Option.map Path.GetDirectoryName
+            let initialDir = getInitialDir (state |> getArr trackIndex arrIndex).FileName state trackIndex
             let files = Dialogs.openFileDialog "Select Arrangement File" Dialogs.xmlFileFilter false initialDir
             state, Cmd.OfAsync.perform (fun _ -> files) () (fun f -> ChangeArrangementFile (trackIndex, arrIndex, f))
 
@@ -58,7 +62,7 @@ module TrackList =
             if files.Length > 0 then
                 let fileName = files.[0]
                 let rootName = XmlHelper.GetRootElementName(fileName)
-                let arrangement = state.Tracks.[trackIndex].Arrangements.[arrIndex]
+                let arrangement = state |> getArr trackIndex arrIndex
 
                 match rootName, arrangement.ArrangementType with
                 // For instrumental arrangements, create an arrangement from the file, preserving the arrangement type and name
@@ -80,7 +84,7 @@ module TrackList =
                 state, Cmd.none
 
         | ArrangementBaseToneChanged (trackIndex, arrIndex, toneIndex) ->
-            match state.Tracks.[trackIndex].Arrangements.[arrIndex] with
+            match state |> getArr trackIndex arrIndex with
             | { Data = Some arrData } as arrangement ->
                 let data = { arrData with BaseToneIndex = toneIndex }
 
@@ -94,9 +98,7 @@ module TrackList =
                 { state with StatusMessage = "Critical program error." }, Cmd.none
 
         | RemoveArrangement (trackIndex, arrIndex) ->
-            let newArr =
-                { state.Tracks.[trackIndex].Arrangements.[arrIndex] with FileName = None; Data = None }
-
+            let newArr = { (state |> getArr trackIndex arrIndex) with FileName = None; Data = None }
             let updatedTracks = updateSingleArrangement state.Tracks trackIndex arrIndex newArr
 
             { state with Tracks = updatedTracks }, Cmd.none
@@ -152,7 +154,7 @@ module TrackList =
                                         | t when isVocals t -> Icons.microphone
                                         | _ -> Icons.spotlight)
                                 ]
-                                // Arrangement name
+                                // Arrangement Name
                                 TextBlock.create [
                                     Grid.column 1
                                     TextBlock.margin (4.0, 0.0, 0.0, 0.0 )
@@ -162,7 +164,7 @@ module TrackList =
                                     TextBlock.cursor <| Cursor StandardCursorType.Hand
                                     TextBlock.onTapped (fun _ -> SelectArrangementFile(trackIndex, arrIndex) |> dispatch)
                                 ]
-                                // Remove arrangement file button
+                                // Remove Arrangement File Button
                                 ContentControl.create [
                                     Grid.column 2
                                     ContentControl.horizontalAlignment HorizontalAlignment.Right

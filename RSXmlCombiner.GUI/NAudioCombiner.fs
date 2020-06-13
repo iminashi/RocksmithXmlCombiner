@@ -4,10 +4,11 @@ module NAudioCombiner =
     open System
     open System.IO
     open NAudio.Wave
+    open NAudio.Vorbis
     open NAudio.Wave.SampleProviders
 
     /// Copies from the reader to the writer with the given amount in milliseconds trimmed from the start.
-    let private addTrimmed (reader : WaveFileReader) (writer : WaveFileWriter) (trim : int) =
+    let private addTrimmed (reader : WaveStream) (writer : WaveFileWriter) (trim : int) =
         let bytesPerMillisecond = float reader.WaveFormat.AverageBytesPerSecond / 1000.0
         let startPos = int (float trim * bytesPerMillisecond)
         let trimStart = startPos - startPos % reader.WaveFormat.BlockAlign
@@ -17,15 +18,22 @@ module NAudioCombiner =
 
         writer.Flush()
 
+    let private getReader (fileName : string option) =
+        match fileName with
+        | Some fn when fn.EndsWith(".wav", StringComparison.OrdinalIgnoreCase) -> new WaveFileReader(fn) :> WaveStream
+        | Some fn when fn.EndsWith(".ogg", StringComparison.OrdinalIgnoreCase) -> new VorbisWaveReader(fn) :> WaveStream
+        | Some _ -> failwith "The audio file must be a wav or ogg file!"
+        | None -> failwith "No audio file set!"
+
     /// Combines the audio files of the given tracks into the target file.
     let combineAudioFiles (tracks : Track list) (targetFile : string) =
         try
-            use first = new WaveFileReader(tracks.Head.AudioFile |> Option.get)
+            use first = getReader tracks.Head.AudioFile
             use writer = new WaveFileWriter(targetFile, first.WaveFormat)
             addTrimmed first writer 0
 
             for t in tracks.Tail do
-                use fileReader = new WaveFileReader(t.AudioFile |> Option.get)
+                use fileReader = getReader t.AudioFile
                 if not <| fileReader.WaveFormat.Equals(writer.WaveFormat) then
                     let error =
                         let targetFormat = writer.WaveFormat

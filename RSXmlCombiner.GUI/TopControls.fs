@@ -93,20 +93,12 @@ module TopControls =
 
                 let audioFile =
                     let wav = Path.ChangeExtension(audioFilePath, "wav")
-                    //let ogg = Path.ChangeExtension(audioFilePath, "ogg")
-                    if File.Exists wav then
-                        Some wav
-                    else 
-                        None
-                    //elif File.Exists ogg then
-                    //    Some ogg
-                    //else
-                    //    // Try to find the _fixed.ogg from an unpacked psarc file
-                    //    let oggFixed = audioFilePath.Substring(0, audioFilePath.Length - 4) + "_fixed.ogg"
-                    //    if File.Exists oggFixed then
-                    //        Some oggFixed
-                    //    else
-                    //        None
+                    let ogg = Path.ChangeExtension(audioFilePath, "ogg")
+                    let oggFixed = lazy (audioFilePath.Substring(0, audioFilePath.Length - 4) + "_fixed.ogg")
+                    Option.create File.Exists wav
+                    |> Option.orElse (Option.create File.Exists ogg)
+                    // Try to find the _fixed.ogg from an unpacked psarc file
+                    |> Option.orElse (Option.create File.Exists oggFixed.Value)
 
                 // Try to find an instrumental arrangement to read metadata from
                 let instArrType = foundArrangements |> Map.tryFindKey (fun arrType _ -> isInstrumental arrType)

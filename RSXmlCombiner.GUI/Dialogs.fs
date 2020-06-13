@@ -11,7 +11,8 @@ module Dialogs =
         filter.Name <- name
         List(seq { filter })
 
-    let audioFileFilters = createFilters "Audio Files" (seq { "wav" })
+    let audioFileFiltersOpen = createFilters "Audio Files" (seq { "wav"; "ogg" })
+    let audioFileFiltersSave = createFilters "Wave Files" (seq { "wav" })
     let xmlFileFilter = createFilters "Rocksmith Arrangement Files" (seq { "xml" })
     let projectFileFilter = createFilters "Project Files" (seq { "rscproj" })
     let toolkitTemplateFilter = createFilters "Toolkit Templates" (seq { "dlc.xml" })

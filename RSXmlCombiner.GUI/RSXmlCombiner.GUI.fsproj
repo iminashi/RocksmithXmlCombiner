@@ -13,6 +13,7 @@
     <Page Include="Styles.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Compile Include="Extensions.fs" />
     <Compile Include="CustomBrushes.fs" />
     <Compile Include="Icons.fs" />
     <Compile Include="Types.fs" />
@@ -38,6 +39,7 @@
     <PackageReference Include="JaggerJo.Avalonia.FuncUI.DSL" Version="0.4.1" />
     <PackageReference Include="JaggerJo.Avalonia.FuncUI.Elmish" Version="0.4.0" />
     <PackageReference Include="NAudio" Version="1.10.0" />
+    <PackageReference Include="NAudio.Vorbis" Version="1.2.0" />
   </ItemGroup>
 
   <ItemGroup>

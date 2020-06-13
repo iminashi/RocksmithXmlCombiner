@@ -21,7 +21,7 @@ module BottomControls =
         match msg with
         | SelectTargetAudioFile ->
             let initialDir = state.OpenProjectFile |> Option.map Path.GetDirectoryName
-            let targetFile = Dialogs.saveFileDialog "Select Target File" Dialogs.audioFileFilters (Some "combo.wav") initialDir
+            let targetFile = Dialogs.saveFileDialog "Select Target File" Dialogs.audioFileFiltersSave (Some "combo.wav") initialDir
             state, Cmd.OfAsync.perform (fun _ -> targetFile) () CombineAudioFiles
 
         | CombineAudioFiles targetFile ->
