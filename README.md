@@ -1,6 +1,6 @@
 # Rocksmith 2014 XML Combiner
 
-A tool that can stitch together Rocksmith 2014 XML files and combine audio files using the SoX utility program.
+A tool that can stitch together Rocksmith 2014 XML files and combine audio files.
 
 Created mainly for CDLC makers who want to combine customs they have made into a full album CDLC.
 
