@@ -325,7 +325,7 @@ module TrackList =
                                                         NumericUpDown.width 75.0
                                                         NumericUpDown.formatString "F3"
                                                         NumericUpDown.onValueChanged (fun trim -> TrimAmountChanged(index, trim) |> dispatch)
-                                                        ToolTip.tip "Sets the amount of time in seconds to be trimmed from the start of the audio and each arrangements."
+                                                        ToolTip.tip "Sets the amount of time in seconds to be trimmed from the start of the audio and each arrangement."
                                                     ]
                                                     yield TextBlock.create [
                                                         TextBlock.margin (2.0, 0.0, 0.0, 0.0)
