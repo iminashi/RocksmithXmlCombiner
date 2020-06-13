@@ -37,9 +37,8 @@ module ProgramState =
 
     let addMissingArrangements (Templates templates) (arrs : Arrangement list) =
         arrs 
-        |> List.append
-            (templates
-            |> List.except (arrs |> Seq.map createTemplate))
+        @
+        templates |> List.except (arrs |> Seq.map createTemplate)
 
     let private updateTrack templates track =
         let newArrangements = 
@@ -48,18 +47,18 @@ module ProgramState =
 
         { track with Arrangements = newArrangements }
 
-    let private updateTracks (templates : Templates) = List.map (updateTrack templates)
+    let private updateTracks templates = List.map (updateTrack templates)
 
     let private updateCommonTones (Templates templates) commonTones =
-            let newCommonTones = 
-                templates
-                |> Seq.filter (fun t -> t.ArrangementType |> Types.isInstrumental )
-                |> Seq.map (fun t -> t.Name, Array.create 5 "")
-                |> Map.ofSeq
+        let newCommonTones = 
+            templates
+            |> Seq.filter (fun t -> t.ArrangementType |> Types.isInstrumental)
+            |> Seq.map (fun t -> t.Name, Array.create 5 "")
+            |> Map.ofSeq
 
-            // Preserve the current tone names
-            commonTones
-            |> Map.fold (fun commonTones arrName toneNames -> commonTones |> Map.add arrName toneNames) newCommonTones
+        // Preserve the current tone names
+        (newCommonTones, commonTones)
+        ||> Map.fold (fun commonTones arrName toneNames -> commonTones |> Map.add arrName toneNames)
 
     /// Adds a new track to the end of the track list of the project.
     let addTrack project newTrack =
