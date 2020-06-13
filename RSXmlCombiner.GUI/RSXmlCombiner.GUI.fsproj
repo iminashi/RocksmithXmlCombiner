@@ -21,7 +21,7 @@
     <Compile Include="ProgramState.fs" />
     <Compile Include="Project.fs" />
     <Compile Include="ArrangementCombiner.fs" />
-    <Compile Include="NAudioCombiner.fs" />
+    <Compile Include="AudioCombiner.fs" />
     <Compile Include="ToolkitImporter.fs" />
     <Compile Include="CommonToneEditor.fs" />
     <Compile Include="TrackList.fs" />

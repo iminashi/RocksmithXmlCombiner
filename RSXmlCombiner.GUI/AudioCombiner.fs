@@ -1,6 +1,6 @@
 ﻿namespace RSXmlCombiner.FuncUI
 
-module NAudioCombiner =
+module AudioCombiner =
     open System
     open System.IO
     open NAudio.Wave
