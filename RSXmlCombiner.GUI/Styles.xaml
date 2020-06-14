@@ -10,12 +10,6 @@
     <Setter Property="FontSize" Value="18"/>
   </Style>
 
-  <Style Selector="Canvas.removeArr">
-    <Setter Property="Cursor" Value="Hand"/>
-    <Setter Property="IsVisible" Value="False"/>
-    <Setter Property="Background" Value="Transparent"/>
-  </Style>
-
   <Style Selector="Path.close">
     <Setter Property="Fill" Value="Gray"/>
   </Style>
@@ -57,10 +51,6 @@
     <Setter Property="CornerRadius" Value="4"/>
   </Style>
 
-  <Style Selector="Border.arrangement:pointerover Canvas.removeArr">
-    <Setter Property="IsVisible" Value="True"/>
-  </Style>
-  
   <Style Selector="Border.track">
     <Setter Property="BorderBrush" Value="SlateGray"/>
     <Setter Property="Background" Value="Black"/>

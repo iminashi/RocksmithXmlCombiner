@@ -20,9 +20,10 @@ module TrackList =
     | SelectArrangementFile of trackIndex : int * arrIndex : int
     | ChangeArrangementFile of trackIndex : int * arrIndex : int * string[]
     | ArrangementBaseToneChanged of trackIndex : int * arrIndex : int * toneIndex : int
-    | RemoveArrangement of trackIndex : int * arrIndex : int
+    | RemoveArrangementFile of trackIndex : int * arrIndex : int
     | ShowReplacementToneEditor of trackIndex : int * arrIndex : int
     | TrimAmountChanged of trackIndex : int * trimAmunt : double
+    | RemoveTemplate of name : string
 
     let private changeAudioFile track newFile = { track with AudioFile = Some newFile }
 
@@ -97,7 +98,7 @@ module TrackList =
                 // Should not be able to get here
                 { state with StatusMessage = "Critical program error." }, Cmd.none
 
-        | RemoveArrangement (trackIndex, arrIndex) ->
+        | RemoveArrangementFile (trackIndex, arrIndex) ->
             let newArr = { (state |> getArr trackIndex arrIndex) with FileName = None; Data = None }
             let updatedTracks = updateSingleArrangement state.Tracks trackIndex arrIndex newArr
 
@@ -108,8 +109,21 @@ module TrackList =
 
         | TrimAmountChanged (trackIndex, trimAmount) ->
             let trim = int (Math.Round(trimAmount * 1000.0))
-            let newTracks = state.Tracks |> List.mapi (fun i t -> if i = trackIndex then { t with TrimAmount = trim } else t) 
+            let newTracks = state.Tracks |> List.mapi (fun i t -> if i = trackIndex then { t with TrimAmount = trim } else t)
             { state with Tracks = newTracks }, Cmd.none
+
+        | RemoveTemplate name ->
+            let (Templates templates) = state.Templates
+            let updatedTemplates = templates |> List.filter (fun t -> t.Name <> name)
+
+            let updatedTracks =
+                state.Tracks
+                |> List.map (fun t ->
+                    let arrs = t.Arrangements |> List.filter (fun a -> a.Name <> name)
+                    { t with Arrangements = arrs }
+                )
+
+            { state with Tracks = updatedTracks; Templates = Templates updatedTemplates }, Cmd.none
 
     /// Creates the view for an arrangement.
     let private arrangementView (arr : Arrangement) trackIndex arrIndex state dispatch =
@@ -136,6 +150,22 @@ module TrackList =
             Border.borderBrush color
             Border.minWidth 140.0
             Border.classes [ "arrangement" ]
+            Border.contextMenu (
+                ContextMenu.create [
+                    ContextMenu.viewItems [
+                        MenuItem.create [
+                            MenuItem.header "Remove File"
+                            MenuItem.isEnabled (arr.FileName |> Option.isSome)
+                            MenuItem.onClick (fun _ -> RemoveArrangementFile(trackIndex, arrIndex) |> dispatch)
+                        ]
+                        MenuItem.create [
+                            MenuItem.header "Remove from All Tracks"
+                            MenuItem.onClick ((fun _ -> RemoveTemplate(arr.Name) |> dispatch), SubPatchOptions.OnChangeOf(arr.Name))
+                        ]
+                    ]
+                ]
+            )
+
             Border.child (
                 StackPanel.create [
                     StackPanel.verticalAlignment VerticalAlignment.Top
@@ -143,7 +173,7 @@ module TrackList =
                     StackPanel.children [
                         // Header
                         yield Grid.create [
-                            Grid.columnDefinitions "auto,auto,*"
+                            Grid.columnDefinitions "auto,auto"
                             Grid.children [
                                 // Arrangement Icon
                                 Path.create [
@@ -163,29 +193,6 @@ module TrackList =
                                     TextBlock.foreground color
                                     TextBlock.cursor <| Cursor StandardCursorType.Hand
                                     TextBlock.onTapped (fun _ -> SelectArrangementFile(trackIndex, arrIndex) |> dispatch)
-                                ]
-                                // Remove Arrangement File Button
-                                ContentControl.create [
-                                    Grid.column 2
-                                    ContentControl.horizontalAlignment HorizontalAlignment.Right
-                                    ContentControl.width 22.0
-                                    ContentControl.height 22.0
-                                    ContentControl.content (
-                                        Canvas.create [
-                                            yield Canvas.width 22.0
-                                            yield Canvas.height 22.0
-                                            yield Canvas.classes [ "removeArr" ]
-                                            // If there is no file set, always hide the remove button
-                                            if arr.FileName |> Option.isNone then yield Canvas.isVisible false
-                                            yield Canvas.onTapped (fun _ -> RemoveArrangement(trackIndex, arrIndex) |> dispatch)
-                                            yield Canvas.children [
-                                                Path.create [
-                                                    Path.fill Brushes.DarkRed
-                                                    Path.data Icons.close
-                                                ]
-                                            ]
-                                        ]
-                                    )
                                 ]
                             ]
                         ]
