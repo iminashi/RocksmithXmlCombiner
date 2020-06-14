@@ -123,7 +123,9 @@ module TrackList =
                     { t with Arrangements = arrs }
                 )
 
-            { state with Tracks = updatedTracks; Templates = Templates updatedTemplates }, Cmd.none
+            let updatedCommonTones = state.CommonTones |> Map.remove name
+
+            { state with Tracks = updatedTracks; Templates = Templates updatedTemplates; CommonTones = updatedCommonTones }, Cmd.none
 
     /// Creates the view for an arrangement.
     let private arrangementView (arr : Arrangement) trackIndex arrIndex state dispatch =

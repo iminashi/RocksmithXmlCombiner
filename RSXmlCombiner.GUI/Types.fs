@@ -117,7 +117,7 @@ module Types =
         | ArrangementType.JVocals -> "J-Vocals"
         | _ -> string arrType
 
-    let createArrName arr =
+    let private createArrName arr =
         match arr.Data with
         | Some data -> createNamePrefix data.Ordering + arr.ArrangementType.ToString()
         | None -> arrTypeHumanized arr.ArrangementType

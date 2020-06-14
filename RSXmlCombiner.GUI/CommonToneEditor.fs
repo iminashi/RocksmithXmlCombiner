@@ -9,24 +9,23 @@ module CommonToneEditor =
     open Avalonia.FuncUI.Types
 
     type Msg =
-        | UpdateToneName of title:string * index:int * newName:string
+        | UpdateToneName of arrName:string * index:int * newName:string
 
     let update (msg: Msg) state : ProgramState * Cmd<_> =
         match msg with
-        | UpdateToneName (title, index, newName) ->
-            let names = state.CommonTones |> Map.find title
+        | UpdateToneName (arrName, index, newName) ->
+            let names = state.CommonTones |> Map.find arrName
             let oldName = names.[index]
             if oldName = newName then
-                // OnTextChanged may fire with the same value when setting it from code
                 state, Cmd.none
             else 
                 let newTones = 
                     state.CommonTones
-                    |> Map.add title (names |> Array.mapi (fun i name -> if i = index then newName else name))
+                    |> Map.add arrName (names |> Array.mapi (fun i name -> if i = index then newName else name))
 
                 { state with CommonTones = newTones }, Cmd.none
 
-    let private tonesTemplate title (tones : string[]) dispatch =
+    let private tonesTemplate arrName (tones : string[]) dispatch =
         let labels = [| "Base"; "Tone A"; "Tone B"; "Tone C"; "Tone D" |]
 
         Grid.create [
@@ -34,7 +33,7 @@ module CommonToneEditor =
             Grid.rowDefinitions "*,*,*,*,*,*"
             Grid.children [
                 yield TextBlock.create [
-                    TextBlock.text title
+                    TextBlock.text arrName
                     TextBlock.fontSize 16.0
                     TextBlock.horizontalAlignment HorizontalAlignment.Center
                     Grid.columnSpan 2
@@ -51,8 +50,8 @@ module CommonToneEditor =
                         Grid.row (i + 1)
                         TextBox.margin 2.0
                         TextBox.text tones.[i]
-                        TextBox.isEnabled (i = 0 || not <| String.IsNullOrEmpty(tones.[i - 1]))
-                        TextBox.onTextChanged ((fun text -> UpdateToneName(title, i, text) |> dispatch), SubPatchOptions.OnChangeOf title)
+                        //TextBox.isEnabled (i = 0 || not <| String.IsNullOrEmpty(tones.[i - 1]))
+                        TextBox.onLostFocus ((fun arg -> UpdateToneName(arrName, i, (arg.Source :?> TextBox).Text) |> dispatch), SubPatchOptions.OnChangeOf arrName)
                     ]
             ]
         ]
@@ -68,8 +67,9 @@ module CommonToneEditor =
                     WrapPanel.orientation Orientation.Horizontal
                     WrapPanel.children (
                         state.CommonTones
-                        |> Map.toList
-                        |> List.map (fun (title, tones) -> tonesTemplate title tones dispatch :> IView)
+                        |> Map.toSeq
+                        |> Seq.map (fun (arrName, tones) -> tonesTemplate arrName tones dispatch :> IView)
+                        |> List.ofSeq
                     )
                 ]
             ]
