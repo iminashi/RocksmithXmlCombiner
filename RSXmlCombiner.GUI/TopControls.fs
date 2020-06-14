@@ -38,7 +38,7 @@ module TopControls =
           AudioFile = audioFile
           SongLength = song.SongLength
           TrimAmount = song.StartBeat
-          Arrangements = arrangements |> List.sortBy (fun a -> a.ArrangementType) }
+          Arrangements = arrangements |> List.sortBy arrangementSort }
 
     let private addNewTrack state arrangementFileNames =
         let instArrFile = arrangementFileNames |> Array.tryFind (fun a -> XmlHelper.ValidateRootElement(a, "song"))

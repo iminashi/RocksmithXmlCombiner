@@ -38,14 +38,15 @@ module ProgramState =
         Templates (currentTemplates @ newTemplates)
 
     let addMissingArrangements (Templates templates) (arrs : Arrangement list) =
-        arrs 
-        @
-        templates |> List.except (arrs |> Seq.map createTemplate)
+        let missing = 
+            templates
+            |> List.filter (fun temp -> arrs |> List.exists (fun arr -> arr.Name = temp.Name) |> not)
+        arrs @ missing
 
     let private updateTrack templates track =
         let newArrangements = 
             addMissingArrangements templates track.Arrangements
-            |> List.sortBy (fun a -> a.ArrangementType)
+            |> List.sortBy arrangementSort
 
         { track with Arrangements = newArrangements }
 

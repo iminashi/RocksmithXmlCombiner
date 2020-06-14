@@ -133,3 +133,14 @@ module Types =
 
         tracks
         |> List.mapi (fun i t -> if i = trackIndex then { t with Arrangements = changeArrangement t.Arrangements } else t)
+
+    let arrangementSort (arr : Arrangement) =
+        let ordering =
+            match arr.Data with
+            | Some data ->
+                match data.Ordering with
+                | Main -> 0
+                | Alternative -> 1
+                | Bonus -> 2
+            | None -> 0
+        arr.ArrangementType, ordering
