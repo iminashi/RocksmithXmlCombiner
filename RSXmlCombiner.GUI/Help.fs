@@ -34,5 +34,6 @@ module Help =
                 TextBlock.create [ TextBlock.text "● The base tone in the common tones tab is the tone the combined arrangement will start with. Usually it is one of the four tones, but it can be a different, fifth tone also." ]
                 TextBlock.create [ TextBlock.text "● Use the context menu on an arrangement to remove the arrangement file, or to remove that arrangement type from all of the tracks." ]
                 TextBlock.create [ TextBlock.text "● The color of the \"Tones\" button indicates whether the replacement tones are properly set or not." ]
+                TextBlock.create [ TextBlock.text "● The trim amount is set automatically from the first beat on the beat map. If your first beat is set correctly, you do not need to change it. You may lower the value if you want to increase the silence between the tracks." ]
             ]
         ] :> IView

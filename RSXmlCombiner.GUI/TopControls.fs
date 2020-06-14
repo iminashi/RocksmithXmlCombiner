@@ -5,6 +5,7 @@ module TopControls =
     open Avalonia.Layout
     open Avalonia.Controls
     open Avalonia.FuncUI.DSL
+    open Avalonia.FuncUI.Types
     open Avalonia.Input
     open System
     open System.IO
@@ -21,6 +22,7 @@ module TopControls =
         | NewProject
         | SaveProject of fileName : string
         | SelectSaveProjectFile
+        | AddTemplate of arrType : ArrangementType * ordering : ArrangementOrdering option
 
     let private handleHotkeys dispatch (event : KeyEventArgs) =
         match event.KeyModifiers with
@@ -185,7 +187,7 @@ module TopControls =
                 state, Cmd.none
 
         | SaveProject fileName ->
-            if not (String.IsNullOrEmpty fileName) then
+            if not <| String.IsNullOrEmpty fileName then
                 state |> Project.save fileName
                 { state with OpenProjectFile = Some fileName }, Cmd.none
             else
@@ -205,6 +207,37 @@ module TopControls =
             let dialog = Dialogs.saveFileDialog "Save Project As" Dialogs.projectFileFilter initialFile
             state, Cmd.OfAsync.perform dialog initialDir SaveProject
 
+        | AddTemplate (arrtype, ordering) ->
+            let (Templates templates) = state.Templates
+            let tempArr =
+                let data =
+                    ordering
+                    |> Option.map (fun o -> { Ordering = o; BaseToneIndex = -1; ToneNames = []; ToneReplacements = Map.empty })
+                { ArrangementType = arrtype
+                  Name = "" 
+                  FileName = None
+                  Data = data }
+
+            let updatedTemplates = Templates ((createTemplate tempArr) :: templates)
+            let updatedTracks = state.Tracks |> ProgramState.updateTracks updatedTemplates
+
+            { state with Tracks = updatedTracks; Templates = updatedTemplates }, Cmd.none
+
+    /// Creates the menu items for adding arrangements.
+    let addArrangementMenuItems (state : ProgramState) dispatch =
+        let (Templates templates) = state.Templates
+        let notIncluded arrType = templates |> List.exists (fun t -> t.ArrangementType = arrType) |> not
+
+        let createMenuItem arrType =
+            MenuItem.create [
+                MenuItem.header (arrTypeHumanized arrType)
+                MenuItem.isEnabled (notIncluded arrType)
+                MenuItem.onClick (fun _ -> AddTemplate(arrType, None) |> dispatch)
+            ] :> IView
+
+        [ createMenuItem ArrangementType.JVocals
+          createMenuItem ArrangementType.ShowLights ]
+
     let view state dispatch =
         // Top Panel
         Grid.create [
@@ -212,6 +245,7 @@ module TopControls =
             Grid.margin (15.0, 0.0)
             Grid.classes [ "topcontrols" ]
             Grid.columnDefinitions "auto,*,auto"
+            Grid.rowDefinitions "*,*"
             Grid.children [
                 // Track Creation Buttons
                 StackPanel.create [
@@ -230,11 +264,17 @@ module TopControls =
                     ]
                 ]
 
-                //let (Templates templates) = state.Templates
-                //ComboBox.create [
-                //    Grid.column 1
-                //    ComboBox.dataItems templates
-                //]
+                Menu.create [
+                    Grid.row 1
+                    Menu.isEnabled (not state.Tracks.IsEmpty)
+                    Menu.margin (15.0, 0.0, 0.0, 0.0)
+                    Menu.viewItems [
+                        MenuItem.create [
+                            MenuItem.header "Add Arrangement"
+                            MenuItem.viewItems (addArrangementMenuItems state dispatch)
+                        ]
+                    ]
+                ]
 
                 // Right Side Panel
                 StackPanel.create [
@@ -255,7 +295,7 @@ module TopControls =
                         Button.create [
                             Button.content "Save Project..."
                             Button.onClick (fun _ -> dispatch SelectSaveProjectFile)
-                            Button.isEnabled (state.Tracks.Length > 0)
+                            Button.isEnabled (not state.Tracks.IsEmpty)
                             //Button.hotKey <| KeyGesture.Parse "Ctrl+S"
                         ]
                     ]

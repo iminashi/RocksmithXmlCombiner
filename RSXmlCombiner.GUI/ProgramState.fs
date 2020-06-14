@@ -50,7 +50,7 @@ module ProgramState =
 
         { track with Arrangements = newArrangements }
 
-    let private updateTracks templates = List.map (updateTrack templates)
+    let updateTracks templates = List.map (updateTrack templates)
 
     let private updateCommonTones (Templates templates) commonTones =
         let newCommonTones = 

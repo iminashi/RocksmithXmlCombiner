@@ -248,7 +248,7 @@ module TrackList =
                 ]
             )
         ]
-       
+      
     /// Creates the view for a track.
     let private trackView (track : Track) index state dispatch =
         let audioFileBrush =
