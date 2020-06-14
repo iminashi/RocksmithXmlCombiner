@@ -77,8 +77,8 @@ module TopControls =
     let update (msg: Msg) state : ProgramState * Cmd<_> =
         match msg with
         | SelectAddTrackFiles ->
-            let selectFiles = Dialogs.openFileDialog "Select Arrangement File(s)" Dialogs.xmlFileFilter true None
-            state, Cmd.OfAsync.perform (fun _ -> selectFiles) () AddTrack
+            let dialog = Dialogs.openFileDialog "Select Arrangement File(s)" Dialogs.xmlFileFilter true
+            state, Cmd.OfAsync.perform dialog None AddTrack
 
         | AddTrack fileNames -> 
             if fileNames.Length > 0 then
@@ -192,18 +192,18 @@ module TopControls =
                 state, Cmd.none
 
         | SelectToolkitTemplate ->
-            let files = Dialogs.openFileDialog "Select Toolkit Template" Dialogs.toolkitTemplateFilter false None
-            state, Cmd.OfAsync.perform (fun _ -> files) () ImportToolkitTemplate
+            let dialog = Dialogs.openFileDialog "Select Toolkit Template" Dialogs.toolkitTemplateFilter false
+            state, Cmd.OfAsync.perform dialog None ImportToolkitTemplate
 
         | SelectOpenProjectFile ->
-            let files = Dialogs.openFileDialog "Select Project File" Dialogs.projectFileFilter false None
-            state, Cmd.OfAsync.perform (fun _ -> files) () OpenProject
+            let dialog = Dialogs.openFileDialog "Select Project File" Dialogs.projectFileFilter false
+            state, Cmd.OfAsync.perform dialog None OpenProject
 
         | SelectSaveProjectFile ->
             let initialDir = state.OpenProjectFile |> Option.map Path.GetDirectoryName
             let initialFile = state.OpenProjectFile |> Option.map Path.GetFileName |> Option.orElse (Some "combo.rscproj")
-            let targetFile = Dialogs.saveFileDialog "Save Project As" Dialogs.projectFileFilter initialFile initialDir
-            state, Cmd.OfAsync.perform (fun _ -> targetFile) () SaveProject
+            let dialog = Dialogs.saveFileDialog "Save Project As" Dialogs.projectFileFilter initialFile
+            state, Cmd.OfAsync.perform dialog initialDir SaveProject
 
     let view state dispatch =
         // Top Panel

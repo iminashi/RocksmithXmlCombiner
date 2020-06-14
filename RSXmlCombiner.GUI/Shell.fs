@@ -82,6 +82,7 @@ module Shell =
                                     Grid.columnSpan 2
                                     TextBlock.horizontalAlignment HorizontalAlignment.Center
                                     TextBlock.fontSize 18.0
+                                    TextBlock.margin (0.0, 0.0, 0.0, 8.0)
                                     TextBlock.text (sprintf "%s - %s" state.Tracks.[trackIndex].Title arrangement.Name)
                                 ]
                                 yield TextBlock.create [
@@ -178,6 +179,10 @@ module Shell =
                 TabItem.create [
                     TabItem.header "Common Tones"
                     TabItem.content (CommonToneEditor.view state (CommonTonesMsg >> dispatch))
+                ]
+                TabItem.create [
+                    TabItem.header "Help"
+                    TabItem.content (Help.helpView() :> IView)
                 ]
             ]
         ] :> IView

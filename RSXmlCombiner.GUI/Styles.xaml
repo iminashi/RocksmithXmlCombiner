@@ -77,6 +77,18 @@
     <Setter Property="MinHeight" Value="28"/>
   </Style>
 
+  <Style Selector="StackPanel.help TextBlock">
+    <Setter Property="TextWrapping" Value="Wrap"/>
+    <Setter Property="FontSize" Value="14"/>
+    <Setter Property="Margin" Value="10,0"/>
+  </Style>
+
+  <Style Selector="StackPanel.help TextBlock.h1">
+    <Setter Property="FontSize" Value="20"/>
+    <Setter Property="Margin" Value="0,10,0,0"/>
+    <Setter Property="FontWeight" Value="Bold"/>
+  </Style>
+
   <!--<Style Selector="Border.statusbar TextBlock">
     <Style.Animations>
       <Animation Duration="0:0:1">

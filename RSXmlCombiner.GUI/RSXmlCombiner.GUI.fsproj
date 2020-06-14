@@ -27,6 +27,7 @@
     <Compile Include="TrackList.fs" />
     <Compile Include="BottomControls.fs" />
     <Compile Include="TopControls.fs" />
+    <Compile Include="Help.fs" />
     <Compile Include="Shell.fs" />
     <Compile Include="Program.fs" />
     <AvaloniaResource Include="**\*.xaml" />
