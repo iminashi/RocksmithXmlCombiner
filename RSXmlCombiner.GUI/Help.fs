@@ -1,10 +1,11 @@
 ﻿namespace RSXmlCombiner.FuncUI
 
 module Help =
-    open Avalonia.FuncUI.DSL
     open Avalonia.Controls
+    open Avalonia.FuncUI.DSL
+    open Avalonia.FuncUI.Types
 
-    let helpView () =
+    let helpView =
         StackPanel.create[
             StackPanel.classes [ "help" ]
             StackPanel.spacing 5.0
@@ -34,4 +35,4 @@ module Help =
                 TextBlock.create [ TextBlock.text "● Use the context menu on an arrangement to remove the arrangement file, or to remove that arrangement type from all of the tracks." ]
                 TextBlock.create [ TextBlock.text "● The color of the \"Tones\" button indicates whether the replacement tones are properly set or not." ]
             ]
-        ]
+        ] :> IView

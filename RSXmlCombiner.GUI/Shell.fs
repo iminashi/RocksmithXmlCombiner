@@ -182,7 +182,7 @@ module Shell =
                 ]
                 TabItem.create [
                     TabItem.header "Help"
-                    TabItem.content (Help.helpView() :> IView)
+                    TabItem.content Help.helpView
                 ]
             ]
         ] :> IView
