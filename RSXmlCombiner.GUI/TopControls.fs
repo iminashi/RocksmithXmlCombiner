@@ -189,7 +189,7 @@ module TopControls =
         | SaveProject fileName ->
             if not <| String.IsNullOrEmpty fileName then
                 state |> Project.save fileName
-                { state with OpenProjectFile = Some fileName }, Cmd.none
+                { state with OpenProjectFile = Some fileName; StatusMessage = "Project saved." }, Cmd.none
             else
                 state, Cmd.none
 

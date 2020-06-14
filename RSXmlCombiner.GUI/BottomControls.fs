@@ -54,6 +54,11 @@ module BottomControls =
         | AddTrackNamesChanged value -> { state with AddTrackNamesToLyrics = value }, Cmd.none
 
     let view state dispatch =
+        let canCombineAudio =
+            state.AudioCombinerProgress |> Option.isNone
+            && state.Tracks.Length > 1
+            && state.Tracks |> List.forall hasAudioFile
+
         // Bottom Panel
         Grid.create [
             DockPanel.dock Dock.Bottom
@@ -69,7 +74,7 @@ module BottomControls =
                             Button.fontSize 20.0
                             Button.onClick (fun _ -> dispatch SelectTargetAudioFile)
                             // Only enable the button if there is more than one track and every track has an audio file
-                            Button.isEnabled (state.AudioCombinerProgress |> Option.isNone && (state.Tracks.Length > 1 && state.Tracks |> List.forall hasAudioFile))
+                            Button.isEnabled canCombineAudio
                         ]
                     ]
                 ]
