@@ -23,11 +23,16 @@ module AudioCombiner =
         }
 
     let private getReader (fileName : string option) =
-        match fileName with
-        | Some fn when fn.EndsWith(".wav", StringComparison.OrdinalIgnoreCase) -> new WaveFileReader(fn) :> WaveStream
-        | Some fn when fn.EndsWith(".ogg", StringComparison.OrdinalIgnoreCase) -> new VorbisWaveReader(fn) :> WaveStream
-        | Some _ -> failwith "The audio file must be a wav or ogg file!"
-        | None -> failwith "No audio file set!"
+        let reader =
+            match fileName with
+            | Some fn when fn.EndsWith(".wav", StringComparison.OrdinalIgnoreCase) -> new WaveFileReader(fn) :> WaveStream
+            | Some fn when fn.EndsWith(".ogg", StringComparison.OrdinalIgnoreCase) -> new VorbisWaveReader(fn) :> WaveStream
+            | Some _ -> failwith "The audio file must be a wav or ogg file!"
+            | None -> failwith "No audio file set!"
+        if reader.WaveFormat.BitsPerSample = 32 then
+            new Wave32To16Stream(reader) :> WaveStream
+        else
+            reader
 
     /// Combines the audio files of the given tracks into the target file.
     let combineAudioFiles (tracks : Track list) (targetFile : string) =
