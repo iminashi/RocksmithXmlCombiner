@@ -14,8 +14,7 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Compile Include="Extensions.fs" />
-    <Compile Include="CustomBrushes.fs" />
-    <Compile Include="Icons.fs" />
+    <Compile Include="Media.fs" />
     <Compile Include="Types.fs" />
     <Compile Include="Dialogs.fs" />
     <Compile Include="ProgramState.fs" />

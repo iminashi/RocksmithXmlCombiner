@@ -11,6 +11,7 @@ open Avalonia.FuncUI.Types
 open Avalonia.Layout
 open Avalonia.Input
 open XmlUtils
+open Media
 
 type Msg =
     | RemoveTrackAt of index : int
@@ -136,9 +137,9 @@ let private arrangementView (arr : Arrangement) trackIndex arrIndex state dispat
         match fileName with
         | Some ->
             match arr.ArrangementType with
-            | ArrangementType.Lead -> CustomBrushes.lead
-            | ArrangementType.Rhythm | ArrangementType.Combo -> CustomBrushes.rhythm
-            | ArrangementType.Bass -> CustomBrushes.bass
+            | ArrangementType.Lead -> Brushes.lead
+            | ArrangementType.Rhythm | ArrangementType.Combo -> Brushes.rhythm
+            | ArrangementType.Bass -> Brushes.bass
             | ArrangementType.Vocals | ArrangementType.JVocals -> Brushes.Yellow
             | ArrangementType.ShowLights -> Brushes.Violet
             | _ -> Brushes.GhostWhite
