@@ -11,8 +11,8 @@ module BottomControls =
     type Msg = 
     | SelectTargetAudioFile
     | SelectCombinationTargetFolder
-    | CombineAudioFiles of targetFile : string
-    | CombineArrangements of targetFolder :string
+    | CombineAudioFiles of targetFile : string option
+    | CombineArrangements of targetFolder :string option
     | UpdateCombinationTitle of newTitle : string
     | CoercePhrasesChanged of bool
     | AddTrackNamesChanged of bool
@@ -26,22 +26,20 @@ module BottomControls =
             state, Cmd.OfAsync.perform dialog initialDir CombineAudioFiles
 
         | CombineAudioFiles targetFile ->
-            if String.IsNullOrEmpty targetFile then
-                // User canceled the dialog
-                state, Cmd.none
-            else
+            match targetFile with
+            | None -> state, Cmd.none // User canceled the dialog
+            | Some file ->
                 let task = AudioCombiner.combineAudioFiles state.Tracks
-                { state with AudioCombinerProgress = Some(0.0) }, Cmd.OfAsync.perform task targetFile CombineAudioCompleted
+                { state with AudioCombinerProgress = Some(0.0) }, Cmd.OfAsync.perform task file CombineAudioCompleted
         
         | CombineAudioCompleted message ->
             { state with StatusMessage = message; AudioCombinerProgress = None }, Cmd.none
 
         | CombineArrangements targetFolder ->
-            if String.IsNullOrEmpty(targetFolder) then
-                // User canceled the dialog
-                state, Cmd.none
-            else
-                ArrangementCombiner.combine state targetFolder
+            match targetFolder with
+            | None -> state, Cmd.none // User canceled the dialog
+            | Some folder ->
+                ArrangementCombiner.combine state folder
                 { state with StatusMessage = "Arrangements combined." }, Cmd.none
 
         | SelectCombinationTargetFolder ->

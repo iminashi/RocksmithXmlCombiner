@@ -5,10 +5,11 @@ module Dialogs =
     open Avalonia
     open Avalonia.Controls
 
+    let private window =
+        (Application.Current.ApplicationLifetime :?> ApplicationLifetimes.ClassicDesktopStyleApplicationLifetime).MainWindow
+
     let private createFilters name (extensions : string seq) =
-        let filter = FileDialogFilter()
-        filter.Extensions <- List(extensions)
-        filter.Name <- name
+        let filter = FileDialogFilter(Extensions = List(extensions), Name = name)
         List(seq { filter })
 
     let audioFileFiltersOpen = createFilters "Audio Files" (seq { "wav"; "ogg" })
@@ -18,29 +19,30 @@ module Dialogs =
     let toolkitTemplateFilter = createFilters "Toolkit Templates" (seq { "dlc.xml" })
 
     let openFolderDialog title directory =
-        let dialog = OpenFolderDialog()
-        dialog.Title <- title
+        let dialog = OpenFolderDialog(Title = title)
         directory |> Option.iter (fun dir -> dialog.Directory <- dir)
 
-        let window = (Application.Current.ApplicationLifetime :?> ApplicationLifetimes.ClassicDesktopStyleApplicationLifetime).MainWindow
-        dialog.ShowAsync(window) |> Async.AwaitTask
+        async {
+            let! result = dialog.ShowAsync(window) |> Async.AwaitTask
+            return Option.create String.notEmpty result
+        }
 
     let saveFileDialog title filters initialFileName directory =
-        let dialog = SaveFileDialog()
-        dialog.Title <- title
-        dialog.Filters <- filters
+        let dialog = SaveFileDialog(Title = title, Filters = filters)
         initialFileName |> Option.iter (fun fn -> dialog.InitialFileName <- fn)
         directory |> Option.iter (fun dir -> dialog.Directory <- dir)
 
-        let window = (Application.Current.ApplicationLifetime :?> ApplicationLifetimes.ClassicDesktopStyleApplicationLifetime).MainWindow
-        dialog.ShowAsync(window) |> Async.AwaitTask
+        async {
+            let! result = dialog.ShowAsync(window) |> Async.AwaitTask
+            return Option.create String.notEmpty result
+        }
 
     let openFileDialog title filters allowMultiple directory =
-        let dialog = OpenFileDialog()
-        dialog.Title <- title
-        dialog.Filters <- filters
-        dialog.AllowMultiple <- allowMultiple
+        let dialog = OpenFileDialog(Title = title, Filters = filters, AllowMultiple = allowMultiple)
         directory |> Option.iter (fun dir -> dialog.Directory <- dir)
 
-        let window = (Application.Current.ApplicationLifetime :?> ApplicationLifetimes.ClassicDesktopStyleApplicationLifetime).MainWindow
-        dialog.ShowAsync(window) |> Async.AwaitTask
+        async {
+            match! dialog.ShowAsync(window) |> Async.AwaitTask with
+            | null | [||] -> return None
+            | arr -> return Some arr
+        }

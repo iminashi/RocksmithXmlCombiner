@@ -154,12 +154,12 @@ module ArrangementCombiner =
     /// Combines all the arrangements in the given project.
     let combine (project : ProgramState) targetFolder  =
         let nArrangements = project.Tracks.Head.Arrangements.Length
-        for i in 0..nArrangements - 1 do
+        for i = 0 to nArrangements - 1 do
             match project.Tracks.Head.Arrangements.[i].ArrangementType with
             | aType when isInstrumental aType ->
                 combineInstrumental project i targetFolder
 
-            | ArrangementType.Vocals | ArrangementType.JVocals ->
+            | aType when isVocals aType ->
                 combineVocals project.Tracks i targetFolder project.AddTrackNamesToLyrics
 
             | ArrangementType.ShowLights -> 

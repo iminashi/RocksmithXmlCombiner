@@ -16,9 +16,9 @@ module TrackList =
     type Msg =
     | RemoveTrackAt of index : int
     | ChangeAudioFile of trackIndex : int
-    | ChangeAudioFileResult of trackIndex : int * newFile:string[]
+    | ChangeAudioFileResult of trackIndex : int * newFile:string[] option
     | SelectArrangementFile of trackIndex : int * arrIndex : int
-    | ChangeArrangementFile of trackIndex : int * arrIndex : int * string[]
+    | ChangeArrangementFile of trackIndex : int * arrIndex : int * string[] option
     | ArrangementBaseToneChanged of trackIndex : int * arrIndex : int * toneIndex : int
     | RemoveArrangementFile of trackIndex : int * arrIndex : int
     | ShowReplacementToneEditor of trackIndex : int * arrIndex : int
@@ -43,25 +43,24 @@ module TrackList =
 
         | ChangeAudioFile trackIndex ->
             let initialDir = getInitialDir state.Tracks.[trackIndex].AudioFile state trackIndex
-            let selectFiles = Dialogs.openFileDialog "Select Audio File" Dialogs.audioFileFiltersOpen false initialDir
-            state, Cmd.OfAsync.perform (fun _ -> selectFiles) trackIndex (fun files -> ChangeAudioFileResult(trackIndex, files))
+            let dialog = Dialogs.openFileDialog "Select Audio File" Dialogs.audioFileFiltersOpen false
+            state, Cmd.OfAsync.perform dialog initialDir (fun files -> ChangeAudioFileResult(trackIndex, files))
 
         | ChangeAudioFileResult (trackIndex, files) ->
-            if files.Length > 0 then
-                let fileName = files.[0]
+            match files with
+            | Some ([| fileName |]) ->
                 let newTracks = state.Tracks |> List.mapi (fun i t -> if i = trackIndex then changeAudioFile t fileName else t) 
                 { state with Tracks = newTracks }, Cmd.none
-            else
-                state, Cmd.none
+            | _ -> state, Cmd.none
 
         | SelectArrangementFile (trackIndex, arrIndex) ->
             let initialDir = getInitialDir (state |> getArr trackIndex arrIndex).FileName state trackIndex
-            let files = Dialogs.openFileDialog "Select Arrangement File" Dialogs.xmlFileFilter false initialDir
-            state, Cmd.OfAsync.perform (fun _ -> files) () (fun f -> ChangeArrangementFile (trackIndex, arrIndex, f))
+            let dialog = Dialogs.openFileDialog "Select Arrangement File" Dialogs.xmlFileFilter false
+            state, Cmd.OfAsync.perform dialog initialDir (fun files -> ChangeArrangementFile (trackIndex, arrIndex, files))
 
         | ChangeArrangementFile (trackIndex, arrIndex, files) ->
-            if files.Length > 0 then
-                let fileName = files.[0]
+            match files with
+            | Some ([| fileName |]) ->
                 let rootName = XmlHelper.GetRootElementName(fileName)
                 let arrangement = state |> getArr trackIndex arrIndex
 
@@ -81,7 +80,7 @@ module TrackList =
                     { state with Tracks = updatedTracks }, Cmd.none
 
                 | _ -> { state with StatusMessage = "Incorrect arrangement type" }, Cmd.none
-            else
+            | _ ->
                 state, Cmd.none
 
         | ArrangementBaseToneChanged (trackIndex, arrIndex, toneIndex) ->

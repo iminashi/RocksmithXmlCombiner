@@ -14,13 +14,13 @@ module TopControls =
 
     type Msg =
         | SelectAddTrackFiles
-        | AddTrack of fileNames : string[]
+        | AddTrack of fileNames : string[] option
         | SelectOpenProjectFile
-        | OpenProject of fileNames : string[]
+        | OpenProject of fileNames : string[] option
         | SelectToolkitTemplate
-        | ImportToolkitTemplate of fileNames : string[]
+        | ImportToolkitTemplate of fileNames : string[] option
         | NewProject
-        | SaveProject of fileName : string
+        | SaveProject of fileName : string option
         | SelectSaveProjectFile
         | AddTemplate of arrType : ArrangementType * ordering : ArrangementOrdering option
 
@@ -83,14 +83,13 @@ module TopControls =
             state, Cmd.OfAsync.perform dialog None AddTrack
 
         | AddTrack fileNames -> 
-            if fileNames.Length > 0 then
-                addNewTrack state fileNames
-            else
-                state, Cmd.none
+            match fileNames with
+            | None -> state, Cmd.none
+            | Some files -> addNewTrack state files
         
         | ImportToolkitTemplate files ->
-            if files.Length > 0 then
-                let fileName = files.[0]
+            match files with
+            | Some([| fileName |]) ->
                 let foundArrangements, title, audioFilePath = ToolkitImporter.import fileName
 
                 let audioFile =
@@ -131,14 +130,14 @@ module TopControls =
                         |> ProgramState.addTrack state
 
                     { newState with StatusMessage = sprintf "%i arrangements imported." foundArrangements.Count }, Cmd.none
-            else
-                state, Cmd.none
+            | _ -> state, Cmd.none
         
         | NewProject -> ProgramState.init, Cmd.none
 
         | OpenProject files ->
-            if files.Length > 0 then
-                let result = Project.load files.[0]
+            match files with
+            | Some ([| fileName |]) ->
+                let result = Project.load fileName
                 match result with 
                 | Ok project ->
                     // TODO: Check if the tone names in the files have been changed
@@ -180,18 +179,17 @@ module TopControls =
                       ReplacementToneEditor = None
                       ProjectViewActive = true
                       AudioCombinerProgress = None
-                      OpenProjectFile = Some (files.[0]) }, Cmd.none
+                      OpenProjectFile = Some fileName }, Cmd.none
                 | Error message ->
                     { state with StatusMessage = message }, Cmd.none
-            else
-                state, Cmd.none
+            | _ -> state, Cmd.none
 
         | SaveProject fileName ->
-            if not <| String.IsNullOrEmpty fileName then
-                state |> Project.save fileName
-                { state with OpenProjectFile = Some fileName; StatusMessage = "Project saved." }, Cmd.none
-            else
-                state, Cmd.none
+            match fileName with
+            | None -> state, Cmd.none
+            | Some file ->
+                state |> Project.save file
+                { state with OpenProjectFile = Some file; StatusMessage = "Project saved." }, Cmd.none
 
         | SelectToolkitTemplate ->
             let dialog = Dialogs.openFileDialog "Select Toolkit Template" Dialogs.toolkitTemplateFilter false
