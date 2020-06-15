@@ -30,17 +30,19 @@ module Types =
 
     type ArrangementOrdering = Main | Alternative | Bonus
 
-    type InstrumentalArrangementData = {
-        Ordering : ArrangementOrdering
+    type InstrumentalArrangementData = 
+      { Ordering : ArrangementOrdering
         BaseToneIndex : int
         ToneNames : string list
         ToneReplacements : Map<string, int> }
 
-    type Arrangement = {
-        Name : string
+    type Arrangement = 
+      { Name : string
         FileName : string option
         ArrangementType : ArrangementType
         Data : InstrumentalArrangementData option }
+
+     type Templates = Templates of Arrangement list
 
     let createNamePrefix ordering = 
         match ordering with
@@ -75,8 +77,8 @@ module Types =
             else if song.ArrangementProperties.Represent = byte 0 then ArrangementOrdering.Alternative
             else ArrangementOrdering.Main
 
-        let arrData = {
-            Ordering = ordering
+        let arrData =
+          { Ordering = ordering
             BaseToneIndex = -1
             ToneNames = toneNames
             ToneReplacements = Map.empty }
@@ -88,16 +90,14 @@ module Types =
           Name = name
           Data = Some arrData }
 
-    type Track = {
-        Title : string
+    type Track = 
+      { Title : string
         TrimAmount : int
         AudioFile : string option
         SongLength : int
         Arrangements : Arrangement list }
 
     let hasAudioFile track = track.AudioFile |> Option.isSome
-
-    type Templates = Templates of Arrangement list
 
     let getTones fileName =
         let toneNames = InstrumentalArrangement.ReadToneNames(fileName)

@@ -224,7 +224,7 @@ module TopControls =
             { state with Tracks = updatedTracks; Templates = updatedTemplates }, Cmd.none
 
     /// Creates the menu items for adding arrangements.
-    let addArrangementMenuItems (state : ProgramState) dispatch =
+    let addArrangementMenuItems state dispatch : IView list =
         let (Templates templates) = state.Templates
         let notIncluded arrType = templates |> List.exists (fun t -> t.ArrangementType = arrType) |> not
 
@@ -233,7 +233,7 @@ module TopControls =
                 MenuItem.header (arrTypeHumanized arrType)
                 MenuItem.isEnabled (notIncluded arrType)
                 MenuItem.onClick (fun _ -> AddTemplate(arrType, None) |> dispatch)
-            ] :> IView
+            ]
 
         [ createMenuItem ArrangementType.JVocals
           createMenuItem ArrangementType.ShowLights ]

@@ -185,4 +185,4 @@ module Shell =
                     TabItem.content Help.helpView
                 ]
             ]
-        ] :> IView
+        ]

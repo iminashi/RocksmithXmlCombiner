@@ -120,8 +120,7 @@ module TrackList =
                 state.Tracks
                 |> List.map (fun t ->
                     let arrs = t.Arrangements |> List.filter (fun a -> a.Name <> name)
-                    { t with Arrangements = arrs }
-                )
+                    { t with Arrangements = arrs })
 
             let updatedCommonTones = state.CommonTones |> Map.remove name
 
