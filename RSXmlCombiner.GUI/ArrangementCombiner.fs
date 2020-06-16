@@ -69,10 +69,10 @@ let private replaceToneNames (song : InstrumentalArrangement) (toneReplacements 
 
     // Make sure that there are no duplicate names in the defined tones
     let uniqueTones : Set<string> = Set.ofSeq [
-        if not (song.ToneA |> String.IsNullOrEmpty) then yield song.ToneA
-        if not (song.ToneB |> String.IsNullOrEmpty) then yield song.ToneB
-        if not (song.ToneC |> String.IsNullOrEmpty) then yield song.ToneC
-        if not (song.ToneD |> String.IsNullOrEmpty) then yield song.ToneD
+        if String.notEmpty song.ToneA then yield song.ToneA
+        if String.notEmpty song.ToneB then yield song.ToneB
+        if String.notEmpty song.ToneC then yield song.ToneC
+        if String.notEmpty song.ToneD then yield song.ToneD
     ]
     
     song.ToneA <- null
@@ -136,7 +136,7 @@ let private combineInstrumental (project : ProgramState) index targetFolder =
 
             combiner.AddNext(next, tracks.[i].TrimAmount, (i = tracks.Length - 1))
 
-        if not <| String.IsNullOrEmpty project.CombinationTitle then
+        if String.notEmpty project.CombinationTitle then
             combiner.SetTitle(project.CombinationTitle)
 
         // Remove periods and replace spaces with underscores in the arrangement name
@@ -155,13 +155,10 @@ let combine (project : ProgramState) targetFolder  =
     let nArrangements = project.Tracks.Head.Arrangements.Length
     for i = 0 to nArrangements - 1 do
         match project.Tracks.Head.Arrangements.[i].ArrangementType with
-        | aType when isInstrumental aType ->
-            combineInstrumental project i targetFolder
+        | Instrumental _ -> combineInstrumental project i targetFolder
 
-        | aType when isVocals aType ->
-            combineVocals project.Tracks i targetFolder project.AddTrackNamesToLyrics
+        | Vocals _ -> combineVocals project.Tracks i targetFolder project.AddTrackNamesToLyrics
 
-        | ArrangementType.ShowLights -> 
-            combineShowLights project.Tracks i targetFolder
+        | ArrangementType.ShowLights -> combineShowLights project.Tracks i targetFolder
 
         | _ -> failwith "Unknown arrangement type."

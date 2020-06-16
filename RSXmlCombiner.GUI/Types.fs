@@ -28,6 +28,9 @@ module Types =
     /// Tests if the arrangement type is vocals, j-vocals or show lights.
     let isOther arrType = (arrType &&& otherArrangement) <> ArrangementType.Unknown
 
+    let (|Instrumental|_|) (arrType : ArrangementType) = Option.create isInstrumental arrType
+    let (|Vocals|_|) (arrType : ArrangementType) = Option.create isVocals arrType
+
     type ArrangementOrdering = Main | Alternative | Bonus
 
     type InstrumentalArrangementData = 
@@ -66,10 +69,10 @@ module Types =
                 []
             else
                 [
-                    if not (String.IsNullOrEmpty song.ToneA) then yield song.ToneA
-                    if not (String.IsNullOrEmpty song.ToneB) then yield song.ToneB
-                    if not (String.IsNullOrEmpty song.ToneC) then yield song.ToneC
-                    if not (String.IsNullOrEmpty song.ToneD) then yield song.ToneD
+                    if String.notEmpty song.ToneA then yield song.ToneA
+                    if String.notEmpty song.ToneB then yield song.ToneB
+                    if String.notEmpty song.ToneC then yield song.ToneC
+                    if String.notEmpty song.ToneD then yield song.ToneD
                 ]
 
         let ordering =
@@ -106,7 +109,7 @@ module Types =
         let toneNamesList = 
             toneNames
             |> Seq.skip 1
-            |> Seq.filter (String.IsNullOrEmpty >> not)
+            |> Seq.filter String.notEmpty
             |> Seq.toList
 
         baseTone, toneNamesList

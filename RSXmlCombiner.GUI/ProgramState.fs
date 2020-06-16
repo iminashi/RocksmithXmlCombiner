@@ -2,8 +2,8 @@
 
 open System
 
-type ProgramState = {
-    Tracks : Track list
+type ProgramState =
+  { Tracks : Track list
     CommonTones : CommonTones
     /// Names and types of arrangements that must be found on every track.
     Templates : Templates
@@ -17,8 +17,8 @@ type ProgramState = {
     OpenProjectFile : string option }
 
 module ProgramState =
-    let init = {
-        Tracks = []
+    let init =
+      { Tracks = []
         Templates = Templates []
         CommonTones = Map.empty
         CombinationTitle = ""

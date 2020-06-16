@@ -111,7 +111,7 @@ let update (msg: Msg) state : ProgramState * Cmd<_> =
                 let foldArrangements (state : Arrangement list) arrType fileName =
                     let arrangement =
                         match arrType with
-                        | t when isInstrumental t ->
+                        | Instrumental _ ->
                             // Respect the arrangement type from the Toolkit template
                             createInstrumental fileName (Some arrType)
                         | _ -> { FileName = Some fileName

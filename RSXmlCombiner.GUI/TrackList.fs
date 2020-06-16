@@ -66,20 +66,19 @@ let update (msg: Msg) (state: ProgramState) =
 
             match rootName, arrangement.ArrangementType with
             // For instrumental arrangements, create an arrangement from the file, preserving the arrangement type and name
-            | "song", t when isInstrumental t ->
+            | "song", Instrumental t ->
                 let newArr = { createInstrumental fileName (Some t) with Name = arrangement.Name }
                 let updatedTracks = updateSingleArrangement state.Tracks trackIndex arrIndex newArr
                 { state with Tracks = updatedTracks }, Cmd.none
 
             // For vocals and show lights, just change the file name
-            | "vocals", ArrangementType.Vocals
-            | "vocals", ArrangementType.JVocals
+            | "vocals", Vocals _
             | "showlights", ArrangementType.ShowLights ->
                 let newArr = { arrangement with FileName = Some fileName }
                 let updatedTracks = updateSingleArrangement state.Tracks trackIndex arrIndex newArr
                 { state with Tracks = updatedTracks }, Cmd.none
 
-            | _ -> { state with StatusMessage = "Incorrect arrangement type" }, Cmd.none
+            | _ -> { state with StatusMessage = "Incorrect arrangement type." }, Cmd.none
         | _ ->
             state, Cmd.none
 
@@ -180,8 +179,8 @@ let private arrangementView (arr : Arrangement) trackIndex arrIndex state dispat
                                 Path.fill color
                                 Path.data (
                                     match arr.ArrangementType with
-                                    | t when isInstrumental t -> Icons.pick
-                                    | t when isVocals t -> Icons.microphone
+                                    | Instrumental _ -> Icons.pick
+                                    | Vocals _ -> Icons.microphone
                                     | _ -> Icons.spotlight)
                             ]
                             // Arrangement Name
