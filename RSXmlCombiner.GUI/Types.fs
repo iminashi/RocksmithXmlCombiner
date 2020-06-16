@@ -7,30 +7,6 @@ module Types =
 
     type CommonTones = Map<string, string[]>
 
-    type ArrangementType = 
-        | Unknown =    0b000000000
-        | Lead =       0b000000001
-        | Rhythm =     0b000000010
-        | Combo =      0b000000100
-        | Bass =       0b000001000
-        | Vocals =     0b000010000
-        | JVocals =    0b000100000
-        | ShowLights = 0b001000000
-
-    let private instrumentalArrangement = ArrangementType.Lead ||| ArrangementType.Rhythm ||| ArrangementType.Combo ||| ArrangementType.Bass
-    let private vocalsArrangement = ArrangementType.Vocals ||| ArrangementType.JVocals
-    let private otherArrangement = vocalsArrangement ||| ArrangementType.ShowLights
-
-    /// Tests if the arrangement type is lead, rhythm, bass or combo.
-    let isInstrumental arrType = (arrType &&& instrumentalArrangement) <> ArrangementType.Unknown
-    /// Tests if the arrangement type is vocals or j-vocals.
-    let isVocals arrType = (arrType &&& vocalsArrangement) <> ArrangementType.Unknown
-    /// Tests if the arrangement type is vocals, j-vocals or show lights.
-    let isOther arrType = (arrType &&& otherArrangement) <> ArrangementType.Unknown
-
-    let (|Instrumental|_|) (arrType : ArrangementType) = Option.create isInstrumental arrType
-    let (|Vocals|_|) (arrType : ArrangementType) = Option.create isVocals arrType
-
     type ArrangementOrdering = Main | Alternative | Bonus
 
     type InstrumentalArrangementData = 
@@ -56,13 +32,7 @@ module Types =
     let createInstrumental fileName (arrType : ArrangementType option) =
         let song = InstrumentalArrangement.Load(fileName)
         let arrangementType =
-            match arrType with
-            | Some t -> t
-            | None ->
-                if song.ArrangementProperties.PathLead = byte 1 then ArrangementType.Lead
-                else if song.ArrangementProperties.PathRhythm = byte 1 then ArrangementType.Rhythm
-                else if song.ArrangementProperties.PathBass = byte 1 then ArrangementType.Bass
-                else ArrangementType.Unknown
+            arrType |> Option.defaultWith (fun () -> ArrangementType.fromArrProperties song.ArrangementProperties)
 
         let toneNames =
             if isNull song.ToneChanges then
@@ -114,16 +84,10 @@ module Types =
 
         baseTone, toneNamesList
 
-    let arrTypeHumanized arrType =
-        match arrType with
-        | ArrangementType.ShowLights -> "Show Lights"
-        | ArrangementType.JVocals -> "J-Vocals"
-        | _ -> string arrType
-
     let private createArrName arr =
         match arr.Data with
         | Some data -> createNamePrefix data.Ordering + arr.ArrangementType.ToString()
-        | None -> arrTypeHumanized arr.ArrangementType
+        | None -> ArrangementType.humanize arr.ArrangementType
 
     /// Creates a template (no file name or arrangement data) from the given arrangement.
     let createTemplate arr =

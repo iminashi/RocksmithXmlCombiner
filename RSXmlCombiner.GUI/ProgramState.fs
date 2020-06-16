@@ -55,7 +55,7 @@ module ProgramState =
     let private updateCommonTones (Templates templates) commonTones =
         let newCommonTones = 
             templates
-            |> Seq.filter (fun t -> t.ArrangementType |> Types.isInstrumental)
+            |> Seq.filter (fun t -> t.ArrangementType |> ArrangementType.isInstrumental)
             |> Seq.map (fun t -> t.Name, Array.create 5 "")
             |> Map.ofSeq
 

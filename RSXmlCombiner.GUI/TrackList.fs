@@ -12,6 +12,7 @@ open Avalonia.Layout
 open Avalonia.Input
 open XmlUtils
 open Media
+open ArrangementType
 
 type Msg =
     | RemoveTrackAt of index : int

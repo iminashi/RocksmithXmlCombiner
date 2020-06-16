@@ -44,7 +44,7 @@ let import (fileName : string) =
             let isMainArr = itemNode.Element(ad + "Represent").Value = "true"
             
             // Only include primary arrangements (represent = true), any vocals and show lights
-            if isMainArr || isOther arrType then
+            if isMainArr || ArrangementType.isOther arrType then
                 state.Add(arrType, arrFn)
             else
                 state

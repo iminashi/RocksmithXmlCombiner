@@ -10,6 +10,7 @@ open System
 open System.IO
 open Rocksmith2014Xml
 open XmlUtils
+open ArrangementType
 
 type Msg =
     | SelectAddTrackFiles
@@ -117,7 +118,7 @@ let update (msg: Msg) state : ProgramState * Cmd<_> =
                             createInstrumental fileName (Some arrType)
                         | _ -> { FileName = Some fileName
                                  ArrangementType = arrType
-                                 Name = arrTypeHumanized arrType
+                                 Name = humanize arrType
                                  Data = None }
                     arrangement :: state
 
@@ -227,7 +228,7 @@ let addArrangementMenuItems state dispatch : IView list =
 
     let createMenuItem arrType =
         MenuItem.create [
-            MenuItem.header (arrTypeHumanized arrType)
+            MenuItem.header (humanize arrType)
             MenuItem.isEnabled (notIncluded arrType)
             MenuItem.onClick (fun _ -> AddTemplate(arrType, None) |> dispatch)
         ]
