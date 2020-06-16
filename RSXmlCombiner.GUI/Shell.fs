@@ -48,9 +48,9 @@ let update shellMsg state : ProgramState * Cmd<_> =
 
         { state with Tracks = updatedTracks }, Cmd.none
 
-    | ProjectViewActiveChanged active -> { state with ProjectViewActive = active }, Cmd.none
+    | ProjectViewActiveChanged isActive -> { state with ProjectViewActive = isActive }, Cmd.none
 
-    | CombineAudioProgressChanged progress -> { state with AudioCombinerProgress = Some(progress) }, Cmd.none
+    | CombineAudioProgressChanged progress -> { state with AudioCombinerProgress = Some progress }, Cmd.none
 
 let private replacementToneView state trackIndex arrIndex dispatch =
     let arrangement = state.Tracks.[trackIndex].Arrangements.[arrIndex]
@@ -173,9 +173,6 @@ let view state dispatch =
                 TabItem.header "Common Tones"
                 TabItem.content (CommonToneEditor.view state (CommonTonesMsg >> dispatch))
             ]
-            TabItem.create [
-                TabItem.header "Help"
-                TabItem.content Help.helpView
-            ]
+            TabItem.create [ TabItem.header "Help"; TabItem.content Help.helpView ]
         ]
     ]

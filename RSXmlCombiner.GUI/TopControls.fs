@@ -24,16 +24,6 @@ type Msg =
     | SelectSaveProjectFile
     | AddTemplate of arrType : ArrangementType * ordering : ArrangementOrdering option
 
-let private handleHotkeys dispatch (event : KeyEventArgs) =
-    match event.KeyModifiers with
-    | KeyModifiers.Control ->
-        match event.Key with
-        | Key.O -> dispatch SelectOpenProjectFile
-        | Key.S -> dispatch SelectSaveProjectFile
-        | Key.N -> dispatch NewProject
-        | _ -> ()
-    | _ -> ()
-
 let private createTrack instArrFile (title : string option) (audioFile : string option) arrangements =
     let song = InstrumentalArrangement.Load(instArrFile)
     { Title = title |> Option.defaultValue song.Title
@@ -282,19 +272,16 @@ let view state dispatch =
                 StackPanel.children [
                     Button.create [
                         Button.content "New Project"
-                        Button.onClick (fun _ -> dispatch NewProject)
-                        //Button.hotKey <| KeyGesture.Parse "Ctrl+N" // TODO: Hook up hot keys
+                        Button.onClick (fun _ -> dispatch NewProject) 
                     ]
                     Button.create [
                         Button.content "Open Project..."
                         Button.onClick (fun _ -> dispatch SelectOpenProjectFile)
-                        //Button.hotKey <| KeyGesture.Parse "Ctrl+O"
                     ]
                     Button.create [
                         Button.content "Save Project..."
                         Button.onClick (fun _ -> dispatch SelectSaveProjectFile)
                         Button.isEnabled (not state.Tracks.IsEmpty)
-                        //Button.hotKey <| KeyGesture.Parse "Ctrl+S"
                     ]
                 ]
             ]

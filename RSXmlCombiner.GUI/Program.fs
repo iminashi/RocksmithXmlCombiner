@@ -17,17 +17,29 @@ type MainWindow() as this =
         base.MinWidth <- 900.0
         base.MinHeight <- 450.0
 
-        let audioCombinerProgress initialModel =
+        let handleHotkeys dispatch (event : KeyEventArgs) =
+            let dispatch = Shell.Msg.TopControlsMsg >> dispatch
+            match event.KeyModifiers, event.Key with
+            | KeyModifiers.Control, Key.O -> dispatch TopControls.Msg.SelectOpenProjectFile
+            | KeyModifiers.Control, Key.S -> dispatch TopControls.Msg.SelectSaveProjectFile
+            | KeyModifiers.Control, Key.N -> dispatch TopControls.Msg.NewProject
+            | _ -> ()
+
+        let audioCombinerProgress _initialModel =
             let sub dispatch =
                 AudioCombiner.progress.ProgressChanged.Add(fun x -> Shell.Msg.CombineAudioProgressChanged(x) |> dispatch)
             Cmd.ofSub sub
         
+        let hotKeysSub _initialModel =
+            Cmd.ofSub (fun dispatch -> this.KeyDown.Add(handleHotkeys dispatch))
+
         //this.VisualRoot.VisualRoot.Renderer.DrawFps <- true
         //this.VisualRoot.VisualRoot.Renderer.DrawDirtyRects <- true
 
         Elmish.Program.mkProgram Shell.init Shell.update Shell.view
         |> Program.withHost this
         |> Program.withSubscription audioCombinerProgress
+        |> Program.withSubscription hotKeysSub
         |> Program.run
 
         

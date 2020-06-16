@@ -34,7 +34,7 @@ let private addTitle (vocals : Vocals) (title : string) (startBeat : int) =
         for i = words.Length - 1 downto 0 do
             vocals.Insert(0, Vocal(startBeat + (length * i), length, words.[i]))
 
-// Combines the vocals arrangements if at least one track has one.
+/// Combines the vocals arrangements if at least one track has one.
 let private combineVocals (tracks : Track list) index targetFolder addTitles =
     // TODO: Always generate lyrics file if addTitles is true?
     if tracks |> List.exists (fun t -> t.Arrangements.[index].FileName |> Option.isSome) then
