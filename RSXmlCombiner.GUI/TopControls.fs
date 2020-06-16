@@ -13,11 +13,11 @@ open XmlUtils
 
 type Msg =
     | SelectAddTrackFiles
-    | AddTrack of fileNames : string[] option
+    | AddTrack of arrangementFiles : string[] option
     | SelectOpenProjectFile
-    | OpenProject of fileNames : string[] option
+    | OpenProject of projectFile : string option
     | SelectToolkitTemplate
-    | ImportToolkitTemplate of fileNames : string[] option
+    | ImportToolkitTemplate of templateFile : string option
     | NewProject
     | SaveProject of fileName : string option
     | SelectSaveProjectFile
@@ -78,17 +78,18 @@ let private addNewTrack state arrangementFileNames =
 let update (msg: Msg) state : ProgramState * Cmd<_> =
     match msg with
     | SelectAddTrackFiles ->
-        let dialog = Dialogs.openFileDialog "Select Arrangement File(s)" Dialogs.xmlFileFilter true
+        let dialog = Dialogs.openFileDialogMulti "Select Arrangement File(s)" Dialogs.xmlFileFilter
         state, Cmd.OfAsync.perform dialog None AddTrack
 
-    | AddTrack fileNames -> 
-        match fileNames with
+    | AddTrack arrangementFiles -> 
+        match arrangementFiles with
         | None -> state, Cmd.none
         | Some files -> addNewTrack state files
     
-    | ImportToolkitTemplate files ->
-        match files with
-        | Some([| fileName |]) ->
+    | ImportToolkitTemplate templateFile ->
+        match templateFile with
+        | None -> state, Cmd.none
+        | Some fileName ->
             let foundArrangements, title, audioFilePath = ToolkitImporter.import fileName
 
             let audioFile =
@@ -129,13 +130,13 @@ let update (msg: Msg) state : ProgramState * Cmd<_> =
                     |> ProgramState.addTrack state
 
                 { newState with StatusMessage = sprintf "%i arrangements imported." foundArrangements.Count }, Cmd.none
-        | _ -> state, Cmd.none
     
     | NewProject -> ProgramState.init, Cmd.none
 
-    | OpenProject files ->
-        match files with
-        | Some ([| fileName |]) ->
+    | OpenProject projectFile ->
+        match projectFile with
+        | None -> state, Cmd.none
+        | Some fileName ->
             let result = Project.load fileName
             match result with 
             | Ok project ->
@@ -181,7 +182,6 @@ let update (msg: Msg) state : ProgramState * Cmd<_> =
                   OpenProjectFile = Some fileName }, Cmd.none
             | Error message ->
                 { state with StatusMessage = message }, Cmd.none
-        | _ -> state, Cmd.none
 
     | SaveProject fileName ->
         match fileName with
@@ -191,11 +191,11 @@ let update (msg: Msg) state : ProgramState * Cmd<_> =
             { state with OpenProjectFile = Some file; StatusMessage = "Project saved." }, Cmd.none
 
     | SelectToolkitTemplate ->
-        let dialog = Dialogs.openFileDialog "Select Toolkit Template" Dialogs.toolkitTemplateFilter false
+        let dialog = Dialogs.openFileDialog "Select Toolkit Template" Dialogs.toolkitTemplateFilter
         state, Cmd.OfAsync.perform dialog None ImportToolkitTemplate
 
     | SelectOpenProjectFile ->
-        let dialog = Dialogs.openFileDialog "Select Project File" Dialogs.projectFileFilter false
+        let dialog = Dialogs.openFileDialog "Select Project File" Dialogs.projectFileFilter
         state, Cmd.OfAsync.perform dialog None OpenProject
 
     | SelectSaveProjectFile ->

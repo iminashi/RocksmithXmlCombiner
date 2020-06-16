@@ -16,9 +16,9 @@ open Media
 type Msg =
     | RemoveTrackAt of index : int
     | ChangeAudioFile of trackIndex : int
-    | ChangeAudioFileResult of trackIndex : int * newFile:string[] option
+    | ChangeAudioFileResult of trackIndex : int * newFile : string option
     | SelectArrangementFile of trackIndex : int * arrIndex : int
-    | ChangeArrangementFile of trackIndex : int * arrIndex : int * string[] option
+    | ChangeArrangementFile of trackIndex : int * arrIndex : int * newFile : string option
     | ArrangementBaseToneChanged of trackIndex : int * arrIndex : int * toneIndex : int
     | RemoveArrangementFile of trackIndex : int * arrIndex : int
     | ShowReplacementToneEditor of trackIndex : int * arrIndex : int
@@ -43,24 +43,25 @@ let update (msg: Msg) (state: ProgramState) =
 
     | ChangeAudioFile trackIndex ->
         let initialDir = getInitialDir state.Tracks.[trackIndex].AudioFile state trackIndex
-        let dialog = Dialogs.openFileDialog "Select Audio File" Dialogs.audioFileFiltersOpen false
-        state, Cmd.OfAsync.perform dialog initialDir (fun files -> ChangeAudioFileResult(trackIndex, files))
+        let dialog = Dialogs.openFileDialog "Select Audio File" Dialogs.audioFileFiltersOpen
+        state, Cmd.OfAsync.perform dialog initialDir (fun file -> ChangeAudioFileResult (trackIndex, file))
 
-    | ChangeAudioFileResult (trackIndex, files) ->
-        match files with
-        | Some ([| fileName |]) ->
+    | ChangeAudioFileResult (trackIndex, file) ->
+        match file with
+        | None -> state, Cmd.none
+        | Some fileName ->
             let newTracks = state.Tracks |> List.mapi (fun i t -> if i = trackIndex then changeAudioFile t fileName else t) 
             { state with Tracks = newTracks }, Cmd.none
-        | _ -> state, Cmd.none
 
     | SelectArrangementFile (trackIndex, arrIndex) ->
         let initialDir = getInitialDir (state |> getArr trackIndex arrIndex).FileName state trackIndex
-        let dialog = Dialogs.openFileDialog "Select Arrangement File" Dialogs.xmlFileFilter false
-        state, Cmd.OfAsync.perform dialog initialDir (fun files -> ChangeArrangementFile (trackIndex, arrIndex, files))
+        let dialog = Dialogs.openFileDialog "Select Arrangement File" Dialogs.xmlFileFilter
+        state, Cmd.OfAsync.perform dialog initialDir (fun file -> ChangeArrangementFile (trackIndex, arrIndex, file))
 
-    | ChangeArrangementFile (trackIndex, arrIndex, files) ->
-        match files with
-        | Some ([| fileName |]) ->
+    | ChangeArrangementFile (trackIndex, arrIndex, file) ->
+        match file with
+        | None -> state, Cmd.none
+        | Some fileName ->
             let rootName = XmlHelper.GetRootElementName(fileName)
             let arrangement = state |> getArr trackIndex arrIndex
 
@@ -79,8 +80,6 @@ let update (msg: Msg) (state: ProgramState) =
                 { state with Tracks = updatedTracks }, Cmd.none
 
             | _ -> { state with StatusMessage = "Incorrect arrangement type." }, Cmd.none
-        | _ ->
-            state, Cmd.none
 
     | ArrangementBaseToneChanged (trackIndex, arrIndex, toneIndex) ->
         match state |> getArr trackIndex arrIndex with
@@ -112,8 +111,9 @@ let update (msg: Msg) (state: ProgramState) =
 
     | RemoveTemplate name ->
         let (Templates templates) = state.Templates
-        let updatedTemplates = templates |> List.filter (fun t -> t.Name <> name)
+        let updatedTemplates = templates |> List.filter (fun t -> t.Name <> name) |> Templates
 
+        // Remove the arrangement from all the tracks
         let updatedTracks =
             state.Tracks
             |> List.map (fun t ->
@@ -122,7 +122,7 @@ let update (msg: Msg) (state: ProgramState) =
 
         let updatedCommonTones = state.CommonTones |> Map.remove name
 
-        { state with Tracks = updatedTracks; Templates = Templates updatedTemplates; CommonTones = updatedCommonTones }, Cmd.none
+        { state with Tracks = updatedTracks; Templates = updatedTemplates; CommonTones = updatedCommonTones }, Cmd.none
 
 /// Creates the view for an arrangement.
 let private arrangementView (arr : Arrangement) trackIndex arrIndex state dispatch =

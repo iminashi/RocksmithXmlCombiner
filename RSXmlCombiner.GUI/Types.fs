@@ -45,7 +45,7 @@ module Types =
         ArrangementType : ArrangementType
         Data : InstrumentalArrangementData option }
 
-     type Templates = Templates of Arrangement list
+    type Templates = Templates of Arrangement list
 
     let createNamePrefix ordering = 
         match ordering with

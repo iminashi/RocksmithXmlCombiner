@@ -36,8 +36,18 @@ let saveFileDialog title filters initialFileName directory =
         return Option.create String.notEmpty result
     }
 
-let openFileDialog title filters allowMultiple directory =
-    let dialog = OpenFileDialog(Title = title, Filters = filters, AllowMultiple = allowMultiple)
+let openFileDialog title filters directory =
+    let dialog = OpenFileDialog(Title = title, Filters = filters, AllowMultiple = false)
+    directory |> Option.iter (fun dir -> dialog.Directory <- dir)
+
+    async {
+        match! dialog.ShowAsync(window) |> Async.AwaitTask with
+        | [| file |] -> return Some file
+        | _ -> return None
+    }
+
+let openFileDialogMulti title filters directory =
+    let dialog = OpenFileDialog(Title = title, Filters = filters, AllowMultiple = true)
     directory |> Option.iter (fun dir -> dialog.Directory <- dir)
 
     async {
