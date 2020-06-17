@@ -14,6 +14,7 @@ type ProgramState =
     ReplacementToneEditor : (int * int) option
     ProjectViewActive : bool
     AudioCombinerProgress : float option
+    ArrangementCombinerProgress : (int * int) option
     OpenProjectFile : string option }
 
 module ProgramState =
@@ -28,6 +29,7 @@ module ProgramState =
         ReplacementToneEditor = None
         ProjectViewActive = true
         AudioCombinerProgress = None
+        ArrangementCombinerProgress = None
         OpenProjectFile = None }
 
     let private updateTemplates (arrangements : Arrangement list) (Templates currentTemplates) =
@@ -61,7 +63,7 @@ module ProgramState =
 
         // Preserve the current tone names
         (newCommonTones, commonTones)
-        ||> Map.fold (fun commonTones arrName toneNames -> commonTones |> Map.add arrName toneNames)
+        ||> Map.fold (fun state arrName toneNames -> state |> Map.add arrName toneNames)
 
     /// Adds a new track to the end of the track list of the project.
     let addTrack project newTrack =

@@ -6,6 +6,10 @@ open Rocksmith2014Xml
 open XmlCombiners
 open ArrangementType
 
+let progress = Progress<int>()
+
+let private increaseProgress () = (progress :> IProgress<int>).Report(1)
+
 /// Combines the show light arrangements if all tracks have one set.
 let private combineShowLights tracks index targetFolder =
     if tracks |> List.forall (fun t -> t.Arrangements.[index].FileName |> Option.isSome) then
@@ -15,6 +19,7 @@ let private combineShowLights tracks index targetFolder =
             combiner.AddNext(next, track.SongLength, track.TrimAmount)
 
         combiner.Save(Path.Combine(targetFolder, "Combined_Showlights_RS2.xml"))
+        increaseProgress ()
 
 /// Inserts the given title at the beginning of the given vocals arrangement.
 let private addTitle (vocals : Vocals) (title : string) (startBeat : int) =
@@ -52,6 +57,7 @@ let private combineVocals (tracks : Track list) index targetFolder addTitles =
             combiner.AddNext(next, track.SongLength, track.TrimAmount)
 
         combiner.Save(Path.Combine(targetFolder, sprintf "Combined_%s_RS2.xml" tracks.[0].Arrangements.[index].Name))
+        increaseProgress ()
 
 let private replaceToneNames (song : InstrumentalArrangement) (toneReplacements : Map<string, int>) (commonTones : string array) =
     // Replace the tone names of the defined tones and the tone changes
@@ -136,6 +142,7 @@ let private combineInstrumental (project : ProgramState) index targetFolder =
                 replaceToneNames next arrData.ToneReplacements commonTones
 
             combiner.AddNext(next, tracks.[i].TrimAmount, (i = tracks.Length - 1))
+            increaseProgress ()
 
         if String.notEmpty project.CombinationTitle then
             combiner.SetTitle(project.CombinationTitle)
@@ -153,13 +160,15 @@ let private combineInstrumental (project : ProgramState) index targetFolder =
 
 /// Combines all the arrangements in the given project.
 let combine (project : ProgramState) targetFolder  =
-    let nArrangements = project.Tracks.Head.Arrangements.Length
-    for i = 0 to nArrangements - 1 do
-        match project.Tracks.Head.Arrangements.[i].ArrangementType with
-        | Instrumental _ -> combineInstrumental project i targetFolder
+    async {
+        let nArrangements = project.Tracks.Head.Arrangements.Length
+        for i = 0 to nArrangements - 1 do
+            match project.Tracks.Head.Arrangements.[i].ArrangementType with
+            | Instrumental _ -> combineInstrumental project i targetFolder
 
-        | Vocals _ -> combineVocals project.Tracks i targetFolder project.AddTrackNamesToLyrics
+            | Vocals _ -> combineVocals project.Tracks i targetFolder project.AddTrackNamesToLyrics
 
-        | ArrangementType.ShowLights -> combineShowLights project.Tracks i targetFolder
+            | ArrangementType.ShowLights -> combineShowLights project.Tracks i targetFolder
 
-        | _ -> failwith "Unknown arrangement type."
+            | _ -> failwith "Unknown arrangement type."
+    }

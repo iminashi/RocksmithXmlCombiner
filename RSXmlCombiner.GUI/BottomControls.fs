@@ -6,6 +6,7 @@ open System.IO
 open Avalonia.Controls
 open Avalonia.FuncUI.DSL
 open Avalonia.Layout
+open RSXmlCombiner.FuncUI
 
 type Msg = 
     | SelectTargetAudioFile
@@ -16,6 +17,7 @@ type Msg =
     | CoercePhrasesChanged of bool
     | AddTrackNamesChanged of bool
     | CombineAudioCompleted of message : string
+    | CombineArrangementsCompleted of unit
 
 let update msg state : ProgramState * Cmd<_> =
     match msg with
@@ -38,8 +40,22 @@ let update msg state : ProgramState * Cmd<_> =
         match targetFolder with
         | None -> state, Cmd.none // User canceled the dialog
         | Some folder ->
-            ArrangementCombiner.combine state folder
-            { state with StatusMessage = "Arrangements combined." }, Cmd.none
+            // TODO: Account for missing files
+            let intArrs =
+                state.Tracks.Head.Arrangements
+                |> Seq.filter (fun a -> ArrangementType.isInstrumental a.ArrangementType)
+                |> Seq.length
+            // Combining vocals and show lights is so fast that individual files are not reported
+            let otherArrs =
+                state.Tracks.Head.Arrangements
+                |> Seq.filter (fun a -> ArrangementType.isOther a.ArrangementType)
+                |> Seq.length
+            let max = (intArrs * state.Tracks.Length) + otherArrs
+            let task = ArrangementCombiner.combine state
+            { state with ArrangementCombinerProgress = Some(0, max) }, Cmd.OfAsync.perform task folder CombineArrangementsCompleted
+
+    | CombineArrangementsCompleted ->
+        { state with StatusMessage = "Arrangements combined."; ArrangementCombinerProgress = None }, Cmd.none
 
     | SelectCombinationTargetFolder ->
         let initialDir = state.OpenProjectFile |> Option.map Path.GetDirectoryName
@@ -55,6 +71,11 @@ let view state dispatch =
         state.AudioCombinerProgress |> Option.isNone
         && state.Tracks.Length > 1
         && state.Tracks |> List.forall hasAudioFile
+
+    // TODO: More comprehensive validation when arrangements can be combined?
+    let canCombineArrangements =
+        state.ArrangementCombinerProgress |> Option.isNone
+        && state.Tracks.Length > 1
 
     // Bottom Panel
     Grid.create [
@@ -120,8 +141,7 @@ let view state dispatch =
                         Button.content "Combine Arrangements"
                         Button.onClick (fun _ -> dispatch SelectCombinationTargetFolder)
                         Button.fontSize 20.0
-                        // TODO: More comprehensive validation when arrangements can be combined?
-                        Button.isEnabled (state.Tracks.Length > 1)
+                        Button.isEnabled canCombineArrangements
                     ]
                 ]
             ]

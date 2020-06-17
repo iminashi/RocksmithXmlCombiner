@@ -170,6 +170,7 @@ let update (msg: Msg) state : ProgramState * Cmd<_> =
                   ReplacementToneEditor = None
                   ProjectViewActive = true
                   AudioCombinerProgress = None
+                  ArrangementCombinerProgress = None
                   OpenProjectFile = Some fileName }, Cmd.none
             | Error message ->
                 { state with StatusMessage = message }, Cmd.none

@@ -683,25 +683,25 @@ namespace XmlCombiners
                 return;
             }
 
-            if (combined.ToneA == null)
+            if (combined.ToneA is null)
             {
                 combined.ToneA = t.Name;
                 return;
             }
 
-            if (combined.ToneB == null)
+            if (combined.ToneB is null)
             {
                 combined.ToneB = t.Name;
                 return;
             }
 
-            if (combined.ToneC == null)
+            if (combined.ToneC is null)
             {
                 combined.ToneC = t.Name;
                 return;
             }
 
-            if (combined.ToneD == null)
+            if (combined.ToneD is null)
             {
                 combined.ToneD = t.Name;
                 return;

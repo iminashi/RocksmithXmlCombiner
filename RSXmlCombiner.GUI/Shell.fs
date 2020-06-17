@@ -5,6 +5,7 @@ open Avalonia.Controls
 open Avalonia.Layout
 open Avalonia.FuncUI.DSL
 open Avalonia.FuncUI.Types
+open Avalonia.Media
 
 type Msg =
     | TrackListMsg of TrackList.Msg
@@ -15,6 +16,7 @@ type Msg =
     | SetReplacementTone of trackIndex : int * arrIndex : int * toneName : string * replacementIndex : int
     | ProjectViewActiveChanged of bool
     | CombineAudioProgressChanged of float
+    | CombineArrangementsProgressChanged of int
 
 let init () = ProgramState.init, Cmd.none
 
@@ -51,6 +53,13 @@ let update shellMsg state : ProgramState * Cmd<_> =
     | ProjectViewActiveChanged isActive -> { state with ProjectViewActive = isActive }, Cmd.none
 
     | CombineAudioProgressChanged progress -> { state with AudioCombinerProgress = Some progress }, Cmd.none
+
+    | CombineArrangementsProgressChanged progress ->
+        let combProgress = 
+            state.ArrangementCombinerProgress 
+            |> Option.map (fun (curr, max) -> (curr + progress, max))
+
+        { state with ArrangementCombinerProgress = combProgress }, Cmd.none
 
 let private replacementToneView state trackIndex arrIndex dispatch =
     let arrangement = state.Tracks.[trackIndex].Arrangements.[arrIndex]
@@ -150,11 +159,21 @@ let view state dispatch =
                                     ProgressBar.create [
                                           Border.dock Dock.Bottom
                                           ProgressBar.background "#181818"
-                                          ProgressBar.height 2.0
-                                          ProgressBar.minHeight 2.0
+                                          ProgressBar.height 1.0
+                                          ProgressBar.minHeight 1.0
                                           ProgressBar.value (state.AudioCombinerProgress |> Option.defaultValue 0.0)
                                           ProgressBar.maximum 1.0
-                                      ]
+                                    ]
+
+                                    ProgressBar.create [
+                                          Border.dock Dock.Bottom
+                                          ProgressBar.background "#181818"
+                                          ProgressBar.foreground Brushes.Red
+                                          ProgressBar.height 1.0
+                                          ProgressBar.minHeight 1.0
+                                          ProgressBar.value (state.ArrangementCombinerProgress |> Option.map (fst >> double) |> Option.defaultValue 0.0)
+                                          ProgressBar.maximum (state.ArrangementCombinerProgress |> Option.map (snd >> double) |> Option.defaultValue 1.0)
+                                    ]
 
                                     BottomControls.view state (BottomControlsMsg >> dispatch)
 

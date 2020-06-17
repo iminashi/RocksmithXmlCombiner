@@ -27,7 +27,12 @@ type MainWindow() as this =
 
         let audioCombinerProgress _initialModel =
             let sub dispatch =
-                AudioCombiner.progress.ProgressChanged.Add(fun x -> Shell.Msg.CombineAudioProgressChanged(x) |> dispatch)
+                AudioCombiner.progress.ProgressChanged.Add(fun x -> Shell.Msg.CombineAudioProgressChanged x |> dispatch)
+            Cmd.ofSub sub
+
+        let arrangementCombinerProgress _initialModel =
+            let sub dispatch =
+                ArrangementCombiner.progress.ProgressChanged.Add(fun x -> Shell.Msg.CombineArrangementsProgressChanged x |> dispatch)
             Cmd.ofSub sub
         
         let hotKeysSub _initialModel =
@@ -39,6 +44,7 @@ type MainWindow() as this =
         Elmish.Program.mkProgram Shell.init Shell.update Shell.view
         |> Program.withHost this
         |> Program.withSubscription audioCombinerProgress
+        |> Program.withSubscription arrangementCombinerProgress
         |> Program.withSubscription hotKeysSub
         |> Program.run
 
