@@ -69,12 +69,12 @@ let private replaceToneNames (song : InstrumentalArrangement) (toneReplacements 
                     tone.Name <- newToneName
 
     // Make sure that there are no duplicate names in the defined tones
-    let uniqueTones : Set<string> = Set.ofSeq [
+    let uniqueTones = Set.ofSeq (seq {
         if String.notEmpty song.ToneA then yield song.ToneA
         if String.notEmpty song.ToneB then yield song.ToneB
         if String.notEmpty song.ToneC then yield song.ToneC
         if String.notEmpty song.ToneD then yield song.ToneD
-    ]
+    })
     
     song.ToneA <- null
     song.ToneB <- null
