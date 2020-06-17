@@ -141,7 +141,7 @@ let view state dispatch =
         TabControl.viewItems [
             TabItem.create [
                 TabItem.header "Tracks"
-                TabItem.onIsSelectedChanged (fun selected -> ProjectViewActiveChanged(selected) |> dispatch)
+                TabItem.onIsSelectedChanged (ProjectViewActiveChanged >> dispatch)
                 TabItem.content (
                     Grid.create [
                         Grid.children [

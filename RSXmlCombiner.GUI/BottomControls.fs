@@ -6,7 +6,6 @@ open System.IO
 open Avalonia.Controls
 open Avalonia.FuncUI.DSL
 open Avalonia.Layout
-open RSXmlCombiner.FuncUI
 
 type Msg = 
     | SelectTargetAudioFile
