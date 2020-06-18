@@ -39,17 +39,25 @@ let update msg state : ProgramState * Cmd<_> =
         match targetFolder with
         | None -> state, Cmd.none // User canceled the dialog
         | Some folder ->
-            // TODO: Account for missing files
-            let intArrs =
-                state.Tracks.Head.Arrangements
-                |> Seq.filter (fun a -> ArrangementType.isInstrumental a.ArrangementType)
-                |> Seq.length
-            // Combining vocals and show lights is so fast that individual files are not reported
-            let otherArrs =
-                state.Tracks.Head.Arrangements
-                |> Seq.filter (fun a -> ArrangementType.isOther a.ArrangementType)
-                |> Seq.length
-            let max = (intArrs * state.Tracks.Length) + otherArrs
+            let trackCount = state.Tracks.Length
+            // Calculate the maximum value for the progress bar
+            let max =
+                ((0, 0), state.Tracks.Head.Arrangements)
+                ||> Seq.fold (fun (i, count) arr ->
+                    let hasFile track = track.Arrangements.[i].FileName |> Option.isSome
+                    let next = i + 1
+                    // For instrumental arrangement, the progress is increased by one for each file
+                    // Combining vocals and show lights is so fast that individual files are not reported
+                    match arr.ArrangementType with
+                    | ArrangementType.Instrumental _ ->
+                        if state.Tracks |> List.forall hasFile then next, count + trackCount else next, count
+                    | ArrangementType.ShowLights ->
+                        if state.Tracks |> List.forall hasFile then next, count + 1 else next, count
+                    | _ ->
+                        if state.Tracks |> List.exists hasFile then next, count + 1 else next, count
+                    )
+                |> snd
+
             let task = ArrangementCombiner.combine state
             { state with ArrangementCombinerProgress = Some(0, max) }, Cmd.OfAsync.perform task folder CombineArrangementsCompleted
 
