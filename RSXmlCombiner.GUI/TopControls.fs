@@ -33,10 +33,10 @@ let private createTrack instArrFile (title : string option) (audioFile : string 
       Arrangements = arrangements |> List.sortBy arrangementSort }
 
 let private addNewTrack state arrangementFileNames =
-    let instArrFile = arrangementFileNames |> Array.tryFind (fun a -> XmlHelper.ValidateRootElement(a, "song"))
+    let instArrFile = arrangementFileNames |> Array.tryFind (fun f -> XmlHelper.ValidateRootElement(f, "song"))
     match instArrFile with
     | None -> 
-        { state with StatusMessage = "Please select at least one instrumental Rocksmith arrangement." }, Cmd.none
+        { state with StatusMessage = "Please select at least one instrumental Rocksmith arrangement." }
 
     | Some instArrFile ->
         let alreadyHas arrType = List.exists (fun a -> a.ArrangementType = arrType)
@@ -53,18 +53,14 @@ let private addNewTrack state arrangementFileNames =
                 { Name = "Vocals"; FileName = Some fileName; ArrangementType = ArrangementType.Vocals; Data = None  } :: state
             | "showlights" when state |> alreadyHas ArrangementType.ShowLights |> not ->
                 { Name = "Show Lights"; FileName = Some fileName; ArrangementType = ArrangementType.ShowLights; Data = None } :: state
-            //| "showlights" -> Cannot have more than one show lights arrangement
-            | _ -> state // StatusMessage = "Unknown arrangement type for file {Path.GetFileName(arr)}";
-    
-        let newState = 
-            arrangementFileNames
-            |> Array.fold arrangementFolder []
-            // Add any missing arrangements from the project's templates
-            |> ProgramState.addMissingArrangements state.Templates
-            |> createTrack instArrFile None None
-            |> ProgramState.addTrack state
+            | _ -> state
 
-        newState, Cmd.none
+        arrangementFileNames
+        |> Array.fold arrangementFolder []
+        // Add any missing arrangements from the project's templates
+        |> ProgramState.addMissingArrangements state.Templates
+        |> createTrack instArrFile None None
+        |> ProgramState.addTrack state
 
 let update (msg: Msg) state : ProgramState * Cmd<_> =
     match msg with
@@ -75,7 +71,7 @@ let update (msg: Msg) state : ProgramState * Cmd<_> =
     | AddTrack arrangementFiles -> 
         match arrangementFiles with
         | None -> state, Cmd.none
-        | Some files -> addNewTrack state files
+        | Some files -> addNewTrack state files, Cmd.none
     
     | ImportToolkitTemplate templateFile ->
         match templateFile with
@@ -129,7 +125,8 @@ let update (msg: Msg) state : ProgramState * Cmd<_> =
         | None -> state, Cmd.none
         | Some fileName ->
             let result = Project.load fileName
-            match result with 
+            match result with
+            | Error message -> { state with StatusMessage = message }, Cmd.none
             | Ok project ->
                 // TODO: Check if the tone names in the files have been changed
 
@@ -160,20 +157,7 @@ let update (msg: Msg) state : ProgramState * Cmd<_> =
                     | head::_ -> head.Arrangements |> (List.map createTemplate >> Templates)
                     | [] -> Templates []
 
-                { Tracks = project.Tracks
-                  CommonTones = project.CommonTones
-                  CombinationTitle = project.CombinationTitle
-                  AddTrackNamesToLyrics = project.AddTrackNamesToLyrics
-                  CoercePhrases = project.CoercePhrases
-                  Templates = templates
-                  StatusMessage = statusMessage
-                  ReplacementToneEditor = None
-                  ProjectViewActive = true
-                  AudioCombinerProgress = None
-                  ArrangementCombinerProgress = None
-                  OpenProjectFile = Some fileName }, Cmd.none
-            | Error message ->
-                { state with StatusMessage = message }, Cmd.none
+                Project.toProgramState templates fileName statusMessage project, Cmd.none
 
     | SaveProject fileName ->
         match fileName with

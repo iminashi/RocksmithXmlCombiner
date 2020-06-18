@@ -66,6 +66,7 @@ let update msg state : ProgramState * Cmd<_> =
     | AddTrackNamesChanged value -> { state with AddTrackNamesToLyrics = value }, Cmd.none
 
 let view state dispatch =
+    // Only enable the button if there is more than one track and every track has an audio file
     let canCombineAudio =
         state.AudioCombinerProgress |> Option.isNone
         && state.Tracks.Length > 1
@@ -90,7 +91,6 @@ let view state dispatch =
                         Button.content "Combine Audio"
                         Button.fontSize 20.0
                         Button.onClick (fun _ -> dispatch SelectTargetAudioFile)
-                        // Only enable the button if there is more than one track and every track has an audio file
                         Button.isEnabled canCombineAudio
                     ]
                 ]

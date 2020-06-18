@@ -38,3 +38,17 @@ let load fileName =
         JsonSerializer.Deserialize<Dto>(json, options) |> Ok
     with
     | :? JsonException as e -> Error(sprintf "Opening project failed: %s" e.Message)
+
+let toProgramState templates fileName statusMessage dto =
+    { Tracks = dto.Tracks
+      CommonTones = dto.CommonTones
+      CombinationTitle = dto.CombinationTitle
+      AddTrackNamesToLyrics = dto.AddTrackNamesToLyrics
+      CoercePhrases = dto.CoercePhrases
+      Templates = templates
+      StatusMessage = statusMessage
+      ReplacementToneEditor = None
+      ProjectViewActive = true
+      AudioCombinerProgress = None
+      ArrangementCombinerProgress = None
+      OpenProjectFile = Some fileName }

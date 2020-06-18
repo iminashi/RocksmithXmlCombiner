@@ -66,21 +66,24 @@ let update (msg: Msg) (state: ProgramState) =
             let rootName = XmlHelper.GetRootElementName(fileName)
             let arrangement = state |> getArr trackIndex arrIndex
 
-            match rootName, arrangement.ArrangementType with
-            // For instrumental arrangements, create an arrangement from the file, preserving the arrangement type and name
-            | "song", Instrumental t ->
-                let newArr = { createInstrumental fileName (Some t) with Name = arrangement.Name }
-                let updatedTracks = updateSingleArrangement state.Tracks trackIndex arrIndex newArr
-                { state with Tracks = updatedTracks }, Cmd.none
+            let newArr =
+                match rootName, arrangement.ArrangementType with
+                // For instrumental arrangements, create an arrangement from the file, preserving the arrangement type and name
+                | "song", Instrumental t ->
+                    Ok { createInstrumental fileName (Some t) with Name = arrangement.Name }
 
-            // For vocals and show lights, just change the file name
-            | "vocals", Vocals _
-            | "showlights", ArrangementType.ShowLights ->
-                let newArr = { arrangement with FileName = Some fileName }
-                let updatedTracks = updateSingleArrangement state.Tracks trackIndex arrIndex newArr
-                { state with Tracks = updatedTracks }, Cmd.none
+                // For vocals and show lights, just change the file name
+                | "vocals", Vocals _
+                | "showlights", ArrangementType.ShowLights -> Ok { arrangement with FileName = Some fileName }
 
-            | _ -> { state with StatusMessage = "Incorrect arrangement type." }, Cmd.none
+                | _ -> Error "Incorrect arrangement type."
+
+            match newArr with
+            | Ok arr ->
+                let updatedTracks = updateSingleArrangement state.Tracks trackIndex arrIndex arr
+                { state with Tracks = updatedTracks }, Cmd.none
+            | Error message->
+                { state with StatusMessage = message }, Cmd.none
 
     | ArrangementBaseToneChanged (trackIndex, arrIndex, toneIndex) ->
         match state |> getArr trackIndex arrIndex with
