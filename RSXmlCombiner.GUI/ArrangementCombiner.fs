@@ -11,11 +11,11 @@ let progress = Progress<int>()
 let private increaseProgress () = (progress :> IProgress<int>).Report(1)
 
 /// Combines the show light arrangements if all tracks have one set.
-let private combineShowLights tracks index targetFolder =
-    if tracks |> List.forall (fun t -> t.Arrangements.[index].FileName |> Option.isSome) then
+let private combineShowLights tracks arrIndex targetFolder =
+    if tracks |> List.forall (fun t -> t.Arrangements.[arrIndex].FileName |> Option.isSome) then
         let combiner = ShowLightsCombiner()
         for track in tracks do
-            let next = ShowLights.Load(track.Arrangements.[index].FileName |> Option.get)
+            let next = ShowLights.Load(track.Arrangements.[arrIndex].FileName |> Option.get)
             combiner.AddNext(next, track.SongLength, track.TrimAmount)
 
         combiner.Save(Path.Combine(targetFolder, "Combined_Showlights_RS2.xml"))
@@ -40,13 +40,13 @@ let private addTitle (vocals : Vocals) (title : string) (startBeat : int) =
             vocals.Insert(0, Vocal(startBeat + (length * i), length, words.[i]))
 
 /// Combines the vocals arrangements if at least one track has one.
-let private combineVocals (tracks : Track list) index targetFolder addTitles =
+let private combineVocals (tracks : Track list) arrIndex targetFolder addTitles =
     // TODO: Always generate lyrics file if addTitles is true?
-    if tracks |> List.exists (fun t -> t.Arrangements.[index].FileName |> Option.isSome) then
+    if tracks |> List.exists (fun t -> t.Arrangements.[arrIndex].FileName |> Option.isSome) then
         let combiner = VocalsCombiner()
         for (trackIndex, track) in tracks |> Seq.indexed do
             let next = 
-                match track.Arrangements.[index].FileName with
+                match track.Arrangements.[arrIndex].FileName with
                 | Some fn -> Vocals.Load(fn)
                 | None -> Vocals()
             
@@ -56,7 +56,7 @@ let private combineVocals (tracks : Track list) index targetFolder addTitles =
 
             combiner.AddNext(next, track.SongLength, track.TrimAmount)
 
-        combiner.Save(Path.Combine(targetFolder, sprintf "Combined_%s_RS2.xml" tracks.[0].Arrangements.[index].Name))
+        combiner.Save(Path.Combine(targetFolder, sprintf "Combined_%s_RS2.xml" tracks.Head.Arrangements.[arrIndex].Name))
         increaseProgress ()
 
 let private replaceToneNames (song : InstrumentalArrangement) (toneReplacements : Map<string, int>) (commonTones : string array) =
@@ -121,15 +121,15 @@ let private updateArrangementMetadata arr (combined : InstrumentalArrangement) =
     | _ -> ()
 
 /// Combines the instrumental arrangements at the given index if all tracks have one set.
-let private combineInstrumental (project : ProgramState) index targetFolder =
+let private combineInstrumental (project : ProgramState) arrIndex targetFolder =
     let tracks = project.Tracks
-    let commonTones = project.CommonTones |> Map.find tracks.[0].Arrangements.[index].Name
+    let commonTones = project.CommonTones |> Map.find tracks.Head.Arrangements.[arrIndex].Name
 
-    if tracks |> List.forall (fun t -> t.Arrangements.[index].FileName |> Option.isSome) then
+    if tracks |> List.forall (fun t -> t.Arrangements.[arrIndex].FileName |> Option.isSome) then
         let combiner = InstrumentalCombiner()
 
         for i = 0 to tracks.Length - 1 do
-            let arr = tracks.[i].Arrangements.[index]
+            let arr = tracks.[i].Arrangements.[arrIndex]
             let arrData = arr.Data |> Option.get
             let next = InstrumentalArrangement.Load(arr.FileName |> Option.get)
 
@@ -149,26 +149,27 @@ let private combineInstrumental (project : ProgramState) index targetFolder =
 
         // Remove periods and replace spaces with underscores in the arrangement name
         let name = 
-            tracks.[0].Arrangements.[index].Name
+            tracks.Head.Arrangements.[arrIndex].Name
             |> String.filter (fun c -> c <> '.')
             |> String.map (fun c -> if c = ' ' then '_' else c)
 
         // The metadata might be wrong if, for example, a lead file was used as the first file of the combined rhythm arrangement
-        updateArrangementMetadata tracks.[0].Arrangements.[index] combiner.CombinedArrangement
+        updateArrangementMetadata tracks.[0].Arrangements.[arrIndex] combiner.CombinedArrangement
 
         combiner.Save(Path.Combine(targetFolder, sprintf "Combined_%s_RS2.xml" name), project.CoercePhrases)
 
+let combineArrangement (project : ProgramState) arrIndex targetFolder =
+    async {
+        match project.Tracks.Head.Arrangements.[arrIndex].ArrangementType with
+        | Instrumental _ -> combineInstrumental project arrIndex targetFolder
+        | Vocals _ -> combineVocals project.Tracks arrIndex targetFolder project.AddTrackNamesToLyrics
+        | ArrangementType.ShowLights -> combineShowLights project.Tracks arrIndex targetFolder
+        | _ -> failwith "Unknown arrangement type."
+    }
+
 /// Combines all the arrangements in the given project.
 let combine (project : ProgramState) targetFolder  =
-    async {
-        let nArrangements = project.Tracks.Head.Arrangements.Length
-        for i = 0 to nArrangements - 1 do
-            match project.Tracks.Head.Arrangements.[i].ArrangementType with
-            | Instrumental _ -> combineInstrumental project i targetFolder
-
-            | Vocals _ -> combineVocals project.Tracks i targetFolder project.AddTrackNamesToLyrics
-
-            | ArrangementType.ShowLights -> combineShowLights project.Tracks i targetFolder
-
-            | _ -> failwith "Unknown arrangement type."
-    }
+    let nArrangements = project.Tracks.Head.Arrangements.Length
+    let tasks = [ for i in 0..nArrangements - 1 -> combineArrangement project i targetFolder ]
+    Async.Parallel tasks
+    |> Async.Ignore
