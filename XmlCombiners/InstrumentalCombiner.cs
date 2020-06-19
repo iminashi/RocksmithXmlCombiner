@@ -414,7 +414,7 @@ namespace XmlCombiners
 
             for (int i = song.Ebeats.Count - 1; i >= 0; i--)
             {
-                if (song.Ebeats[i].Time > songLength)
+                if (song.Ebeats[i].Time >= songLength)
                 {
                     song.Ebeats.RemoveAt(i);
                 }
