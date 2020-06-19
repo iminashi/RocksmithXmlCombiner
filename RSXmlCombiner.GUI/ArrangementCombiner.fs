@@ -159,17 +159,15 @@ let private combineInstrumental (project : ProgramState) arrIndex targetFolder =
         combiner.Save(Path.Combine(targetFolder, sprintf "Combined_%s_RS2.xml" name), project.CoercePhrases)
 
 let combineArrangement (project : ProgramState) arrIndex targetFolder =
-    async {
-        match project.Tracks.Head.Arrangements.[arrIndex].ArrangementType with
-        | Instrumental _ -> combineInstrumental project arrIndex targetFolder
-        | Vocals _ -> combineVocals project.Tracks arrIndex targetFolder project.AddTrackNamesToLyrics
-        | ArrangementType.ShowLights -> combineShowLights project.Tracks arrIndex targetFolder
-        | _ -> failwith "Unknown arrangement type."
-    }
+    match project.Tracks.Head.Arrangements.[arrIndex].ArrangementType with
+    | Instrumental _ -> combineInstrumental project arrIndex targetFolder
+    | Vocals _ -> combineVocals project.Tracks arrIndex targetFolder project.AddTrackNamesToLyrics
+    | ArrangementType.ShowLights -> combineShowLights project.Tracks arrIndex targetFolder
+    | _ -> failwith "Unknown arrangement type."
 
 /// Combines all the arrangements in the given project.
 let combine (project : ProgramState) targetFolder  =
     let nArrangements = project.Tracks.Head.Arrangements.Length
-    let tasks = [ for i in 0..nArrangements - 1 -> combineArrangement project i targetFolder ]
+    let tasks = [ for i in 0..nArrangements - 1 -> async { do combineArrangement project i targetFolder } ]
     Async.Parallel tasks
     |> Async.Ignore
