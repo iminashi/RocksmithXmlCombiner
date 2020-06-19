@@ -109,5 +109,8 @@ module Types =
                 | Main -> 0
                 | Alternative -> 1
                 | Bonus -> 2
-            | None -> 0
+            | None ->
+                if arr.Name.StartsWith("Alt.") then 1
+                elif arr.Name.StartsWith("Bonus") then 2
+                else 0
         arr.ArrangementType, ordering
