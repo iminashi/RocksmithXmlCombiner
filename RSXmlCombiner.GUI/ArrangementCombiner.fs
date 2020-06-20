@@ -97,7 +97,7 @@ let private replaceToneNames (song : InstrumentalArrangement) (toneReplacements 
 
     uniqueTones |> Set.fold folder 'A' |> ignore
 
-/// Updates the metadata of the instrumental arrangement file to match the given arrangement.
+/// Updates the metadata of the given instrumental arrangement file to match the given arrangement.
 let private updateArrangementMetadata arr (combined : InstrumentalArrangement) =
     combined.Arrangement <- arr.ArrangementType.ToString()
 
@@ -154,7 +154,7 @@ let private combineInstrumental (project : ProgramState) arrIndex targetFolder =
             |> String.map (fun c -> if c = ' ' then '_' else c)
 
         // The metadata might be wrong if, for example, a lead file was used as the first file of the combined rhythm arrangement
-        updateArrangementMetadata tracks.[0].Arrangements.[arrIndex] combiner.CombinedArrangement
+        updateArrangementMetadata tracks.Head.Arrangements.[arrIndex] combiner.CombinedArrangement
 
         combiner.Save(Path.Combine(targetFolder, sprintf "Combined_%s_RS2.xml" name), project.CoercePhrases)
 
@@ -169,5 +169,4 @@ let combineArrangement (project : ProgramState) arrIndex targetFolder =
 let combine (project : ProgramState) targetFolder  =
     let nArrangements = project.Tracks.Head.Arrangements.Length
     let tasks = [ for i in 0..nArrangements - 1 -> async { do combineArrangement project i targetFolder } ]
-    Async.Parallel tasks
-    |> Async.Ignore
+    Async.Parallel tasks |> Async.Ignore
