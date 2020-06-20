@@ -28,12 +28,12 @@ let private addTitle (vocals : Vocals) (title : string) (startBeat : int) =
     let displayTime =
         // Make sure that the title does not overlap with existing lyrics
         if vocals.Count > 0 && vocals.[0].Time < startBeat + defaultDisplayTime then
-            vocals.[0].Time - startBeat - 100
+            vocals.[0].Time - startBeat - 50
         else
             defaultDisplayTime
 
-    // Don't add the title if it will be displayed for less than half a second
-    if displayTime > 500 then
+    // Don't add the title if it will be displayed for less than a quarter of a second
+    if displayTime >= 250 then
         let words = title.Split(' ')
         let length = displayTime / words.Length
         for i = words.Length - 1 downto 0 do
