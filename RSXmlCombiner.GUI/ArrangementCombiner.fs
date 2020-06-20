@@ -41,8 +41,7 @@ let private addTitle (vocals : Vocals) (title : string) (startBeat : int) =
 
 /// Combines the vocals arrangements if at least one track has one.
 let private combineVocals (tracks : Track list) arrIndex targetFolder addTitles =
-    // TODO: Always generate lyrics file if addTitles is true?
-    if tracks |> List.exists (fun t -> t.Arrangements.[arrIndex].FileName |> Option.isSome) then
+    if addTitles || tracks |> List.exists (fun t -> t.Arrangements.[arrIndex].FileName |> Option.isSome) then
         let combiner = VocalsCombiner()
         for (trackIndex, track) in tracks |> Seq.indexed do
             let next = 
