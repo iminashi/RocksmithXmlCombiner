@@ -74,26 +74,20 @@ let combineWithResampling (tracks : Track list) (targetFile : string) =
 /// Creates a preview audio file from up to four randomly selected files.
 let createPreview (tracks : Track list) (targetFile : string) =
     let rand = Random()
-
-    let randomizedFiles =
-        tracks
-        |> Seq.choose (fun t -> t.AudioFile)
-        |> Seq.sortBy (fun _ -> rand.Next())
-
     let numFiles = min 4 tracks.Length
     let sectionLength = int64 (28.0 / float numFiles * 1000.0)
     let sectionSpan = TimeSpan.FromMilliseconds(float sectionLength)
 
-    let sections = 
-        randomizedFiles
-        |> Seq.take numFiles
-        |> Seq.map Audio.getSampleProvider
-        |> Seq.map (Audio.offset (TimeSpan.FromSeconds(10.0 + rand.NextDouble() * 60.0)) sectionSpan)
-        |> Seq.mapi (fun i s ->
-            if i = 0 then AudioFader(s, 2500, 400, sectionLength)
-            elif i = numFiles - 1 then AudioFader(s, 400, 3000, sectionLength)
-            else AudioFader(s, 400, 400, sectionLength)
-        )
-        |> Seq.cast<ISampleProvider>
+    tracks
+    |> Seq.choose (fun t -> t.AudioFile)
+    |> Seq.sortBy (fun _ -> rand.Next())
+    |> Seq.take numFiles
+    |> Seq.map Audio.getSampleProvider
+    |> Seq.map (Audio.offset (TimeSpan.FromSeconds(10.0 + rand.NextDouble() * 60.0)) sectionSpan)
+    |> Seq.mapi (fun i s ->
+        if i = 0 then AudioFader(s, 2500, 400, sectionLength)
+        elif i = numFiles - 1 then AudioFader(s, 400, 3000, sectionLength)
+        else AudioFader(s, 400, 400, sectionLength))
+    |> Seq.cast<ISampleProvider>
+    |> Audio.concatenate targetFile
 
-    WaveFileWriter.CreateWaveFile16(targetFile, ConcatenatingSampleProvider(sections))
