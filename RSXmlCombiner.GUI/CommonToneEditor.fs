@@ -50,7 +50,6 @@ let private tonesTemplate (state : ProgramState) arrName (tones : string[]) disp
                             Grid.row (i + 1)
                             TextBox.margin 2.0
                             TextBox.text tones.[i]
-                            //TextBox.isEnabled (i = 0 || not <| String.IsNullOrEmpty(tones.[i - 1]))
                             TextBox.onLostFocus ((fun arg -> UpdateToneName(arrName, i, (arg.Source :?> TextBox).Text) |> dispatch), SubPatchOptions.OnChangeOf arrName)
                         ]
                 ]
@@ -65,17 +64,20 @@ let private tonesTemplate (state : ProgramState) arrName (tones : string[]) disp
                 |> Seq.concat
                 |> Seq.distinct
                 |> List.ofSeq
-            let tonesString =
-                if toneList.Length > 10 then
-                    (toneList |> Seq.take 10 |> String.concat "\n") + "\n..."
-                else
-                    toneList |> String.concat "\n"
             
             if toneList.Length > 0 then
-                yield TextBlock.create [
-                    TextBlock.fontSize 11.0
-                    TextBlock.horizontalAlignment HorizontalAlignment.Center
-                    TextBlock.text (sprintf "Tones in files:\n%s" tonesString)
+                yield StackPanel.create [
+                    StackPanel.children [
+                        TextBlock.create [
+                            TextBlock.fontSize 12.0
+                            TextBlock.horizontalAlignment HorizontalAlignment.Center
+                            TextBlock.text "Tones in files:"
+                        ]
+                        ComboBox.create [
+                            ComboBox.height 30.0
+                            ComboBox.dataItems toneList
+                        ]
+                    ]
                 ]
         ]
     ]
