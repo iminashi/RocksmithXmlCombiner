@@ -3,7 +3,6 @@
 open System
 open System.IO
 open NAudio.Wave
-open NAudio.Wave.SampleProviders
 
 let progress = Progress<float>()
 
@@ -74,20 +73,26 @@ let combineWithResampling (tracks : Track list) (targetFile : string) =
 /// Creates a preview audio file from up to four randomly selected files.
 let createPreview (tracks : Track list) (targetFile : string) =
     let rand = Random()
+    let fadeBetweenSections = 400
     let numFiles = min 4 tracks.Length
     let sectionLength = int64 (28.0 / float numFiles * 1000.0)
     let sectionSpan = TimeSpan.FromMilliseconds(float sectionLength)
+    let sampleRate = tracks.Head.AudioFile |> Option.get |> Audio.getSampleRate
+    let randomOffset songLength =
+        let startOffset =
+            if songLength <= 50000 then rand.Next(0, songLength - 15000)
+            else rand.Next(10000, songLength - 30000)
+        startOffset |> float |> TimeSpan.FromMilliseconds
 
     tracks
-    |> Seq.choose (fun t -> t.AudioFile)
+    |> Seq.choose (fun t -> t.AudioFile |> Option.map (fun f -> f, t.SongLength))
     |> Seq.sortBy (fun _ -> rand.Next())
     |> Seq.take numFiles
-    |> Seq.map Audio.getSampleProvider
-    |> Seq.map (Audio.offset (TimeSpan.FromSeconds(10.0 + rand.NextDouble() * 60.0)) sectionSpan)
+    |> Seq.map (fun (f, l) -> Audio.getSampleProviderWithRate sampleRate f, l)
+    |> Seq.map (fun (s, l) -> Audio.offset (randomOffset l) sectionSpan s)
     |> Seq.mapi (fun i s ->
-        if i = 0 then AudioFader(s, 2500, 400, sectionLength)
-        elif i = numFiles - 1 then AudioFader(s, 400, 3000, sectionLength)
-        else AudioFader(s, 400, 400, sectionLength))
+        if i = 0 then AudioFader(s, 2500, fadeBetweenSections, sectionLength)
+        elif i = numFiles - 1 then AudioFader(s, fadeBetweenSections, 3000, sectionLength)
+        else AudioFader(s, fadeBetweenSections, fadeBetweenSections, sectionLength))
     |> Seq.cast<ISampleProvider>
     |> Audio.concatenate targetFile
-

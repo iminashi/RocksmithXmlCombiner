@@ -163,6 +163,7 @@ let view state dispatch =
                                           ProgressBar.minHeight 1.0
                                           ProgressBar.value (state.AudioCombinerProgress |> Option.defaultValue 0.0)
                                           ProgressBar.maximum 1.0
+                                          ProgressBar.isIndeterminate (state.AudioCombinerProgress |> Option.isSome)
                                     ]
 
                                     ProgressBar.create [
