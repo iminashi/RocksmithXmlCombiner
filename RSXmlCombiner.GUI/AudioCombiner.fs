@@ -52,15 +52,14 @@ let combineWithResampling (tracks : Track list) (targetFile : string) =
     async {
         try
             let firstFile = tracks.Head.AudioFile |> Option.get
-            let sampleRate = firstFile |> Audio.getSampleRate
-            let head = Audio.getSampleProviderWithRate sampleRate firstFile
+            let head = Audio.getSampleProviderWithRate 48000 firstFile
         
             let tail =
                 tracks.Tail
                 |> List.map (fun t ->
                     t.AudioFile
                     |> Option.get
-                    |> Audio.getSampleProviderWithRate sampleRate 
+                    |> Audio.getSampleProviderWithRate 48000 
                     |> Audio.trimStart t.TrimAmount)
 
             Audio.concatenate targetFile (head :: tail)
@@ -73,26 +72,25 @@ let combineWithResampling (tracks : Track list) (targetFile : string) =
 /// Creates a preview audio file from up to four randomly selected files.
 let createPreview (tracks : Track list) (targetFile : string) =
     let rand = Random()
-    let fadeBetweenSections = 400
+    let fadeBetweenSections = 400<ms>
     let numFiles = min 4 tracks.Length
-    let sectionLength = int64 (28.0 / float numFiles * 1000.0)
+    let sectionLength = LanguagePrimitives.Int64WithMeasure<ms> (int64 (28.0 / float numFiles * 1000.0))
     let sectionSpan = TimeSpan.FromMilliseconds(float sectionLength)
-    let sampleRate = tracks.Head.AudioFile |> Option.get |> Audio.getSampleRate
     let randomOffset (songLength : int<ms>) =
         let startOffset =
-            if songLength <= 50000<ms> then rand.Next(0, int(songLength - 15000<ms>))
-            else rand.Next(10000, int (songLength - 30000<ms>))
+            if songLength <= 50_000<ms> then rand.Next(0, int(songLength - 15_000<ms>))
+            else rand.Next(10_000, int (songLength - 30_000<ms>))
         startOffset |> float |> TimeSpan.FromMilliseconds
 
     tracks
     |> Seq.choose (fun t -> t.AudioFile |> Option.map (fun f -> f, t.SongLength))
     |> Seq.sortBy (fun _ -> rand.Next())
     |> Seq.take numFiles
-    |> Seq.map (fun (f, l) -> Audio.getSampleProviderWithRate sampleRate f, l)
+    |> Seq.map (fun (f, l) -> Audio.getSampleProviderWithRate 48000 f, l)
     |> Seq.map (fun (s, l) -> Audio.offset (randomOffset l) sectionSpan s)
     |> Seq.mapi (fun i s ->
-        if i = 0 then AudioFader(s, 2500, fadeBetweenSections, sectionLength)
-        elif i = numFiles - 1 then AudioFader(s, fadeBetweenSections, 3000, sectionLength)
+        if i = 0 then AudioFader(s, 2500<ms>, fadeBetweenSections, sectionLength)
+        elif i = numFiles - 1 then AudioFader(s, fadeBetweenSections, 3000<ms>, sectionLength)
         else AudioFader(s, fadeBetweenSections, fadeBetweenSections, sectionLength))
     |> Seq.cast<ISampleProvider>
     |> Audio.concatenate targetFile
