@@ -28,8 +28,8 @@ let private createTrack instArrFile (title : string option) (audioFile : string 
     let song = InstrumentalArrangement.Load(instArrFile)
     { Title = title |> Option.defaultValue song.Title
       AudioFile = audioFile
-      SongLength = song.SongLength
-      TrimAmount = song.StartBeat
+      SongLength = song.SongLength * 1<ms>
+      TrimAmount = song.StartBeat * 1<ms>
       Arrangements = arrangements |> List.sortBy arrangementSort }
 
 let private addNewTrack state arrangementFileNames =

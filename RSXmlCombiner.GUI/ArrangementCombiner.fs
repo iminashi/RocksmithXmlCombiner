@@ -16,30 +16,33 @@ let private combineShowLights tracks arrIndex targetFolder =
         let combiner = ShowLightsCombiner()
         for track in tracks do
             let next = ShowLights.Load(track.Arrangements.[arrIndex].FileName |> Option.get)
-            combiner.AddNext(next, track.SongLength, track.TrimAmount)
+            combiner.AddNext(next, int track.SongLength, int track.TrimAmount)
 
         combiner.Save(Path.Combine(targetFolder, "Combined_Showlights_RS2.xml"))
         increaseProgress ()
 
 /// Inserts the given title at the beginning of the given vocals arrangement.
-let private addTitle (vocals : Vocals) (title : string) (startBeat : int) =
-    let defaultDisplayTime = 3000
+let private addTitle (vocals : Vocals) (title : string) (startBeat : int<ms>) =
+    let defaultDisplayTime = 3000<ms>
 
     let displayTime =
+        let firstVocalsTime =
+            if vocals.Count > 0 then
+                Some (vocals.[0].Time |> LanguagePrimitives.Int32WithMeasure<ms>)
+            else None
         // Make sure that the title does not overlap with existing lyrics
-        if vocals.Count > 0 && vocals.[0].Time < startBeat + defaultDisplayTime then
-            vocals.[0].Time - startBeat - 50
-        else
-            defaultDisplayTime
+        match firstVocalsTime with
+        | Some time when time < startBeat + defaultDisplayTime -> time - startBeat - 50<ms>
+        | _ -> defaultDisplayTime
 
     // Don't add the title if it will be displayed for less than a quarter of a second
-    if displayTime >= 250 then
+    if displayTime >= 250<ms> then
         let words = title.Split(' ')
         let length = displayTime / words.Length
         for i = words.Length - 1 downto 0 do
-            vocals.Insert(0, Vocal(startBeat + (length * i), length, words.[i]))
+            vocals.Insert(0, Vocal(int (startBeat + (length * i)), int length, words.[i]))
 
-/// Combines the vocals arrangements if at least one track has one.
+/// Combines the vocals arrangements if at least one track has one, or addTitles is true.
 let private combineVocals (tracks : Track list) arrIndex targetFolder addTitles =
     if addTitles || tracks |> List.exists (fun t -> t.Arrangements.[arrIndex].FileName |> Option.isSome) then
         let combiner = VocalsCombiner()
@@ -53,7 +56,7 @@ let private combineVocals (tracks : Track list) arrIndex targetFolder addTitles 
                 let title = sprintf "%i. %s+" (trackIndex + 1) track.Title
                 addTitle next title track.TrimAmount
 
-            combiner.AddNext(next, track.SongLength, track.TrimAmount)
+            combiner.AddNext(next, int track.SongLength, int track.TrimAmount)
 
         combiner.Save(Path.Combine(targetFolder, sprintf "Combined_%s_RS2.xml" tracks.Head.Arrangements.[arrIndex].Name))
         increaseProgress ()
@@ -140,7 +143,7 @@ let private combineInstrumental (project : ProgramState) arrIndex targetFolder =
             if not arrData.ToneNames.IsEmpty then
                 replaceToneNames next arrData.ToneReplacements commonTones
 
-            combiner.AddNext(next, tracks.[i].TrimAmount, (i = tracks.Length - 1))
+            combiner.AddNext(next, int tracks.[i].TrimAmount, (i = tracks.Length - 1))
             increaseProgress ()
 
         if String.notEmpty project.CombinationTitle then

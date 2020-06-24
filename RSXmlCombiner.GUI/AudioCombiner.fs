@@ -7,7 +7,7 @@ open NAudio.Wave
 let progress = Progress<float>()
 
 /// Copies from the reader to the writer with the given amount in milliseconds trimmed from the start.
-let private addTrimmed (reader : WaveStream) (writer : WaveFileWriter) (trim : int) =
+let private addTrimmed (reader : WaveStream) (writer : WaveFileWriter) (trim : int<ms>) =
     let bytesPerMillisecond = float reader.WaveFormat.AverageBytesPerSecond / 1000.0
     let startPos = int (float trim * bytesPerMillisecond)
     let trimStart = startPos - startPos % reader.WaveFormat.BlockAlign
@@ -25,7 +25,7 @@ let combineAudioFiles (tracks : Track list) (targetFile : string) =
         try
             use first = Audio.get16BitWaveStream tracks.Head.AudioFile
             use writer = new WaveFileWriter(targetFile, first.WaveFormat)
-            do! addTrimmed first writer 0
+            do! addTrimmed first writer 0<ms>
 
             for i, t in tracks.Tail |> List.indexed do
                 (progress :> IProgress<float>).Report(float(i + 1) / (float tracks.Length))
@@ -78,10 +78,10 @@ let createPreview (tracks : Track list) (targetFile : string) =
     let sectionLength = int64 (28.0 / float numFiles * 1000.0)
     let sectionSpan = TimeSpan.FromMilliseconds(float sectionLength)
     let sampleRate = tracks.Head.AudioFile |> Option.get |> Audio.getSampleRate
-    let randomOffset songLength =
+    let randomOffset (songLength : int<ms>) =
         let startOffset =
-            if songLength <= 50000 then rand.Next(0, songLength - 15000)
-            else rand.Next(10000, songLength - 30000)
+            if songLength <= 50000<ms> then rand.Next(0, int(songLength - 15000<ms>))
+            else rand.Next(10000, int (songLength - 30000<ms>))
         startOffset |> float |> TimeSpan.FromMilliseconds
 
     tracks

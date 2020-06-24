@@ -109,7 +109,7 @@ let update (msg: Msg) (state: ProgramState) =
         { state with ReplacementToneEditor = Some(trackIndex, arrIndex) }, Cmd.none
 
     | TrimAmountChanged (trackIndex, trimAmount) ->
-        let trim = int (Math.Round(trimAmount * 1000.0))
+        let trim = int (Math.Round(trimAmount * 1000.0)) * 1<ms>
         let newTracks = state.Tracks |> List.mapi (fun i t -> if i = trackIndex then { t with TrimAmount = trim } else t)
         { state with Tracks = newTracks }, Cmd.none
 

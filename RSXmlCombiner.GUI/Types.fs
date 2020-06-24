@@ -5,6 +5,8 @@ module Types =
     open System
     open Rocksmith2014Xml
 
+    [<Measure>] type ms
+
     type CommonTones = Map<string, string[]>
 
     type ArrangementOrdering = Main | Alternative | Bonus
@@ -65,9 +67,9 @@ module Types =
 
     type Track = 
       { Title : string
-        TrimAmount : int
+        TrimAmount : int<ms>
         AudioFile : string option
-        SongLength : int
+        SongLength : int<ms>
         Arrangements : Arrangement list }
 
     let hasAudioFile track = track.AudioFile |> Option.isSome

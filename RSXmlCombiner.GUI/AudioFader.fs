@@ -26,7 +26,7 @@ type AudioFader(source: ISampleProvider, fadeInLength: int, fadeOutLength : int,
                     fadeInSamplePosition <- fadeInSamplePosition + 1
 
             if totalSamplesRead >= fadeOutStartSample then
-                let mutable sample : int =
+                let mutable sample =
                     if totalSamplesRead - int64 sourceSamplesRead < fadeOutStartSample then
                         int (fadeOutStartSample - (totalSamplesRead - int64 sourceSamplesRead))
                     else

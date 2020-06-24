@@ -156,6 +156,7 @@ let view state dispatch =
                                         Border.child (TextBlock.create [ TextBlock.text state.StatusMessage ])
                                     ]
 
+                                    // Progress Bar for Audio Combining
                                     ProgressBar.create [
                                           Border.dock Dock.Bottom
                                           ProgressBar.background "#181818"
@@ -166,6 +167,7 @@ let view state dispatch =
                                           ProgressBar.isIndeterminate (state.AudioCombinerProgress |> Option.isSome)
                                     ]
 
+                                    // Progress Bar for Arrangement Combining
                                     ProgressBar.create [
                                           Border.dock Dock.Bottom
                                           ProgressBar.background "#181818"

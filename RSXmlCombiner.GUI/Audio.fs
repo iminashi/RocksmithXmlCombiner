@@ -9,13 +9,13 @@ open System
 let private getWaveStream (fileName : string)  =
     if fileName.EndsWith(".wav", StringComparison.OrdinalIgnoreCase) then new AudioFileReader(fileName) :> WaveStream
     elif fileName.EndsWith(".ogg", StringComparison.OrdinalIgnoreCase) then new VorbisWaveReader(fileName) :> WaveStream
-    else failwith "The audio file must be a wav or ogg file."
+    else invalidOp "The audio file must be a wav or ogg file."
 
 /// Returns a sample provider for wave and vorbis files.
 let getSampleProvider (fileName : string)  =
     if fileName.EndsWith(".wav", StringComparison.OrdinalIgnoreCase) then new AudioFileReader(fileName) :> ISampleProvider
     elif fileName.EndsWith(".ogg", StringComparison.OrdinalIgnoreCase) then new VorbisWaveReader(fileName) :> ISampleProvider
-    else failwith "The audio file must be a wav or ogg file."
+    else invalidOp "The audio file must be a wav or ogg file."
 
 /// Returns the sample rate of the given wave or vorbis file.
 let getSampleRate (fileName : string) =
@@ -38,7 +38,7 @@ let private resampleIfNeeded targetRate (reader : ISampleProvider) =
 let getSampleProviderWithRate sampleRate = getSampleProvider >> resampleIfNeeded sampleRate
 
 /// Trims the given amount of time in milliseconds from the given sample provider.
-let trimStart amount (file : ISampleProvider) =
+let trimStart (amount : int<ms>) (file : ISampleProvider) =
     amount |> float |> TimeSpan.FromMilliseconds |> file.Skip
 
 /// Concatenates the sample providers into a 16-bit wave file with the given name.
