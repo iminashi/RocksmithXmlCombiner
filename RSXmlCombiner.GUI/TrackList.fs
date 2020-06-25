@@ -125,8 +125,13 @@ let update (msg: Msg) (state: ProgramState) =
                 { t with Arrangements = arrs })
 
         let updatedCommonTones = state.CommonTones |> Map.remove name
+        let updatedSelectedTones = state.SelectedFileTones |> Map.remove name
 
-        { state with Tracks = updatedTracks; Templates = updatedTemplates; CommonTones = updatedCommonTones }, Cmd.none
+        { state with
+            Tracks = updatedTracks
+            Templates = updatedTemplates
+            CommonTones = updatedCommonTones
+            SelectedFileTones = updatedSelectedTones }, Cmd.none
 
 /// Creates the view for an arrangement.
 let private arrangementView (arr : Arrangement) trackIndex arrIndex state dispatch =
