@@ -53,7 +53,7 @@ let combineWithResampling (tracks : Track list) (targetFile : string) =
         try
             let firstFile = tracks.Head.AudioFile |> Option.get
             let head = Audio.getSampleProviderWithRate 48000 firstFile
-        
+
             let tail =
                 tracks.Tail
                 |> List.map (fun t ->

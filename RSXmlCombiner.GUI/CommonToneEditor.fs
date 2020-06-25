@@ -5,9 +5,12 @@ open Avalonia.Controls
 open Avalonia.FuncUI.DSL
 open Avalonia.Layout
 open Avalonia.FuncUI.Types
+open System
 
 type Msg =
     | UpdateToneName of arrName:string * index:int * newName:string
+    | SelectedToneFromFileChanged of arrName:string * selectedTone:string
+    | AddSelectedToneFromFile of arrName:string
 
 let update (msg: Msg) state : ProgramState * Cmd<_> =
     match msg with
@@ -22,6 +25,31 @@ let update (msg: Msg) state : ProgramState * Cmd<_> =
                 |> Map.add arrName (names |> Array.mapi (fun i name -> if i = index then newName else name))
 
             { state with CommonTones = newTones }, Cmd.none
+
+    | SelectedToneFromFileChanged (arrName, selectedTone) ->
+        let st = state.SelectedFileTones |> Map.add arrName selectedTone
+        { state with SelectedFileTones = st }, Cmd.none
+
+    | AddSelectedToneFromFile (arrName) ->
+        let tones = state.CommonTones.[arrName]
+        // Find an empty index that is not the base tone
+        let availableIndex = tones.[1..] |> Array.tryFindIndex String.IsNullOrEmpty
+        let selectedTone = state.SelectedFileTones |> Map.tryFind arrName
+
+        match availableIndex, selectedTone with
+        | Some i, Some newTone ->
+            let updatedTones =
+                let i = i + 1
+                if i = 1 && tones.[0] |> String.IsNullOrEmpty then
+                    // If the base tone and tone A are empty, use this name for them both
+                    tones |> Array.mapi (fun j t -> if j = 0 || j = i then newTone else t)
+                else
+                    tones |> Array.mapi (fun j t -> if j = i then newTone else t)
+
+            let updatedCommonTones = state.CommonTones |> Map.add arrName updatedTones
+            { state with CommonTones = updatedCommonTones }, Cmd.none
+        | _ ->
+            state, Cmd.none
 
 let private tonesTemplate (state : ProgramState) arrName (tones : string[]) dispatch =
     let labels = [| "Base"; "Tone A"; "Tone B"; "Tone C"; "Tone D" |]
@@ -66,16 +94,33 @@ let private tonesTemplate (state : ProgramState) arrName (tones : string[]) disp
                 |> List.ofSeq
             
             if toneList.Length > 0 then
+                let canAdd =
+                    tones.[1..] |> Array.exists String.IsNullOrEmpty
+                    &&
+                    state.SelectedFileTones
+                    |> Map.tryFind arrName
+                    |> Option.map String.notEmpty
+                    |> Option.defaultValue false
+
                 yield StackPanel.create [
                     StackPanel.children [
                         TextBlock.create [
                             TextBlock.fontSize 12.0
                             TextBlock.horizontalAlignment HorizontalAlignment.Center
-                            TextBlock.text "Tones in files:"
+                            TextBlock.text "Tone Names in Files:"
                         ]
                         ComboBox.create [
                             ComboBox.height 30.0
+                            ComboBox.margin 2.0
                             ComboBox.dataItems toneList
+                            ComboBox.selectedItem (state.SelectedFileTones |> Map.tryFind arrName |> Option.toObj)
+                            ComboBox.onSelectedItemChanged (fun item -> SelectedToneFromFileChanged(arrName, item |> string) |> dispatch)
+                        ]
+                        Button.create [
+                            Button.horizontalAlignment HorizontalAlignment.Center
+                            Button.content "Add"
+                            Button.isEnabled canAdd
+                            Button.onClick (fun _ -> AddSelectedToneFromFile arrName |> dispatch)
                         ]
                     ]
                 ]

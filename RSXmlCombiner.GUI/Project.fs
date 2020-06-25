@@ -51,4 +51,5 @@ let toProgramState templates fileName statusMessage dto =
       ProjectViewActive = true
       AudioCombinerProgress = None
       ArrangementCombinerProgress = None
-      OpenProjectFile = Some fileName }
+      OpenProjectFile = Some fileName
+      SelectedFileTones = Map.empty }
