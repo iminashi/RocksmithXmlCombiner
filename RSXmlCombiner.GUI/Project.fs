@@ -4,12 +4,12 @@ open System.IO
 open System.Text.Json
 open System.Text.Json.Serialization
 
-type Dto = {
-    Tracks : Track list
-    CommonTones : CommonTones
-    CombinationTitle : string
-    CoercePhrases : bool
-    AddTrackNamesToLyrics : bool }
+type Dto =
+   { Tracks : Track list
+     CommonTones : CommonTones
+     CombinationTitle : string
+     CoercePhrases : bool
+     AddTrackNamesToLyrics : bool }
 
 let private fromProgramState (state : ProgramState) =
    { Tracks = state.Tracks

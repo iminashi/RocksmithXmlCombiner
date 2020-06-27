@@ -8,7 +8,6 @@ open Avalonia.FuncUI.DSL
 open Avalonia.Layout
 
 type Msg = 
-    | SelectTargetAudioFile
     | SelectCombinationTargetFolder
     | CombineAudioFiles of targetFile : string option
     | CombineArrangements of targetFolder :string option
@@ -17,44 +16,40 @@ type Msg =
     | AddTrackNamesChanged of bool
     | CombineAudioCompleted of message : string
     | CombineArrangementsCompleted of unit
-    | SelectPreviewTargetFile
     | CreatePreview of targetFile : string option
+    | SelectTargetAudioFile of defaultFileName : string option * cmd : (string option -> Msg)
 
 let update msg state : ProgramState * Cmd<_> =
     match msg with
-    | SelectTargetAudioFile ->
+    | SelectTargetAudioFile (defaultFileName, cmd) ->
         let initialDir = state.OpenProjectFile |> Option.map Path.GetDirectoryName
-        let dialog = Dialogs.saveFileDialog "Select Target File" Dialogs.audioFileFiltersSave (Some "combo.wav")
-        state, Cmd.OfAsync.perform dialog initialDir CombineAudioFiles
+        let dialog = Dialogs.saveFileDialog "Select Target File" Dialogs.audioFileFiltersSave defaultFileName
+        state, Cmd.OfAsync.perform dialog initialDir cmd
 
     | CombineAudioFiles targetFile ->
         match targetFile with
         | None -> state, Cmd.none // User canceled the dialog
         | Some file ->
-            //let task = AudioCombiner.combineAudioFiles state.Tracks
             let task = AudioCombiner.combineWithResampling state.Tracks
             { state with AudioCombinerProgress = Some(0.0) }, Cmd.OfAsync.perform task file CombineAudioCompleted
     
-    | CombineAudioCompleted message ->
-        { state with StatusMessage = message; AudioCombinerProgress = None }, Cmd.none
-
-    | SelectPreviewTargetFile ->
-        let initialDir = state.OpenProjectFile |> Option.map Path.GetDirectoryName
-        let dialog = Dialogs.saveFileDialog "Select Target File" Dialogs.audioFileFiltersSave (Some "combo_preview.wav")
-        state, Cmd.OfAsync.perform dialog initialDir CreatePreview
-
     | CreatePreview targetFile ->
         match targetFile with
         | None -> state, Cmd.none // User canceled the dialog
         | Some file ->
-            let message = 
-                try
-                    AudioCombiner.createPreview state.Tracks file
-                    "Preview created."
-                with
-                e -> sprintf "Error: %s" e.Message
+            let task file = 
+                async {
+                    try
+                        AudioCombiner.createPreview state.Tracks file
+                        return "Preview created."
+                    with
+                    e -> return sprintf "Error: %s" e.Message
+                }
 
-            { state with StatusMessage = message }, Cmd.none
+            { state with AudioCombinerProgress = Some(0.0) }, Cmd.OfAsync.perform task file CombineAudioCompleted
+
+    | CombineAudioCompleted message ->
+        { state with StatusMessage = message; AudioCombinerProgress = None }, Cmd.none
 
     | CombineArrangements targetFolder ->
         match targetFolder with
@@ -119,15 +114,17 @@ let view state dispatch =
                     Button.create [
                         Button.content "Combine Audio"
                         Button.fontSize 20.0
-                        Button.onClick (fun _ -> dispatch SelectTargetAudioFile)
+                        Button.onClick (fun _ -> SelectTargetAudioFile (Some "combo.wav", CombineAudioFiles) |> dispatch)
                         Button.isEnabled canCombineAudio
                     ]
+                    // Create Preview Button
                     Button.create [
                         Button.content "Create Preview"
                         Button.fontSize 12.0
                         Button.margin (0.0, 1.0)
-                        Button.onClick (fun _ -> dispatch SelectPreviewTargetFile)
+                        Button.onClick (fun _ -> SelectTargetAudioFile (Some "combo_preview.wav", CreatePreview) |> dispatch)
                         Button.isEnabled canCombineAudio
+                        ToolTip.tip "Creates a preview audio file from randomly selected sections from randomly selected files (up to 4)."
                     ]
                 ]
             ]

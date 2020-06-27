@@ -15,7 +15,7 @@ open Media
 open ArrangementType
 
 type Msg =
-    | RemoveTrackAt of index : int
+    | RemoveTrack of trackIndex : int
     | ChangeAudioFile of trackIndex : int
     | ChangeAudioFileResult of trackIndex : int * newFile : string option
     | SelectArrangementFile of trackIndex : int * arrIndex : int
@@ -39,8 +39,8 @@ let private getArr trackIndex arrIndex state = state.Tracks.[trackIndex].Arrange
 /// Updates the model according to the message content.
 let update (msg: Msg) (state: ProgramState) =
     match msg with
-    | RemoveTrackAt index ->
-        { state with Tracks = state.Tracks |> List.except (seq { state.Tracks.[index] }) }, Cmd.none
+    | RemoveTrack trackIndex ->
+        { state with Tracks = state.Tracks |> List.except (seq { state.Tracks.[trackIndex] }) }, Cmd.none
 
     | ChangeAudioFile trackIndex ->
         let initialDir = getInitialDir state.Tracks.[trackIndex].AudioFile state trackIndex
@@ -51,8 +51,11 @@ let update (msg: Msg) (state: ProgramState) =
         match file with
         | None -> state, Cmd.none
         | Some fileName ->
-            let newTracks = state.Tracks |> List.mapi (fun i t -> if i = trackIndex then changeAudioFile t fileName else t) 
-            { state with Tracks = newTracks }, Cmd.none
+            let updatedTracks =
+                state.Tracks
+                |> List.mapi (fun i t -> if i = trackIndex then changeAudioFile t fileName else t)
+
+            { state with Tracks = updatedTracks }, Cmd.none
 
     | SelectArrangementFile (trackIndex, arrIndex) ->
         let initialDir = getInitialDir (state |> getArr trackIndex arrIndex).FileName state trackIndex
@@ -163,7 +166,7 @@ let private arrangementView (arr : Arrangement) trackIndex arrIndex state dispat
                 ContextMenu.viewItems [
                     MenuItem.create [
                         MenuItem.header "Remove File"
-                        MenuItem.isEnabled (arr.FileName |> Option.isSome)
+                        MenuItem.isEnabled (fileName |> Option.isSome)
                         MenuItem.onClick (fun _ -> RemoveArrangementFile(trackIndex, arrIndex) |> dispatch)
                     ]
                     MenuItem.create [
@@ -199,20 +202,17 @@ let private arrangementView (arr : Arrangement) trackIndex arrIndex state dispat
                                 TextBlock.classes [ "h2"]
                                 TextBlock.text arr.Name
                                 TextBlock.foreground color
-                                TextBlock.cursor <| Cursor StandardCursorType.Hand
+                                TextBlock.cursor Cursors.hand
                                 TextBlock.onTapped (fun _ -> SelectArrangementFile(trackIndex, arrIndex) |> dispatch)
                             ]
                         ]
                     ]
                     // File Name
                     yield TextBlock.create [
-                        yield TextBlock.text (
-                            match fileName with
-                            | Some fn -> Path.GetFileNameWithoutExtension(fn)
-                            | None -> "No file")
+                        yield TextBlock.text (fileName |> Option.map Path.GetFileNameWithoutExtension |> Option.defaultValue "No file")
                         yield TextBlock.width 100.0
                         yield TextBlock.foreground fileNameBrush
-                        yield TextBlock.cursor <| Cursor StandardCursorType.Hand
+                        yield TextBlock.cursor Cursors.hand
                         yield TextBlock.onTapped (fun _ -> SelectArrangementFile(trackIndex, arrIndex) |> dispatch)
                         yield ToolTip.tip (fileName |> Option.defaultValue "Click to select a file.")
                     ]
@@ -289,8 +289,8 @@ let private trackView (track : Track) index state dispatch =
                                 ContentControl.classes [ "close" ]
                                 ContentControl.margin (2.0, 0.0, 5.0, 0.0)
                                 ContentControl.renderTransform <| ScaleTransform(1.5, 1.5)
-                                ContentControl.cursor <| Cursor StandardCursorType.Hand
-                                ContentControl.onTapped (fun _ -> RemoveTrackAt index |> dispatch)
+                                ContentControl.cursor Cursors.hand
+                                ContentControl.onTapped (fun _ -> RemoveTrack index |> dispatch)
                                 ContentControl.content (
                                     Path.create [
                                         Path.data Icons.close
@@ -314,9 +314,9 @@ let private trackView (track : Track) index state dispatch =
                                         TextBlock.horizontalAlignment HorizontalAlignment.Center
                                         TextBlock.foreground audioFileBrush
                                         TextBlock.maxWidth 100.0
-                                        TextBlock.cursor <| Cursor StandardCursorType.Hand
+                                        TextBlock.cursor Cursors.hand
                                         TextBlock.onTapped (fun _ -> ChangeAudioFile index |> dispatch)
-                                        TextBlock.text (track.AudioFile |> Option.defaultValue "None selected" |> Path.GetFileName)
+                                        TextBlock.text (track.AudioFile |> Option.map Path.GetFileName |> Option.defaultValue "None selected" )
                                         ToolTip.tip (track.AudioFile |> Option.defaultValue "Click to select a file.")
                                     ]
 

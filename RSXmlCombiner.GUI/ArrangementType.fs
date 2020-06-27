@@ -39,8 +39,7 @@ module ArrangementType =
         elif props.PathBass = 1uy then ArrangementType.Bass
         else ArrangementType.Unknown
 
-    let humanize arrType =
-        match arrType with
+    let humanize = function
         | ArrangementType.ShowLights -> "Show Lights"
         | ArrangementType.JVocals -> "J-Vocals"
-        | _ -> string arrType
+        | arrType -> string arrType

@@ -25,8 +25,7 @@ module Types =
 
     type Templates = Templates of Arrangement list
 
-    let createNamePrefix ordering = 
-        match ordering with
+    let createNamePrefix = function
         | ArrangementOrdering.Alternative -> "Alt. "
         | ArrangementOrdering.Bonus -> "Bonus "
         | _ -> ""
@@ -48,8 +47,8 @@ module Types =
                 ]
 
         let ordering =
-            if song.ArrangementProperties.BonusArrangement = byte 1 then ArrangementOrdering.Bonus
-            else if song.ArrangementProperties.Represent = byte 0 then ArrangementOrdering.Alternative
+            if song.ArrangementProperties.BonusArrangement = 1uy then ArrangementOrdering.Bonus
+            else if song.ArrangementProperties.Represent = 0uy then ArrangementOrdering.Alternative
             else ArrangementOrdering.Main
 
         let arrData =

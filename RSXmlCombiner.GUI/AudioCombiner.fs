@@ -56,13 +56,13 @@ let combineWithResampling (tracks : Track list) (targetFile : string) =
 
             let tail =
                 tracks.Tail
-                |> List.map (fun t ->
+                |> Seq.map (fun t ->
                     t.AudioFile
                     |> Option.get
                     |> Audio.getSampleProviderWithRate 48000 
                     |> Audio.trimStart t.TrimAmount)
 
-            Audio.concatenate targetFile (head :: tail)
+            Audio.concatenate targetFile (seq { head; yield! tail })
 
             return sprintf "Audio files combined as %s" targetFile
         with

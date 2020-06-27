@@ -1,6 +1,7 @@
 ﻿module RSXmlCombiner.FuncUI.Media
 
 open Avalonia.Media
+open Avalonia.Input
 
 /// Icons from Material Design.
 module Icons =
@@ -13,3 +14,6 @@ module Brushes =
     let lead = SolidColorBrush.Parse "#ff9242" :> ISolidColorBrush
     let rhythm = SolidColorBrush.Parse "#1ea334" :> ISolidColorBrush
     let bass = SolidColorBrush.Parse "#0383b5" :> ISolidColorBrush
+
+module Cursors =
+    let hand = Cursor StandardCursorType.Hand
