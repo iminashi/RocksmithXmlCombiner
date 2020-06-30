@@ -38,7 +38,7 @@ namespace XmlCombiners
             Console.WriteLine($"Saved combined file as {fileName}");
         }
 
-        public void AddNext(InstrumentalArrangement next, int trimAmount, bool isLast = false)
+        public void AddNext(InstrumentalArrangement next, int songLength, int trimAmount, bool isLast = false)
         {
             ArrangementNumber++;
 
@@ -52,6 +52,7 @@ namespace XmlCombiners
             if (CombinedArrangement is null)
             {
                 CombinedArrangement = next;
+                CombinedArrangement.SongLength = songLength;
                 // Remove the transcription track in case one is present
                 CombinedArrangement.TranscriptionTrack = new Level();
                 return;
@@ -101,7 +102,7 @@ namespace XmlCombiners
 
             CombineTones(CombinedArrangement, next, startTime);
 
-            CombinedArrangement.SongLength += next.SongLength - trimAmount;
+            CombinedArrangement.SongLength += songLength - trimAmount;
             TempoSum += next.AverageTempo;
             CombineArrangementProperties(CombinedArrangement, next);
         }
