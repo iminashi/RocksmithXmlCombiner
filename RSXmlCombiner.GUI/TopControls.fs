@@ -26,9 +26,14 @@ type Msg =
 
 let private createTrack instArrFile (title : string option) (audioFile : string option) arrangements =
     let song = InstrumentalArrangement.Load(instArrFile)
+    let songLength =
+        audioFile
+        |> Option.map Audio.getLength
+        |> Option.defaultValue (song.SongLength * 1<ms>)
+
     { Title = title |> Option.defaultValue song.Title
       AudioFile = audioFile
-      SongLength = song.SongLength * 1<ms>
+      SongLength = songLength
       TrimAmount = song.StartBeat * 1<ms>
       Arrangements = arrangements |> List.sortBy arrangementSort }
 

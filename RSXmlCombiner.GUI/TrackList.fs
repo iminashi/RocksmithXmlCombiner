@@ -26,7 +26,9 @@ type Msg =
     | TrimAmountChanged of trackIndex : int * trimAmunt : double
     | RemoveTemplate of name : string
 
-let private changeAudioFile track newFile = { track with AudioFile = Some newFile }
+let private changeAudioFile track newFile =
+    let length = Audio.getLength newFile
+    { track with AudioFile = Some newFile; SongLength = length }
 
 let private getInitialDir (fileName : string option) state trackIndex =
     fileName
@@ -51,11 +53,19 @@ let update (msg: Msg) (state: ProgramState) =
         match file with
         | None -> state, Cmd.none
         | Some fileName ->
+            let oldSongLength = state.Tracks.[trackIndex].SongLength
             let updatedTracks =
                 state.Tracks
                 |> List.mapi (fun i t -> if i = trackIndex then changeAudioFile t fileName else t)
+            let newSongLength = updatedTracks.[trackIndex].SongLength
 
-            { state with Tracks = updatedTracks }, Cmd.none
+            let message =
+                if oldSongLength <> newSongLength then
+                    sprintf "Old song length: %.3f, new: %.3f" (float oldSongLength / 1000.0) (float newSongLength / 1000.0)
+                else
+                    "Audio file changed."
+
+            { state with Tracks = updatedTracks; StatusMessage = message }, Cmd.none
 
     | SelectArrangementFile (trackIndex, arrIndex) ->
         let initialDir = getInitialDir (state |> getArr trackIndex arrIndex).FileName state trackIndex

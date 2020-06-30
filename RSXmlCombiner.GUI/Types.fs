@@ -17,7 +17,7 @@ module Types =
         ToneNames : string list
         ToneReplacements : Map<string, int> }
 
-    type Arrangement = 
+    type Arrangement =
       { Name : string
         FileName : string option
         ArrangementType : ArrangementType

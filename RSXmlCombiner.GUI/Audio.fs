@@ -25,7 +25,7 @@ let getSampleRate (fileName : string) =
 /// Returns the total length in milliseconds of the given wave or vorbis file.
 let getLength (fileName : string) =
     use reader = getWaveStream fileName
-    int64 reader.TotalTime.TotalMilliseconds
+    int (Math.Round(reader.TotalTime.TotalMilliseconds, MidpointRounding.AwayFromZero)) * 1<ms>
        
 /// If the sample rate of the sample provider is different than the given sample rate, it will be resampled.
 let private resampleIfNeeded targetRate (reader : ISampleProvider) =
