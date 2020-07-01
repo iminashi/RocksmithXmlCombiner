@@ -13,6 +13,7 @@ type Msg =
     | CombineArrangements of targetFolder :string option
     | UpdateCombinationTitle of newTitle : string
     | CoercePhrasesChanged of bool
+    | OnePhrasePerTrackChanged of bool
     | AddTrackNamesChanged of bool
     | CombineAudioCompleted of message : string
     | CombineArrangementsCompleted of unit
@@ -87,6 +88,7 @@ let update msg state : ProgramState * Cmd<_> =
 
     | UpdateCombinationTitle newTitle -> { state with CombinationTitle = newTitle }, Cmd.none
     | CoercePhrasesChanged value -> { state with CoercePhrases = value }, Cmd.none
+    | OnePhrasePerTrackChanged value -> { state with OnePhrasePerTrack = value }, Cmd.none
     | AddTrackNamesChanged value -> { state with AddTrackNamesToLyrics = value }, Cmd.none
 
 let view state dispatch =
@@ -157,13 +159,21 @@ let view state dispatch =
                                 CheckBox.onUnchecked (fun _ -> CoercePhrasesChanged false |> dispatch)
                                 ToolTip.tip "Combines phrases and sections so that the resulting arrangements have a max of 100 phrases and sections.\n\nWorks only when combining arrangements without DD levels."
                             ]
+                            // One Phrase Per Track Checkbox
+                            CheckBox.create [
+                                CheckBox.content "One Phrase Per Track"
+                                CheckBox.isChecked state.OnePhrasePerTrack
+                                CheckBox.onChecked (fun _ -> OnePhrasePerTrackChanged true |> dispatch)
+                                CheckBox.onUnchecked (fun _ -> OnePhrasePerTrackChanged false |> dispatch)
+                                CheckBox.margin (0.0, 5.0, 0.0, 5.0)
+                                ToolTip.tip "Condenses each instrumental arrangement on a track into one phrase/section."
+                            ]
                             // Add Track Names to Lyrics Checkbox
                             CheckBox.create [
                                 CheckBox.content "Add Track Names to Lyrics"
                                 CheckBox.isChecked state.AddTrackNamesToLyrics
                                 CheckBox.onChecked (fun _ -> AddTrackNamesChanged true |> dispatch)
                                 CheckBox.onUnchecked (fun _ -> AddTrackNamesChanged false |> dispatch)
-                                CheckBox.margin (0.0, 5.0, 0.0, 0.0) 
                             ]
                         ]
                     ]

@@ -9,6 +9,7 @@ type ProgramState =
     Templates : Templates
     CombinationTitle : string
     CoercePhrases : bool
+    OnePhrasePerTrack : bool
     AddTrackNamesToLyrics : bool
     StatusMessage : string
     ReplacementToneEditor : (int * int) option
@@ -25,6 +26,7 @@ module ProgramState =
         CommonTones = Map.empty
         CombinationTitle = ""
         CoercePhrases = true
+        OnePhrasePerTrack = true
         AddTrackNamesToLyrics = true
         StatusMessage = ""
         ReplacementToneEditor = None

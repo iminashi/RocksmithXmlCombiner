@@ -45,6 +45,7 @@ let toProgramState templates fileName statusMessage dto =
       CombinationTitle = dto.CombinationTitle
       AddTrackNamesToLyrics = dto.AddTrackNamesToLyrics
       CoercePhrases = dto.CoercePhrases
+      OnePhrasePerTrack = true
       Templates = templates
       StatusMessage = statusMessage
       ReplacementToneEditor = None
