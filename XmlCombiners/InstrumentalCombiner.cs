@@ -158,7 +158,7 @@ namespace XmlCombiners
 
             // Store the times of the COUNT, END and the first proper phrase
             int endPhraseId = arr.Phrases.FindIndex(p => p.Name.Equals("END", StringComparison.OrdinalIgnoreCase));
-            int endTime = arr.PhraseIterations.First(p => p.PhraseId == endPhraseId).Time;
+            int? endTime = arr.PhraseIterations.FirstOrDefault(p => p.PhraseId == endPhraseId)?.Time;
             int countTime = arr.PhraseIterations[0].Time;
             int firstPhraseTime = arr.PhraseIterations[1].Time;
 
@@ -187,9 +187,12 @@ namespace XmlCombiners
             arr.Sections.Add(new Section("riff", firstPhraseTime, 1));
 
             // Recreate the END phrase and final noguitar section
-            arr.Phrases.Add(new Phrase("END", 0, PhraseMask.None));
-            arr.PhraseIterations.Add(new PhraseIteration(endTime, 2));
-            arr.Sections.Add(new Section("noguitar", endTime, 1));
+            if (endTime.HasValue)
+            {
+                arr.Phrases.Add(new Phrase("END", 0, PhraseMask.None));
+                arr.PhraseIterations.Add(new PhraseIteration(endTime.Value, 2));
+                arr.Sections.Add(new Section("noguitar", endTime.Value, 1));
+            }
         }
 
         private void UpdatePhraseNames(InstrumentalArrangement song)
