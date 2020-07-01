@@ -41,7 +41,7 @@ namespace XmlCombiners
             ArrangementNumber++;
 
             if (condenseIntoOnePhrase)
-                CondenseIntoOnePhase(next);
+                CondenseIntoOnePhase(next, songLength);
 
             RemoveExtraBeats(next);
             if (!isLast)
@@ -106,35 +106,39 @@ namespace XmlCombiners
             CombineArrangementProperties(CombinedArrangement, next);
         }
 
-        private void CondenseIntoOnePhase(InstrumentalArrangement arr)
+        private void CondenseIntoOnePhase(InstrumentalArrangement arr, int songLength)
         {
             // Duplicate notes etc. into higher levels for phrases whose max difficulty is lower than the highest max difficulty 
-            for (int i = 1; i < arr.PhraseIterations.Count - 1; i++)
+            for (int i = 1; i < arr.PhraseIterations.Count; i++)
             {
                 var pi = arr.PhraseIterations[i];
-                var nextPi = arr.PhraseIterations[i + 1];
+                if (arr.Phrases[pi.PhraseId].Name.Equals("END", StringComparison.OrdinalIgnoreCase))
+                    break;
+
+                int startTime = pi.Time;
+                var endTime = (i + 1 == arr.PhraseIterations.Count) ? songLength : arr.PhraseIterations[i + 1].Time;
                 int maxDiff = arr.Phrases[pi.PhraseId].MaxDifficulty;
                 var maxLevel = arr.Levels[maxDiff];
                 if (maxDiff < arr.Levels.Count - 1)
                 {
                     var notes =
                         from n in maxLevel.Notes
-                        where n.Time >= pi.Time && n.Time < nextPi.Time
+                        where n.Time >= startTime && n.Time < endTime
                         select new Note(n);
 
                     var chords =
                         from c in maxLevel.Chords
-                        where c.Time >= pi.Time && c.Time < nextPi.Time
+                        where c.Time >= startTime && c.Time < endTime
                         select new Chord(c);
 
                     var handshapes =
                         from hs in maxLevel.HandShapes
-                        where hs.Time >= pi.Time && hs.Time < nextPi.Time
+                        where hs.Time >= startTime && hs.Time < endTime
                         select new HandShape(hs);
 
                     var anchors =
                         from a in maxLevel.Anchors
-                        where a.Time >= pi.Time && a.Time < nextPi.Time
+                        where a.Time >= startTime && a.Time < endTime
                         select new Anchor(a);
 
                     for (int lvl = maxDiff + 1; lvl < arr.Levels.Count; lvl++)
@@ -158,8 +162,8 @@ namespace XmlCombiners
 
             // Store the times of the COUNT, END and the first proper phrase
             int endPhraseId = arr.Phrases.FindIndex(p => p.Name.Equals("END", StringComparison.OrdinalIgnoreCase));
-            int? endTime = arr.PhraseIterations.FirstOrDefault(p => p.PhraseId == endPhraseId)?.Time;
-            int countTime = arr.PhraseIterations[0].Time;
+            int? endPhraseTime = arr.PhraseIterations.FirstOrDefault(p => p.PhraseId == endPhraseId)?.Time;
+            int countPhraseTime = arr.PhraseIterations[0].Time;
             int firstPhraseTime = arr.PhraseIterations[1].Time;
 
             // Clear the phrases, sections and linked difficulty levels
@@ -170,7 +174,7 @@ namespace XmlCombiners
 
             // Recreate the COUNT phrase
             arr.Phrases.Add(new Phrase("COUNT", 0, PhraseMask.None));
-            arr.PhraseIterations.Add(new PhraseIteration(countTime, 0));
+            arr.PhraseIterations.Add(new PhraseIteration(countPhraseTime, 0));
 
             // Create the one phrase and section for the track
             arr.Phrases.Add(new Phrase("track" + ArrangementNumber, (byte)(arr.Levels.Count - 1), PhraseMask.None));
@@ -187,11 +191,11 @@ namespace XmlCombiners
             arr.Sections.Add(new Section("riff", firstPhraseTime, 1));
 
             // Recreate the END phrase and final noguitar section
-            if (endTime.HasValue)
+            if (endPhraseTime.HasValue)
             {
                 arr.Phrases.Add(new Phrase("END", 0, PhraseMask.None));
-                arr.PhraseIterations.Add(new PhraseIteration(endTime.Value, 2));
-                arr.Sections.Add(new Section("noguitar", endTime.Value, 1));
+                arr.PhraseIterations.Add(new PhraseIteration(endPhraseTime.Value, 2));
+                arr.Sections.Add(new Section("noguitar", endPhraseTime.Value, 1));
             }
         }
 
