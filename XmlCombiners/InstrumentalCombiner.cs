@@ -38,17 +38,19 @@ namespace XmlCombiners
 
         public void AddNext(InstrumentalArrangement next, int songLength, int trimAmount, bool condenseIntoOnePhrase, bool isLast = false)
         {
+            bool isFirstArrangement = CombinedArrangement is null;
             ArrangementNumber++;
 
             if (condenseIntoOnePhrase)
-                CondenseIntoOnePhase(next, songLength);
+                CondenseIntoOnePhase(next, songLength, isFirstArrangement);
 
             RemoveExtraBeats(next);
+
             if (!isLast)
-                RemoveEndPhrase(next);
+                RemoveEndPhrase(next, replaceWithNoGuitar: !condenseIntoOnePhrase);
 
             // Adding the first arrangement
-            if (CombinedArrangement is null)
+            if (isFirstArrangement)
             {
                 CombinedArrangement = next;
                 CombinedArrangement.SongLength = songLength;
@@ -56,8 +58,10 @@ namespace XmlCombiners
                 CombinedArrangement.TranscriptionTrack = new Level();
                 return;
             }
-
-            RemoveCountPhrase(next);
+            else if (!condenseIntoOnePhrase)
+            {
+                RemoveCountPhrase(next);
+            }
 
             int startTime = CombinedArrangement.SongLength - trimAmount;
             int lastMeasure = FindLastMeasure(CombinedArrangement);
@@ -106,7 +110,7 @@ namespace XmlCombiners
             CombineArrangementProperties(CombinedArrangement, next);
         }
 
-        private void CondenseIntoOnePhase(InstrumentalArrangement arr, int songLength)
+        private void CondenseIntoOnePhase(InstrumentalArrangement arr, int songLength, bool isFirst)
         {
             // Duplicate notes etc. into higher levels for phrases whose max difficulty is lower than the highest max difficulty 
             for (int i = 1; i < arr.PhraseIterations.Count; i++)
@@ -173,12 +177,16 @@ namespace XmlCombiners
             arr.Sections.Clear();
 
             // Recreate the COUNT phrase
-            arr.Phrases.Add(new Phrase("COUNT", 0, PhraseMask.None));
-            arr.PhraseIterations.Add(new PhraseIteration(countPhraseTime, 0));
+            if (isFirst)
+            {
+                arr.Phrases.Add(new Phrase("COUNT", 0, PhraseMask.None));
+                arr.PhraseIterations.Add(new PhraseIteration(countPhraseTime, arr.Phrases.Count - 1));
+            }
 
             // Create the one phrase and section for the track
+            int pTime = isFirst ? firstPhraseTime : arr.StartBeat;
             arr.Phrases.Add(new Phrase("track" + ArrangementNumber, (byte)(arr.Levels.Count - 1), PhraseMask.None));
-            var mainPi = new PhraseIteration(firstPhraseTime, 1)
+            var mainPi = new PhraseIteration(pTime, arr.Phrases.Count - 1)
             {
                 HeroLevels = new HeroLevelCollection
                 {
@@ -188,13 +196,13 @@ namespace XmlCombiners
                 }
             };
             arr.PhraseIterations.Add(mainPi);
-            arr.Sections.Add(new Section("riff", firstPhraseTime, 1));
+            arr.Sections.Add(new Section("riff", pTime, 1));
 
             // Recreate the END phrase and final noguitar section
             if (endPhraseTime.HasValue)
             {
                 arr.Phrases.Add(new Phrase("END", 0, PhraseMask.None));
-                arr.PhraseIterations.Add(new PhraseIteration(endPhraseTime.Value, 2));
+                arr.PhraseIterations.Add(new PhraseIteration(endPhraseTime.Value, arr.Phrases.Count - 1));
                 arr.Sections.Add(new Section("noguitar", endPhraseTime.Value, 1));
             }
         }
@@ -439,41 +447,49 @@ namespace XmlCombiners
             }
         }
 
-        private void RemoveEndPhrase(InstrumentalArrangement song)
+        private void RemoveEndPhrase(InstrumentalArrangement song, bool replaceWithNoGuitar)
         {
             int endPhraseId = song.Phrases.FindIndex(p => p.Name.Equals("END", StringComparison.OrdinalIgnoreCase));
             if (endPhraseId == -1)
                 return;
 
             // Replace the end phrase with a no guitar phrase
-            int ngPhraseId = song.Phrases.FindIndex(p => p.Name.Equals("noguitar", StringComparison.OrdinalIgnoreCase));
-            if (ngPhraseId == -1)
+            if (replaceWithNoGuitar)
             {
-                // No "noguitar" phrase present, reuse the end phrase 
-                song.Phrases[endPhraseId].Name = "noguitar";
+                int ngPhraseId = song.Phrases.FindIndex(p => p.Name.Equals("noguitar", StringComparison.OrdinalIgnoreCase));
+                if (ngPhraseId == -1)
+                {
+                    // No "noguitar" phrase present, reuse the end phrase 
+                    song.Phrases[endPhraseId].Name = "noguitar";
+                }
+                else
+                {
+                    // If the end phrase is not the last phrase for some reason, adjust the phrase IDs
+                    if (endPhraseId != song.Phrases.Count - 1)
+                    {
+                        foreach (var phraseIter in song.PhraseIterations)
+                        {
+                            if (phraseIter.PhraseId > endPhraseId)
+                                phraseIter.PhraseId--;
+                        }
+                        foreach (var nld in song.NewLinkedDiffs)
+                        {
+                            for (int i = 0; i < nld.PhraseIds.Count; i++)
+                            {
+                                if (nld.PhraseIds[i] > endPhraseId)
+                                    nld.PhraseIds[i]--;
+                            }
+                        }
+                    }
+
+                    song.Phrases.RemoveAt(endPhraseId);
+                    song.PhraseIterations[^1].PhraseId = ngPhraseId;
+                }
             }
             else
             {
-                // If the end phrase is not the last phrase for some reason, adjust the phrase IDs
-                if (endPhraseId != song.Phrases.Count - 1)
-                {
-                    foreach (var phraseIter in song.PhraseIterations)
-                    {
-                        if (phraseIter.PhraseId > endPhraseId)
-                            phraseIter.PhraseId--;
-                    }
-                    foreach (var nld in song.NewLinkedDiffs)
-                    {
-                        for (int i = 0; i < nld.PhraseIds.Count; i++)
-                        {
-                            if (nld.PhraseIds[i] > endPhraseId)
-                                nld.PhraseIds[i]--;
-                        }
-                    }
-                }
-
                 song.Phrases.RemoveAt(endPhraseId);
-                song.PhraseIterations[^1].PhraseId = ngPhraseId;
+                song.PhraseIterations.RemoveAt(song.PhraseIterations.Count - 1);
             }
         }
 
