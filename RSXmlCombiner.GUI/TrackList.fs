@@ -219,12 +219,12 @@ let private arrangementView (arr : Arrangement) trackIndex arrIndex state dispat
                     ]
                     // File Name
                     yield TextBlock.create [
-                        yield TextBlock.text (fileName |> Option.map Path.GetFileNameWithoutExtension |> Option.defaultValue "No file")
-                        yield TextBlock.width 100.0
-                        yield TextBlock.foreground fileNameBrush
-                        yield TextBlock.cursor Cursors.hand
-                        yield TextBlock.onTapped (fun _ -> SelectArrangementFile(trackIndex, arrIndex) |> dispatch)
-                        yield ToolTip.tip (fileName |> Option.defaultValue "Click to select a file.")
+                        TextBlock.text (fileName |> Option.map Path.GetFileNameWithoutExtension |> Option.defaultValue "No file")
+                        TextBlock.width 100.0
+                        TextBlock.foreground fileNameBrush
+                        TextBlock.cursor Cursors.hand
+                        TextBlock.onTapped (fun _ -> SelectArrangementFile(trackIndex, arrIndex) |> dispatch)
+                        ToolTip.tip (fileName |> Option.defaultValue "Click to select a file.")
                     ]
 
                     // Optional Tone Controls
