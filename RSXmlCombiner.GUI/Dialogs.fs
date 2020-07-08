@@ -17,6 +17,7 @@ let xmlFileFilter = createFilters "Rocksmith Arrangement Files" (seq { "xml" })
 let projectFileFilter = createFilters "Project Files" (seq { "rscproj" })
 let toolkitTemplateFilter = createFilters "Toolkit Templates" (seq { "dlc.xml" })
 
+/// Shows an open folder dialog.
 let openFolderDialog title directory =
     let dialog = OpenFolderDialog(Title = title)
     directory |> Option.iter (fun dir -> dialog.Directory <- dir)
@@ -26,6 +27,7 @@ let openFolderDialog title directory =
         return Option.create String.notEmpty result
     }
 
+/// Shows a save file dialog.
 let saveFileDialog title filters initialFileName directory =
     let dialog = SaveFileDialog(Title = title, Filters = filters)
     initialFileName |> Option.iter (fun fn -> dialog.InitialFileName <- fn)
@@ -36,6 +38,7 @@ let saveFileDialog title filters initialFileName directory =
         return Option.create String.notEmpty result
     }
 
+/// Shows an open file dialog for selecting a single file.
 let openFileDialog title filters directory =
     let dialog = OpenFileDialog(Title = title, Filters = filters, AllowMultiple = false)
     directory |> Option.iter (fun dir -> dialog.Directory <- dir)
@@ -46,6 +49,7 @@ let openFileDialog title filters directory =
         | _ -> return None
     }
 
+/// Shows an open file dialog that allows selecting multiple files.
 let openMultiFileDialog title filters directory =
     let dialog = OpenFileDialog(Title = title, Filters = filters, AllowMultiple = true)
     directory |> Option.iter (fun dir -> dialog.Directory <- dir)

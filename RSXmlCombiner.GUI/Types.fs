@@ -7,6 +7,7 @@ module Types =
 
     [<Measure>] type ms
 
+    /// A map matching an arrangement name into an array of tone names.
     type CommonTones = Map<string, string[]>
 
     type ArrangementOrdering = Main | Alternative | Bonus
@@ -25,15 +26,17 @@ module Types =
 
     type Templates = Templates of Arrangement list
 
+    /// Creates a name prefix based on the given arrangement ordering.
     let createNamePrefix = function
         | ArrangementOrdering.Alternative -> "Alt. "
         | ArrangementOrdering.Bonus -> "Bonus "
         | _ -> ""
 
+    /// Creates an instrumental arrangement from the given file.
     let createInstrumental fileName (arrType : ArrangementType option) =
         let song = InstrumentalArrangement.Load(fileName)
         let arrangementType =
-            arrType |> Option.defaultWith (fun () -> ArrangementType.fromArrProperties song.ArrangementProperties)
+            arrType |> Option.defaultWith (fun () -> ArrangementType.fromArrangement song)
 
         let toneNames =
             if isNull song.ToneChanges then
@@ -71,8 +74,10 @@ module Types =
         SongLength : int<ms>
         Arrangements : Arrangement list }
 
+    /// Returns true if the track has an audio file set.
     let hasAudioFile track = track.AudioFile |> Option.isSome
 
+    /// Reads the tone information from the given file.
     let getTones fileName =
         let toneNames = InstrumentalArrangement.ReadToneNames(fileName)
 

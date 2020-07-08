@@ -22,7 +22,7 @@ let update (msg: Msg) state : ProgramState * Cmd<_> =
         else 
             let newTones = 
                 state.CommonTones
-                |> Map.add arrName (names |> Array.mapi (fun i name -> if i = index then newName else name))
+                |> Map.add arrName (names |> Array.updateAt index newName)
 
             { state with CommonTones = newTones }, Cmd.none
 
@@ -44,7 +44,7 @@ let update (msg: Msg) state : ProgramState * Cmd<_> =
                     // If the base tone and tone A are empty, use this name for them both
                     tones |> Array.mapi (fun j t -> if j = 0 || j = i then newTone else t)
                 else
-                    tones |> Array.mapi (fun j t -> if j = i then newTone else t)
+                    tones |> Array.updateAt i newTone
 
             let updatedCommonTones = state.CommonTones |> Map.add arrName updatedTones
             { state with CommonTones = updatedCommonTones }, Cmd.none
