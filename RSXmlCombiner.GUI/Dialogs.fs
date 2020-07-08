@@ -46,7 +46,7 @@ let openFileDialog title filters directory =
         | _ -> return None
     }
 
-let openFileDialogMulti title filters directory =
+let openMultiFileDialog title filters directory =
     let dialog = OpenFileDialog(Title = title, Filters = filters, AllowMultiple = true)
     directory |> Option.iter (fun dir -> dialog.Directory <- dir)
 

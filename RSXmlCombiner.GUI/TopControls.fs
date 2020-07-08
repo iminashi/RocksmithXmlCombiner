@@ -70,7 +70,7 @@ let private addNewTrack state arrangementFileNames =
 let update (msg: Msg) state : ProgramState * Cmd<_> =
     match msg with
     | SelectAddTrackFiles ->
-        let dialog = Dialogs.openFileDialogMulti "Select Arrangement File(s)" Dialogs.xmlFileFilter
+        let dialog = Dialogs.openMultiFileDialog "Select Arrangement File(s)" Dialogs.xmlFileFilter
         state, Cmd.OfAsync.perform dialog None AddTrack
 
     | AddTrack arrangementFiles -> 
