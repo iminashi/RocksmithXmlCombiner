@@ -43,7 +43,7 @@ let trimStart (amount : int<ms>) (file : ISampleProvider) =
 
 /// Concatenates the sample providers into a 16-bit wave file with the given name.
 let concatenate targetFile (files : ISampleProvider seq) =
-    let combined = ConcatenatingSampleProvider(files |> Array.ofSeq)
+    let combined = ConcatenatingSampleProvider files
     WaveFileWriter.CreateWaveFile16(targetFile, combined)
 
 /// Offsets the sample provider by the given amounts.

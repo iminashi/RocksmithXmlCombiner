@@ -6,6 +6,8 @@ open NAudio.Wave
 
 let progress = Progress<float>()
 
+let private targetSampleRate = 48000
+
 /// Copies from the reader to the writer with the given amount in milliseconds trimmed from the start.
 let private addTrimmed (reader : WaveStream) (writer : WaveFileWriter) (trim : int<ms>) =
     let bytesPerMillisecond = float reader.WaveFormat.AverageBytesPerSecond / 1000.0
@@ -49,25 +51,21 @@ let combineAudioFiles (tracks : Track list) (targetFile : string) =
 
 /// Combines the audio files of the given tracks into the target file.
 let combineWithResampling (tracks : Track list) (targetFile : string) =
-    async {
-        try
-            let firstFile = tracks.Head.AudioFile |> Option.get
-            let head = Audio.getSampleProviderWithRate 48000 firstFile
-
-            let tail =
-                tracks.Tail
-                |> Seq.map (fun t ->
-                    t.AudioFile
+    try
+        let files =
+            tracks
+            |> Seq.mapi (fun i track -> 
+                let sampler =
+                    track.AudioFile
                     |> Option.get
-                    |> Audio.getSampleProviderWithRate 48000 
-                    |> Audio.trimStart t.TrimAmount)
-
-            Audio.concatenate targetFile (seq { head; yield! tail })
-
-            return sprintf "Audio files combined as %s" targetFile
-        with
-        e -> return sprintf "Error: %s" e.Message
-    }
+                    |> Audio.getSampleProviderWithRate targetSampleRate
+                if i = 0 then sampler else sampler |> Audio.trimStart track.TrimAmount)
+    
+        Audio.concatenate targetFile files
+  
+        sprintf "Audio files combined as %s" targetFile
+    with
+    e -> sprintf "Error: %s" e.Message
 
 let private createSampleProviderWithRandomOffset take (fileName, audioLength) =
     let randomOffset =
@@ -77,7 +75,7 @@ let private createSampleProviderWithRandomOffset take (fileName, audioLength) =
             else rand.Next(10_000, int (audioLength - 30_000<ms>))
         startOffset |> float |> TimeSpan.FromMilliseconds
 
-    Audio.getSampleProviderWithRate 48000 fileName
+    Audio.getSampleProviderWithRate targetSampleRate fileName
     |> Audio.offset randomOffset (TimeSpan.FromMilliseconds(float take))
 
 /// Creates a preview audio file from up to four randomly selected files.
@@ -88,7 +86,7 @@ let createPreview (tracks : Track list) (targetFile : string) =
     let sectionLength = LanguagePrimitives.Int64WithMeasure<ms> (int64 (28.0 / float numFiles * 1000.0))
 
     tracks
-    |> Seq.choose (fun t -> t.AudioFile |> Option.map (fun f -> f, t.SongLength))
+    |> Seq.choose (fun track -> track.AudioFile |> Option.map (fun file -> file, track.SongLength))
     |> Seq.sortBy (fun _ -> rand.Next())
     |> Seq.take numFiles
     |> Seq.map (createSampleProviderWithRandomOffset sectionLength)

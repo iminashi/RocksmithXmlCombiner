@@ -31,8 +31,8 @@ let update msg state : ProgramState * Cmd<_> =
         match targetFile with
         | None -> state, Cmd.none // User canceled the dialog
         | Some file ->
-            let task = AudioCombiner.combineWithResampling state.Tracks
-            { state with AudioCombinerProgress = Some(0.0); StatusMessage = "Combining audio files..." }, Cmd.OfAsync.perform task file CombineAudioCompleted
+            let task() = async { return AudioCombiner.combineWithResampling state.Tracks file } 
+            { state with AudioCombinerProgress = Some(0.0); StatusMessage = "Combining audio files..." }, Cmd.OfAsync.perform task () CombineAudioCompleted
     
     | CreatePreview targetFile ->
         match targetFile with
@@ -50,6 +50,9 @@ let update msg state : ProgramState * Cmd<_> =
             { state with AudioCombinerProgress = Some(0.0); StatusMessage = "Creating preview audio..." }, Cmd.OfAsync.perform task file CombineAudioCompleted
 
     | CombineAudioCompleted message ->
+        GC.Collect()
+        GC.WaitForPendingFinalizers()
+
         { state with StatusMessage = message; AudioCombinerProgress = None }, Cmd.none
 
     | CombineArrangements targetFolder ->
