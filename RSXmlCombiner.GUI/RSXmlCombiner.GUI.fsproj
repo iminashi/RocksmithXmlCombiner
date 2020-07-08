@@ -39,7 +39,7 @@
     <PackageReference Include="Avalonia.Desktop" Version="0.9.11" />
     <PackageReference Include="FSharp.SystemTextJson" Version="0.11.13" />
     <PackageReference Include="JaggerJo.Avalonia.FuncUI" Version="0.4.1" />
-    <PackageReference Include="JaggerJo.Avalonia.FuncUI.DSL" Version="0.4.1" />
+    <PackageReference Include="JaggerJo.Avalonia.FuncUI.DSL" Version="0.4.3" />
     <PackageReference Include="JaggerJo.Avalonia.FuncUI.Elmish" Version="0.4.0" />
     <PackageReference Include="NAudio" Version="1.10.0" />
     <PackageReference Include="NAudio.Vorbis" Version="1.2.0" />
