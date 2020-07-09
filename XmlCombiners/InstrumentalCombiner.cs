@@ -188,12 +188,10 @@ namespace XmlCombiners
             arr.Phrases.Add(new Phrase("track" + ArrangementNumber, (byte)(arr.Levels.Count - 1), PhraseMask.None));
             var mainPi = new PhraseIteration(pTime, arr.Phrases.Count - 1)
             {
-                HeroLevels = new HeroLevelCollection
-                {
-                    new HeroLevel(1, (byte)((arr.Levels.Count - 1) / 3)),
-                    new HeroLevel(2, (byte)((arr.Levels.Count - 1) / 2)),
-                    new HeroLevel(3, (byte)(arr.Levels.Count - 1))
-                }
+                HeroLevels = new HeroLevels(
+                    easy: (sbyte)((arr.Levels.Count - 1) / 3),
+                    medium: (sbyte)((arr.Levels.Count - 1) / 2),
+                    hard: (sbyte)(arr.Levels.Count - 1))
             };
             arr.PhraseIterations.Add(mainPi);
             arr.Sections.Add(new Section("riff", pTime, 1));
