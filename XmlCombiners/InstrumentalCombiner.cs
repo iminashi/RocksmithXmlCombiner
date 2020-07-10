@@ -63,7 +63,7 @@ namespace XmlCombiners
                 RemoveCountPhrase(next);
             }
 
-            int startTime = CombinedArrangement.SongLength - trimAmount;
+            int startTime = CombinedArrangement!.SongLength - trimAmount;
             int lastMeasure = FindLastMeasure(CombinedArrangement);
             int lastChordId = CombinedArrangement.ChordTemplates.Count;
             int lastPhraseId = CombinedArrangement.Phrases.Count;
@@ -166,7 +166,7 @@ namespace XmlCombiners
 
             // Store the times of the COUNT, END and the first proper phrase
             int endPhraseId = arr.Phrases.FindIndex(p => p.Name.Equals("END", StringComparison.OrdinalIgnoreCase));
-            int? endPhraseTime = arr.PhraseIterations.FirstOrDefault(p => p.PhraseId == endPhraseId)?.Time;
+            int? endPhraseTime = arr.PhraseIterations.Find(p => p.PhraseId == endPhraseId)?.Time;
             int countPhraseTime = arr.PhraseIterations[0].Time;
             int firstPhraseTime = arr.PhraseIterations[1].Time;
 
@@ -346,8 +346,11 @@ namespace XmlCombiners
 
         public void SetTitle(string combinedTitle)
         {
-            CombinedArrangement.Title = combinedTitle;
-            CombinedArrangement.TitleSort = combinedTitle;
+            if (CombinedArrangement != null)
+            {
+                CombinedArrangement.Title = combinedTitle;
+                CombinedArrangement.TitleSort = combinedTitle;
+            }
         }
 
         private void CoercePhrasesAndSections(InstrumentalArrangement song)
@@ -675,9 +678,9 @@ namespace XmlCombiners
         private void CombineTones(InstrumentalArrangement combined, InstrumentalArrangement next, int startTime)
         {
             if (combined.ToneChanges is null)
-                combined.ToneChanges = new ToneCollection();
+                combined.ToneChanges = new List<Tone>();
             if (next.ToneChanges is null)
-                next.ToneChanges = new ToneCollection();
+                next.ToneChanges = new List<Tone>();
 
             string? currentTone = combined.ToneBase;
             if (combined.ToneChanges.Count > 0)
