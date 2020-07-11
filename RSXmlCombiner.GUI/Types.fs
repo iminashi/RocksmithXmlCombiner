@@ -39,19 +39,14 @@ module Types =
             arrType |> Option.defaultWith (fun () -> ArrangementType.fromArrangement song)
 
         let toneNames =
-            if isNull song.ToneChanges then
+            if isNull song.Tones.Changes then
                 []
             else
-                [
-                    if String.notEmpty song.ToneA then yield song.ToneA
-                    if String.notEmpty song.ToneB then yield song.ToneB
-                    if String.notEmpty song.ToneC then yield song.ToneC
-                    if String.notEmpty song.ToneD then yield song.ToneD
-                ]
+                song.Tones.Names |> Seq.filter String.notEmpty |> Seq.toList
 
         let ordering =
-            if song.ArrangementProperties.BonusArrangement = 1uy then ArrangementOrdering.Bonus
-            else if song.ArrangementProperties.Represent = 0uy then ArrangementOrdering.Alternative
+            if song.ArrangementProperties.BonusArrangement then ArrangementOrdering.Bonus
+            else if song.ArrangementProperties.Represent then ArrangementOrdering.Alternative
             else ArrangementOrdering.Main
 
         let arrData =
@@ -79,12 +74,11 @@ module Types =
 
     /// Reads the tone information from the given file.
     let getTones fileName =
-        let toneNames = InstrumentalArrangement.ReadToneNames(fileName)
+        let tones = InstrumentalArrangement.ReadToneNames(fileName)
 
-        let baseTone = toneNames.[0] |> Option.ofObj
+        let baseTone = tones.BaseToneName |> Option.ofObj
         let toneNamesList = 
-            toneNames
-            |> Seq.skip 1
+            tones.Names
             |> Seq.filter String.notEmpty
             |> Seq.toList
 

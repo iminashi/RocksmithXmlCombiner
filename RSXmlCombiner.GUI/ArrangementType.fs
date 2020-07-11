@@ -35,9 +35,9 @@ module ArrangementType =
     /// Creates an ArrangementType from an instrumental arrangement.
     let fromArrangement (arr : InstrumentalArrangement) =
         let props = arr.ArrangementProperties
-        if props.PathLead = 1uy then ArrangementType.Lead
-        elif props.PathRhythm = 1uy then ArrangementType.Rhythm
-        elif props.PathBass = 1uy then ArrangementType.Bass
+        if props.PathLead then ArrangementType.Lead
+        elif props.PathRhythm then ArrangementType.Rhythm
+        elif props.PathBass then ArrangementType.Bass
         else ArrangementType.Unknown
 
     /// Returns a humanized string matching the arrangement type.

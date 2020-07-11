@@ -62,64 +62,54 @@ let private combineVocals (tracks : Track list) arrIndex targetFolder addTitles 
         increaseProgress ()
 
 let private replaceToneNames (song : InstrumentalArrangement) (toneReplacements : Map<string, int>) (commonTones : string array) =
+    let tones = song.Tones
+
     // Replace the tone names of the defined tones and the tone changes
     for kv in toneReplacements do
         let newToneName = commonTones.[kv.Value + 1] // First one is the base tone
-        if song.ToneBase = kv.Key then song.ToneBase <- newToneName
-        if song.ToneA = kv.Key then song.ToneA <- newToneName
-        if song.ToneB = kv.Key then song.ToneB <- newToneName
-        if song.ToneC = kv.Key then song.ToneC <- newToneName
-        if song.ToneD = kv.Key then song.ToneD <- newToneName
+        if tones.BaseToneName = kv.Key then tones.BaseToneName <- newToneName
+        for i = 0 to tones.Names.Length - 1 do
+            if tones.Names.[i] = kv.Key then tones.Names.[i] <- newToneName
 
-        if not (song.ToneChanges |> isNull) then
-            for tone in song.ToneChanges do
+        if not (tones.Changes |> isNull) then
+            for tone in tones.Changes do
                 if tone.Name = kv.Key then
                     tone.Name <- newToneName
 
     // Make sure that there are no duplicate names in the defined tones
-    let uniqueTones = Set.ofSeq (seq {
-        if String.notEmpty song.ToneA then yield song.ToneA
-        if String.notEmpty song.ToneB then yield song.ToneB
-        if String.notEmpty song.ToneC then yield song.ToneC
-        if String.notEmpty song.ToneD then yield song.ToneD
-    })
+    let uniqueTones =
+        tones.Names
+        |> Seq.filter String.notEmpty
+        |> Set.ofSeq
+        |> Set.toArray
     
-    song.ToneA <- null
-    song.ToneB <- null
-    song.ToneC <- null
-    song.ToneD <- null
-    
-    let songType = song.GetType()
-
-    // Set the properties using reflection
-    let folder toneChar tName =
-        let toneProp = songType.GetProperty(sprintf "Tone%c" toneChar)
-        toneProp.SetValue(song, tName)
-        toneChar + char 1
-
-    uniqueTones |> Set.fold folder 'A' |> ignore
+    for i = 0 to tones.Names.Length - 1 do
+        if i < uniqueTones.Length - 1 then
+            tones.Names.[i] <- uniqueTones.[i]
+        else
+            tones.Names.[i] <- null
 
 /// Updates the metadata of the given instrumental arrangement file to match the given arrangement.
 let private updateArrangementMetadata arr (combined : InstrumentalArrangement) =
     combined.Arrangement <- arr.ArrangementType.ToString()
 
     let arrProps = combined.ArrangementProperties
-    arrProps.PathBass <- 0uy
-    arrProps.PathLead <- 0uy
-    arrProps.PathRhythm <- 0uy
-    arrProps.Represent <- 0uy
-    arrProps.BonusArrangement <- 0uy
+    arrProps.PathBass <- false
+    arrProps.PathLead <- false
+    arrProps.PathRhythm <- false
+    arrProps.Represent <- false
+    arrProps.BonusArrangement <- false
 
     match arr.ArrangementType with
-    | ArrangementType.Lead -> arrProps.PathLead <- 1uy
-    | ArrangementType.Rhythm | ArrangementType.Combo -> arrProps.PathRhythm <- 1uy
-    | ArrangementType.Bass -> arrProps.PathBass <- 1uy
+    | ArrangementType.Lead -> arrProps.PathLead <- true
+    | ArrangementType.Rhythm | ArrangementType.Combo -> arrProps.PathRhythm <- true
+    | ArrangementType.Bass -> arrProps.PathBass <- true
     | _ -> ()
 
     let data = arr.Data |> Option.get
     match data.Ordering with
-    | ArrangementOrdering.Main -> arrProps.Represent <- 1uy
-    | ArrangementOrdering.Bonus -> arrProps.BonusArrangement <- 1uy
+    | ArrangementOrdering.Main -> arrProps.Represent <- true
+    | ArrangementOrdering.Bonus -> arrProps.BonusArrangement <- true
     | _ -> ()
 
 /// Combines the instrumental arrangements at the given index if all tracks have one set.
@@ -136,9 +126,9 @@ let private combineInstrumental (project : ProgramState) arrIndex targetFolder =
             let next = InstrumentalArrangement.Load(arr.FileName |> Option.get)
 
             if i = 0 then
-                next.ToneBase <- commonTones.[0]
+                next.Tones.BaseToneName <- commonTones.[0]
             else if arrData.BaseToneIndex <> -1 then
-                next.ToneBase <- commonTones.[arrData.BaseToneIndex + 1] // First one is the base tone
+                next.Tones.BaseToneName <- commonTones.[arrData.BaseToneIndex + 1] // First one is the base tone
 
             if not arrData.ToneNames.IsEmpty then
                 replaceToneNames next arrData.ToneReplacements commonTones
@@ -160,7 +150,7 @@ let private combineInstrumental (project : ProgramState) arrIndex targetFolder =
 
         combiner.Save(Path.Combine(targetFolder, sprintf "Combined_%s_RS2.xml" name), project.CoercePhrases)
 
-let combineArrangement (project : ProgramState) arrIndex targetFolder =
+let private combineArrangement (project : ProgramState) arrIndex targetFolder =
     match project.Tracks.Head.Arrangements.[arrIndex].ArrangementType with
     | Instrumental _ -> combineInstrumental project arrIndex targetFolder
     | Vocals _ -> combineVocals project.Tracks arrIndex targetFolder project.AddTrackNamesToLyrics

@@ -42,12 +42,12 @@ namespace XmlCombiners
             ArrangementNumber++;
 
             if (condenseIntoOnePhrase)
-                CondenseIntoOnePhase(next, songLength, isFirstArrangement);
+                CondenseIntoOnePhase(next, songLength, isFirstArrangement, isLast);
 
             RemoveExtraBeats(next);
 
-            if (!isLast)
-                RemoveEndPhrase(next, replaceWithNoGuitar: !condenseIntoOnePhrase);
+            if (!isLast && !condenseIntoOnePhrase)
+                RemoveEndPhrase(next);
 
             // Adding the first arrangement
             if (isFirstArrangement)
@@ -64,8 +64,8 @@ namespace XmlCombiners
             }
 
             int startTime = CombinedArrangement!.SongLength - trimAmount;
-            int lastMeasure = FindLastMeasure(CombinedArrangement);
-            int lastChordId = CombinedArrangement.ChordTemplates.Count;
+            short lastMeasure = FindLastMeasure(CombinedArrangement);
+            short lastChordId = (short)CombinedArrangement.ChordTemplates.Count;
             int lastPhraseId = CombinedArrangement.Phrases.Count;
 
             if (!condenseIntoOnePhrase && (CombinedArrangement.Levels.Count > 1 || next.Levels.Count > 1))
@@ -110,7 +110,7 @@ namespace XmlCombiners
             CombineArrangementProperties(CombinedArrangement, next);
         }
 
-        private void CondenseIntoOnePhase(InstrumentalArrangement arr, int songLength, bool isFirst)
+        private void CondenseIntoOnePhase(InstrumentalArrangement arr, int songLength, bool isFirst, bool isLast)
         {
             // Duplicate notes etc. into higher levels for phrases whose max difficulty is lower than the highest max difficulty 
             for (int i = 1; i < arr.PhraseIterations.Count; i++)
@@ -197,7 +197,7 @@ namespace XmlCombiners
             arr.Sections.Add(new Section("riff", pTime, 1));
 
             // Recreate the END phrase and final noguitar section
-            if (endPhraseTime.HasValue)
+            if (isLast && endPhraseTime.HasValue)
             {
                 arr.Phrases.Add(new Phrase("END", 0, PhraseMask.None));
                 arr.PhraseIterations.Add(new PhraseIteration(endPhraseTime.Value, arr.Phrases.Count - 1));
@@ -209,36 +209,33 @@ namespace XmlCombiners
         {
             foreach (var phrase in song.Phrases)
             {
-                if(!phrase.Name.Equals("END", StringComparison.OrdinalIgnoreCase) && !phrase.Name.Equals("noguitar", StringComparison.OrdinalIgnoreCase))
+                if (!phrase.Name.Equals("END", StringComparison.OrdinalIgnoreCase) && !phrase.Name.Equals("noguitar", StringComparison.OrdinalIgnoreCase))
                     phrase.Name = $"arr{ArrangementNumber}{phrase.Name}";
             }
         }
 
         private void CleanupToneChanges(InstrumentalArrangement song)
         {
-            if (song.ToneChanges is null)
+            if (song.Tones.Changes is null)
                 return;
 
             // Remove tones not included in the four tones
-            for (int i = song.ToneChanges.Count - 1; i >= 0; i--)
+            for (int i = song.Tones.Changes.Count - 1; i >= 0; i--)
             {
-                var t = song.ToneChanges[i];
-                if (song.ToneA != t.Name &&
-                    song.ToneB != t.Name &&
-                    song.ToneC != t.Name &&
-                    song.ToneD != t.Name)
+                var t = song.Tones.Changes[i];
+                if (!song.Tones.Names.Any(tn => tn == t.Name))
                 {
-                    song.ToneChanges.RemoveAt(i);
+                    song.Tones.Changes.RemoveAt(i);
                 }
             }
 
             // Remove duplicate tone changes
-            for (int i = song.ToneChanges.Count - 2; i >= 0; i--)
+            for (int i = song.Tones.Changes.Count - 2; i >= 0; i--)
             {
-                var t = song.ToneChanges[i];
-                if (t.Name == song.ToneChanges[i + 1].Name)
+                var t = song.Tones.Changes[i];
+                if (t.Name == song.Tones.Changes[i + 1].Name)
                 {
-                    song.ToneChanges.RemoveAt(i + 1);
+                    song.Tones.Changes.RemoveAt(i + 1);
                 }
             }
         }
@@ -274,11 +271,11 @@ namespace XmlCombiners
                         {
                             for (int p = 0; p < nld.PhraseIds.Count; p++)
                             {
-                                if(nld.PhraseIds[p] == i)
+                                if (nld.PhraseIds[p] == i)
                                 {
                                     nld.PhraseIds[p] = j;
                                 }
-                                else if(nld.PhraseIds[p] > i)
+                                else if (nld.PhraseIds[p] > i)
                                 {
                                     nld.PhraseIds[p]--;
                                 }
@@ -292,9 +289,9 @@ namespace XmlCombiners
 
         private void CombineChords(InstrumentalArrangement combined)
         {
-            for (int i = combined.ChordTemplates.Count - 1; i >= 0; i--)
+            for (short i = (short)(combined.ChordTemplates.Count - 1); i >= 0; i--)
             {
-                for (int j = 0; j < i; j++)
+                for (short j = 0; j < i; j++)
                 {
                     if (IsSameChordTemplate(combined.ChordTemplates[j], combined.ChordTemplates[i]))
                     {
@@ -448,49 +445,41 @@ namespace XmlCombiners
             }
         }
 
-        private void RemoveEndPhrase(InstrumentalArrangement song, bool replaceWithNoGuitar)
+        private void RemoveEndPhrase(InstrumentalArrangement song)
         {
             int endPhraseId = song.Phrases.FindIndex(p => p.Name.Equals("END", StringComparison.OrdinalIgnoreCase));
             if (endPhraseId == -1)
                 return;
 
             // Replace the end phrase with a no guitar phrase
-            if (replaceWithNoGuitar)
+            int ngPhraseId = song.Phrases.FindIndex(p => p.Name.Equals("noguitar", StringComparison.OrdinalIgnoreCase));
+            if (ngPhraseId == -1)
             {
-                int ngPhraseId = song.Phrases.FindIndex(p => p.Name.Equals("noguitar", StringComparison.OrdinalIgnoreCase));
-                if (ngPhraseId == -1)
-                {
-                    // No "noguitar" phrase present, reuse the end phrase 
-                    song.Phrases[endPhraseId].Name = "noguitar";
-                }
-                else
-                {
-                    // If the end phrase is not the last phrase for some reason, adjust the phrase IDs
-                    if (endPhraseId != song.Phrases.Count - 1)
-                    {
-                        foreach (var phraseIter in song.PhraseIterations)
-                        {
-                            if (phraseIter.PhraseId > endPhraseId)
-                                phraseIter.PhraseId--;
-                        }
-                        foreach (var nld in song.NewLinkedDiffs)
-                        {
-                            for (int i = 0; i < nld.PhraseIds.Count; i++)
-                            {
-                                if (nld.PhraseIds[i] > endPhraseId)
-                                    nld.PhraseIds[i]--;
-                            }
-                        }
-                    }
-
-                    song.Phrases.RemoveAt(endPhraseId);
-                    song.PhraseIterations[^1].PhraseId = ngPhraseId;
-                }
+                // No "noguitar" phrase present, reuse the end phrase 
+                song.Phrases[endPhraseId].Name = "noguitar";
             }
             else
             {
+                // If the end phrase is not the last phrase for some reason, adjust the phrase IDs
+                if (endPhraseId != song.Phrases.Count - 1)
+                {
+                    foreach (var phraseIter in song.PhraseIterations)
+                    {
+                        if (phraseIter.PhraseId > endPhraseId)
+                            phraseIter.PhraseId--;
+                    }
+                    foreach (var nld in song.NewLinkedDiffs)
+                    {
+                        for (int i = 0; i < nld.PhraseIds.Count; i++)
+                        {
+                            if (nld.PhraseIds[i] > endPhraseId)
+                                nld.PhraseIds[i]--;
+                        }
+                    }
+                }
+
                 song.Phrases.RemoveAt(endPhraseId);
-                song.PhraseIterations.RemoveAt(song.PhraseIterations.Count - 1);
+                song.PhraseIterations[^1].PhraseId = ngPhraseId;
             }
         }
 
@@ -512,7 +501,7 @@ namespace XmlCombiners
             }
         }
 
-        private int FindLastMeasure(InstrumentalArrangement song)
+        private short FindLastMeasure(InstrumentalArrangement song)
         {
             for (int i = song.Ebeats.Count - 1; i >= 0; i--)
             {
@@ -543,14 +532,14 @@ namespace XmlCombiners
             }
         }
 
-        private void UpdateBeats(InstrumentalArrangement song, int startTime, int lastMeasure)
+        private void UpdateBeats(InstrumentalArrangement song, int startTime, short lastMeasure)
         {
-            int measureCounter = 1;
+            short measureCounter = 1;
             foreach (var beat in song.Ebeats)
             {
                 if (beat.Measure >= 0)
                 {
-                    beat.Measure = lastMeasure + measureCounter++;
+                    beat.Measure = (short)(lastMeasure + measureCounter++);
                 }
 
                 beat.Time += startTime;
@@ -592,7 +581,7 @@ namespace XmlCombiners
             }
         }
 
-        private void UpdateChords(InstrumentalArrangement song, int startTime, int lastChordId)
+        private void UpdateChords(InstrumentalArrangement song, int startTime, short lastChordId)
         {
             foreach (var level in song.Levels)
             {
@@ -630,7 +619,7 @@ namespace XmlCombiners
             }
         }
 
-        private void UpdateHandShapes(InstrumentalArrangement song, int startTime, int lastChordId)
+        private void UpdateHandShapes(InstrumentalArrangement song, int startTime, short lastChordId)
         {
             foreach (var level in song.Levels)
             {
@@ -645,7 +634,7 @@ namespace XmlCombiners
 
         private void UpdateSectionNumbers(InstrumentalArrangement combined)
         {
-            Dictionary<string, int> numbers = new Dictionary<string, int>();
+            Dictionary<string, short> numbers = new Dictionary<string, short>();
             foreach (var section in combined.Sections)
             {
                 if (numbers.ContainsKey(section.Name))
@@ -670,72 +659,55 @@ namespace XmlCombiners
                 if (skip.Contains(property.Name))
                     continue;
 
-                if ((byte)property.GetValue(next.ArrangementProperties)! != (byte)property.GetValue(combined.ArrangementProperties)!)
-                    property.SetValue(combined.ArrangementProperties, (byte)1);
+                if ((bool)property.GetValue(next.ArrangementProperties)! != (bool)property.GetValue(combined.ArrangementProperties)!)
+                    property.SetValue(combined.ArrangementProperties, true);
             }
         }
 
         private void CombineTones(InstrumentalArrangement combined, InstrumentalArrangement next, int startTime)
         {
-            if (combined.ToneChanges is null)
-                combined.ToneChanges = new List<Tone>();
-            if (next.ToneChanges is null)
-                next.ToneChanges = new List<Tone>();
+            if (combined.Tones.Changes is null)
+                combined.Tones.Changes = new List<ToneChange>();
+            if (next.Tones.Changes is null)
+                next.Tones.Changes = new List<ToneChange>();
 
-            string? currentTone = combined.ToneBase;
-            if (combined.ToneChanges.Count > 0)
-                currentTone = combined.ToneChanges[^1].Name;
+            string? currentTone = combined.Tones.BaseToneName;
+            if (combined.Tones.Changes.Count > 0)
+                currentTone = combined.Tones.Changes[^1].Name;
 
-            if (next.ToneChanges.Count > 0 || (next.ToneChanges.Count == 0 && currentTone != next.ToneBase))
+            if (next.Tones.Changes.Count > 0 ||
+               (next.Tones.Changes.Count == 0 && currentTone != next.Tones.BaseToneName))
             {
                 // Add a tone change for the base tone of the next song
-                if (next.ToneBase != null)
-                    next.ToneChanges.Insert(0, new Tone(next.ToneBase, next.StartBeat - startTime, 0));
+                if (next.Tones.BaseToneName != null)
+                    next.Tones.Changes.Insert(0, new ToneChange(next.Tones.BaseToneName, next.StartBeat - startTime, 0));
 
-                for (int i = 0; i < next.ToneChanges.Count; i++)
+                for (int i = 0; i < next.Tones.Changes.Count; i++)
                 {
-                    var t = next.ToneChanges[i];
-                    next.ToneChanges[i] = new Tone(t.Name, t.Time + startTime, t.Id);
+                    var t = next.Tones.Changes[i];
+                    next.Tones.Changes[i] = new ToneChange(t.Name, t.Time + startTime, t.Id);
 
                     TryAddTone(combined, t);
                 }
 
-                combined.ToneChanges.AddRange(next.ToneChanges);
+                combined.Tones.Changes.AddRange(next.Tones.Changes);
             }
         }
 
-        private void TryAddTone(InstrumentalArrangement combined, Tone t)
+        private void TryAddTone(InstrumentalArrangement combined, ToneChange t)
         {
-            if (combined.ToneA == t.Name ||
-                combined.ToneB == t.Name ||
-                combined.ToneC == t.Name ||
-                combined.ToneD == t.Name)
-            {
+            // Check if the tone name already exists
+            if (combined.Tones.Names.Any(tn => tn == t.Name))
                 return;
-            }
 
-            if (combined.ToneA is null)
+            // Try to add the tone name to the first available slot
+            for (int i = 0; i < combined.Tones.Names.Length; i++)
             {
-                combined.ToneA = t.Name;
-                return;
-            }
-
-            if (combined.ToneB is null)
-            {
-                combined.ToneB = t.Name;
-                return;
-            }
-
-            if (combined.ToneC is null)
-            {
-                combined.ToneC = t.Name;
-                return;
-            }
-
-            if (combined.ToneD is null)
-            {
-                combined.ToneD = t.Name;
-                return;
+                if (combined.Tones.Names[i] is null)
+                {
+                    combined.Tones.Names[i] = t.Name;
+                    return;
+                }
             }
 
             Console.WriteLine($"Too many tone changes, cannot fit in tone {t.Name}");

@@ -18,9 +18,6 @@
     <Reference Include="Rocksmith2014Xml">
       <HintPath>..\lib\Rocksmith2014Xml.dll</HintPath>
     </Reference>
-    <Reference Include="XmlUtils">
-      <HintPath>..\lib\XmlUtils.dll</HintPath>
-    </Reference>
   </ItemGroup>
 
 </Project>
