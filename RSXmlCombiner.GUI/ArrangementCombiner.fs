@@ -84,7 +84,7 @@ let private replaceToneNames (song : InstrumentalArrangement) (toneReplacements 
         |> Set.toArray
     
     for i = 0 to tones.Names.Length - 1 do
-        if i < uniqueTones.Length - 1 then
+        if i < uniqueTones.Length then
             tones.Names.[i] <- uniqueTones.[i]
         else
             tones.Names.[i] <- null
