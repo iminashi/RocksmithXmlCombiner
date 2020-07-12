@@ -50,16 +50,7 @@ let concatenate targetFile (files : ISampleProvider seq) =
 let offset skip take (sampleProvider : ISampleProvider) =
     OffsetSampleProvider(sampleProvider, SkipOver = skip, Take = take)
 
+/// Adds a fade-in and fade-out to the sample provider.
 let fade fadeIn fadeOut audioLength (sampleProvider : ISampleProvider) =
     AudioFader(sampleProvider, fadeIn, fadeOut, audioLength) :> ISampleProvider
 
-let get16BitWaveStream (fileName : string option) =
-    let reader =
-        match fileName with
-        | Some fn -> getWaveStream fn
-        | None -> failwith "No audio file set!"
-
-    if reader.WaveFormat.BitsPerSample = 32 then
-        new Wave32To16Stream(reader) :> WaveStream
-    else
-        reader
