@@ -224,9 +224,7 @@ namespace XmlCombiners
             {
                 var t = song.Tones.Changes[i];
                 if (!song.Tones.Names.Any(tn => tn == t.Name))
-                {
                     song.Tones.Changes.RemoveAt(i);
-                }
             }
 
             // Remove duplicate tone changes
@@ -234,51 +232,42 @@ namespace XmlCombiners
             {
                 var t = song.Tones.Changes[i];
                 if (t.Name == song.Tones.Changes[i + 1].Name)
-                {
                     song.Tones.Changes.RemoveAt(i + 1);
-                }
             }
         }
 
         private void CombinePhrases(InstrumentalArrangement song)
         {
-            for (int i = song.Phrases.Count - 1; i >= 0; i--)
+            for (int id1 = song.Phrases.Count - 1; id1 >= 0; id1--)
             {
-                for (int j = 0; j < i; j++)
+                for (int id2 = 0; id2 < id1; id2++)
                 {
-                    if (song.Phrases[j].Name == song.Phrases[i].Name)
+                    if (song.Phrases[id1].Name == song.Phrases[id2].Name)
                     {
                         // If there are DD levels, all the phrases should have unique names
                         // There may be multiple noguitar phrases that can be combined
                         if (song.Levels.Count > 1)
-                            Debug.Assert(song.Phrases[j].Name == "noguitar");
+                            Debug.Assert(song.Phrases[id2].Name == "noguitar");
 
                         // Remove the phrase at the higher position
-                        song.Phrases.RemoveAt(i);
+                        song.Phrases.RemoveAt(id1);
+
+                        // Correct the phrase IDs for phrase iterations and linked difficulties
                         foreach (var pi in song.PhraseIterations)
                         {
-                            if (pi.PhraseId == i)
-                            {
-                                pi.PhraseId = j;
-                            }
-                            else if (pi.PhraseId > i)
-                            {
+                            if (pi.PhraseId == id1)
+                                pi.PhraseId = id2;
+                            else if (pi.PhraseId > id1)
                                 pi.PhraseId--;
-                            }
                         }
-
                         foreach (var nld in song.NewLinkedDiffs)
                         {
                             for (int p = 0; p < nld.PhraseIds.Count; p++)
                             {
-                                if (nld.PhraseIds[p] == i)
-                                {
-                                    nld.PhraseIds[p] = j;
-                                }
-                                else if (nld.PhraseIds[p] > i)
-                                {
+                                if (nld.PhraseIds[p] == id1)
+                                    nld.PhraseIds[p] = id2;
+                                else if (nld.PhraseIds[p] > id1)
                                     nld.PhraseIds[p]--;
-                                }
                             }
                         }
                         break;
@@ -289,36 +278,30 @@ namespace XmlCombiners
 
         private void CombineChords(InstrumentalArrangement combined)
         {
-            for (short i = (short)(combined.ChordTemplates.Count - 1); i >= 0; i--)
+            for (short id1 = (short)(combined.ChordTemplates.Count - 1); id1 >= 0; id1--)
             {
-                for (short j = 0; j < i; j++)
+                for (short id2 = 0; id2 < id1; id2++)
                 {
-                    if (IsSameChordTemplate(combined.ChordTemplates[j], combined.ChordTemplates[i]))
+                    if (IsSameChordTemplate(combined.ChordTemplates[id1], combined.ChordTemplates[id2]))
                     {
-                        combined.ChordTemplates.RemoveAt(i);
+                        combined.ChordTemplates.RemoveAt(id1);
+
+                        // Correct the chord IDs for chords and hand shapes in each level
                         foreach (var level in combined.Levels)
                         {
                             foreach (var chord in level.Chords)
                             {
-                                if (chord.ChordId == i)
-                                {
-                                    chord.ChordId = j;
-                                }
-                                else if (chord.ChordId > i)
-                                {
+                                if (chord.ChordId == id1)
+                                    chord.ChordId = id2;
+                                else if (chord.ChordId > id1)
                                     chord.ChordId--;
-                                }
                             }
                             foreach (var hs in level.HandShapes)
                             {
-                                if (hs.ChordId == i)
-                                {
-                                    hs.ChordId = j;
-                                }
-                                else if (hs.ChordId > i)
-                                {
+                                if (hs.ChordId == id1)
+                                    hs.ChordId = id2;
+                                else if (hs.ChordId > id1)
                                     hs.ChordId--;
-                                }
                             }
                         }
                         break;
@@ -435,13 +418,9 @@ namespace XmlCombiners
             for (int i = song.Ebeats.Count - 1; i >= 0; i--)
             {
                 if (song.Ebeats[i].Time >= songLength)
-                {
                     song.Ebeats.RemoveAt(i);
-                }
                 else
-                {
                     break;
-                }
             }
         }
 
@@ -538,9 +517,7 @@ namespace XmlCombiners
             foreach (var beat in song.Ebeats)
             {
                 if (beat.Measure >= 0)
-                {
                     beat.Measure = (short)(lastMeasure + measureCounter++);
-                }
 
                 beat.Time += startTime;
             }
@@ -564,18 +541,15 @@ namespace XmlCombiners
 
         private void UpdateNotes(InstrumentalArrangement song, int startTime)
         {
-            foreach (var level in song.Levels)
+            foreach (var note in song.Levels.SelectMany(l => l.Notes))
             {
-                foreach (var note in level.Notes)
-                {
-                    note.Time += startTime;
+                note.Time += startTime;
 
-                    if (note.BendValues?.Count > 0)
+                if (note.BendValues?.Count > 0)
+                {
+                    for (int i = 0; i < note.BendValues.Count; i++)
                     {
-                        for (int i = 0; i < note.BendValues.Count; i++)
-                        {
-                            note.BendValues[i] = new BendValue(note.BendValues[i].Time + startTime, note.BendValues[i].Step);
-                        }
+                        note.BendValues[i] = new BendValue(note.BendValues[i].Time + startTime, note.BendValues[i].Step);
                     }
                 }
             }
@@ -583,24 +557,21 @@ namespace XmlCombiners
 
         private void UpdateChords(InstrumentalArrangement song, int startTime, short lastChordId)
         {
-            foreach (var level in song.Levels)
+            foreach (var chord in song.Levels.SelectMany(l => l.Chords))
             {
-                foreach (var chord in level.Chords)
+                chord.Time += startTime;
+                chord.ChordId += lastChordId;
+                if (chord.ChordNotes?.Count > 0)
                 {
-                    chord.Time += startTime;
-                    chord.ChordId += lastChordId;
-                    if (chord.ChordNotes?.Count > 0)
+                    foreach (var cn in chord.ChordNotes)
                     {
-                        foreach (var cn in chord.ChordNotes)
-                        {
-                            cn.Time += startTime;
+                        cn.Time += startTime;
 
-                            if (cn.BendValues?.Count > 0)
+                        if (cn.BendValues?.Count > 0)
+                        {
+                            for (int i = 0; i < cn.BendValues.Count; i++)
                             {
-                                for (int i = 0; i < cn.BendValues.Count; i++)
-                                {
-                                    cn.BendValues[i] = new BendValue(cn.BendValues[i].Time + startTime, cn.BendValues[i].Step);
-                                }
+                                cn.BendValues[i] = new BendValue(cn.BendValues[i].Time + startTime, cn.BendValues[i].Step);
                             }
                         }
                     }
@@ -610,25 +581,19 @@ namespace XmlCombiners
 
         private void UpdateAnchors(InstrumentalArrangement song, int startTime)
         {
-            foreach (var level in song.Levels)
+            foreach (var anchor in song.Levels.SelectMany(l => l.Anchors))
             {
-                foreach (var anchor in level.Anchors)
-                {
-                    anchor.Time += startTime;
-                }
+                anchor.Time += startTime;
             }
         }
 
         private void UpdateHandShapes(InstrumentalArrangement song, int startTime, short lastChordId)
         {
-            foreach (var level in song.Levels)
+            foreach (var hs in song.Levels.SelectMany(l => l.HandShapes))
             {
-                foreach (var hs in level.HandShapes)
-                {
-                    hs.StartTime += startTime;
-                    hs.EndTime += startTime;
-                    hs.ChordId += lastChordId;
-                }
+                hs.StartTime += startTime;
+                hs.EndTime += startTime;
+                hs.ChordId += lastChordId;
             }
         }
 

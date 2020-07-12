@@ -52,16 +52,14 @@ let combineAudioFiles (tracks : Track list) (targetFile : string) =
 /// Combines the audio files of the given tracks into the target file.
 let combineWithResampling (tracks : Track list) (targetFile : string) =
     try
-        let files =
-            tracks
-            |> Seq.mapi (fun i track -> 
-                let sampler =
-                    track.AudioFile
-                    |> Option.get
-                    |> Audio.getSampleProviderWithRate targetSampleRate
-                if i = 0 then sampler else sampler |> Audio.trimStart track.TrimAmount)
-    
-        Audio.concatenate targetFile files
+        tracks
+        |> Seq.mapi (fun i track -> 
+            let sampler =
+                track.AudioFile
+                |> Option.get
+                |> Audio.getSampleProviderWithRate targetSampleRate
+            if i = 0 then sampler else sampler |> Audio.trimStart track.TrimAmount)
+        |> Audio.concatenate targetFile 
   
         sprintf "Audio files combined as %s" targetFile
     with
