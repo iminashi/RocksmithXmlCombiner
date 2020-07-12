@@ -46,8 +46,8 @@ module Types =
 
         let ordering =
             if song.ArrangementProperties.BonusArrangement then ArrangementOrdering.Bonus
-            else if song.ArrangementProperties.Represent then ArrangementOrdering.Alternative
-            else ArrangementOrdering.Main
+            else if song.ArrangementProperties.Represent then ArrangementOrdering.Main
+            else ArrangementOrdering.Alternative
 
         let arrData =
           { Ordering = ordering
