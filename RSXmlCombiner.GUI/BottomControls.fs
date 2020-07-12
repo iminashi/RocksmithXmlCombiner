@@ -27,27 +27,23 @@ let update msg state : ProgramState * Cmd<_> =
         let dialog = Dialogs.saveFileDialog "Select Target File" Dialogs.audioFileFiltersSave defaultFileName
         state, Cmd.OfAsync.perform dialog initialDir cmd
 
-    | CombineAudioFiles targetFile ->
-        match targetFile with
-        | None -> state, Cmd.none // User canceled the dialog
-        | Some file ->
-            let task() = async { return AudioCombiner.combineWithResampling state.Tracks file } 
-            { state with AudioCombinerProgress = Some(0.0); StatusMessage = "Combining audio files..." }, Cmd.OfAsync.perform task () CombineAudioCompleted
+    | CombineAudioFiles (Some targetFile) ->
+        let task() = async { return AudioCombiner.combineWithResampling state.Tracks targetFile } 
+        { state with AudioCombinerProgress = Some(0.0)
+                     StatusMessage = "Combining audio files..." }, Cmd.OfAsync.perform task () CombineAudioCompleted
     
-    | CreatePreview targetFile ->
-        match targetFile with
-        | None -> state, Cmd.none // User canceled the dialog
-        | Some file ->
-            let task file = 
-                async {
-                    try
-                        AudioCombiner.createPreview state.Tracks file
-                        return "Preview created."
-                    with
-                    e -> return sprintf "Error: %s" e.Message
-                }
+    | CreatePreview (Some targetFile) ->
+        let task file = 
+            async {
+                try
+                    AudioCombiner.createPreview state.Tracks file
+                    return "Preview created."
+                with
+                e -> return sprintf "Error: %s" e.Message
+            }
 
-            { state with AudioCombinerProgress = Some(0.0); StatusMessage = "Creating preview audio..." }, Cmd.OfAsync.perform task file CombineAudioCompleted
+        { state with AudioCombinerProgress = Some(0.0)
+                     StatusMessage = "Creating preview audio..." }, Cmd.OfAsync.perform task targetFile CombineAudioCompleted
 
     | CombineAudioCompleted message ->
         GC.Collect()
@@ -55,31 +51,28 @@ let update msg state : ProgramState * Cmd<_> =
 
         { state with StatusMessage = message; AudioCombinerProgress = None }, Cmd.none
 
-    | CombineArrangements targetFolder ->
-        match targetFolder with
-        | None -> state, Cmd.none // User canceled the dialog
-        | Some folder ->
-            let trackCount = state.Tracks.Length
-            // Calculate the maximum value for the progress bar
-            let max =
-                ((0, 0), state.Tracks.Head.Arrangements)
-                ||> Seq.fold (fun (i, count) arr ->
-                    let hasFile track = track.Arrangements.[i].FileName |> Option.isSome
-                    let next = i + 1
-                    // For instrumental arrangement, the progress is increased by one for each file
-                    // Combining vocals and show lights is so fast that individual files are not reported
-                    match arr.ArrangementType with
-                    | ArrangementType.Instrumental _ ->
-                        if state.Tracks |> List.forall hasFile then next, count + trackCount else next, count
-                    | ArrangementType.ShowLights ->
-                        if state.Tracks |> List.forall hasFile then next, count + 1 else next, count
-                    | _ ->
-                        if state.Tracks |> List.exists hasFile then next, count + 1 else next, count
-                    )
-                |> snd
+    | CombineArrangements (Some targetFolder) ->
+        let trackCount = state.Tracks.Length
+        // Calculate the maximum value for the progress bar
+        let max =
+            ((0, 0), state.Tracks.Head.Arrangements)
+            ||> Seq.fold (fun (i, count) arr ->
+                let hasFile track = track.Arrangements.[i].FileName |> Option.isSome
+                let next = i + 1
+                // For instrumental arrangement, the progress is increased by one for each file
+                // Combining vocals and show lights is so fast that individual files are not reported
+                match arr.ArrangementType with
+                | ArrangementType.Instrumental _ ->
+                    if state.Tracks |> List.forall hasFile then next, count + trackCount else next, count
+                | ArrangementType.ShowLights ->
+                    if state.Tracks |> List.forall hasFile then next, count + 1 else next, count
+                | _ ->
+                    if state.Tracks |> List.exists hasFile then next, count + 1 else next, count
+                )
+            |> snd
 
-            let task = ArrangementCombiner.combine state
-            { state with ArrangementCombinerProgress = Some(0, max) }, Cmd.OfAsync.perform task folder CombineArrangementsCompleted
+        let task = ArrangementCombiner.combine state
+        { state with ArrangementCombinerProgress = Some(0, max) }, Cmd.OfAsync.perform task targetFolder CombineArrangementsCompleted
 
     | CombineArrangementsCompleted ->
         { state with StatusMessage = "Arrangements combined."; ArrangementCombinerProgress = None }, Cmd.none
@@ -93,6 +86,9 @@ let update msg state : ProgramState * Cmd<_> =
     | CoercePhrasesChanged value -> { state with CoercePhrases = value }, Cmd.none
     | OnePhrasePerTrackChanged value -> { state with OnePhrasePerTrack = value }, Cmd.none
     | AddTrackNamesChanged value -> { state with AddTrackNamesToLyrics = value }, Cmd.none
+
+    // User canceled the dialog
+    | CombineAudioFiles None | CreatePreview None | CombineArrangements None -> state, Cmd.none
 
 let view state dispatch =
     // Only enable the button if there is more than one track and every track has an audio file
