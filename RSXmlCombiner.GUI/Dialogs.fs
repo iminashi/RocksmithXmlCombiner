@@ -19,8 +19,7 @@ let toolkitTemplateFilter = createFilters "Toolkit Templates" (seq { "dlc.xml" }
 
 /// Shows an open folder dialog.
 let openFolderDialog title directory =
-    let dialog = OpenFolderDialog(Title = title)
-    directory |> Option.iter (fun dir -> dialog.Directory <- dir)
+    let dialog = OpenFolderDialog(Title = title, Directory = Option.toObj directory)
 
     async {
         let! result = dialog.ShowAsync(window) |> Async.AwaitTask
@@ -29,19 +28,24 @@ let openFolderDialog title directory =
 
 /// Shows a save file dialog.
 let saveFileDialog title filters initialFileName directory =
-    let dialog = SaveFileDialog(Title = title, Filters = filters)
-    initialFileName |> Option.iter (fun fn -> dialog.InitialFileName <- fn)
-    directory |> Option.iter (fun dir -> dialog.Directory <- dir)
+    let dialog =
+        SaveFileDialog(
+            Title = title,
+            Filters = filters,
+            InitialFileName = Option.toObj initialFileName,
+            Directory = Option.toObj directory)
 
     async {
         let! result = dialog.ShowAsync(window) |> Async.AwaitTask
         return Option.create String.notEmpty result
     }
 
+let private createOpenFileDialog t f d m =
+    OpenFileDialog(Title = t, Filters = f, Directory = Option.toObj d, AllowMultiple = m)
+
 /// Shows an open file dialog for selecting a single file.
 let openFileDialog title filters directory =
-    let dialog = OpenFileDialog(Title = title, Filters = filters, AllowMultiple = false)
-    directory |> Option.iter (fun dir -> dialog.Directory <- dir)
+    let dialog = createOpenFileDialog title filters directory false
 
     async {
         match! dialog.ShowAsync(window) |> Async.AwaitTask with
@@ -51,8 +55,7 @@ let openFileDialog title filters directory =
 
 /// Shows an open file dialog that allows selecting multiple files.
 let openMultiFileDialog title filters directory =
-    let dialog = OpenFileDialog(Title = title, Filters = filters, AllowMultiple = true)
-    directory |> Option.iter (fun dir -> dialog.Directory <- dir)
+    let dialog = createOpenFileDialog title filters directory true
 
     async {
         match! dialog.ShowAsync(window) |> Async.AwaitTask with
