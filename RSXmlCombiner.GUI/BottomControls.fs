@@ -8,31 +8,24 @@ open Avalonia.FuncUI.DSL
 open Avalonia.Layout
 
 type Msg = 
-    | SelectCombinationTargetFolder
-    | CombineAudioFiles of targetFile : string option
-    | CombineArrangements of targetFolder :string option
+    | CombineAudioFiles of targetFile : string
+    | CombineArrangements of targetFolder :string
     | UpdateCombinationTitle of newTitle : string
     | CoercePhrasesChanged of bool
     | OnePhrasePerTrackChanged of bool
     | AddTrackNamesChanged of bool
     | CombineAudioCompleted of message : string
     | CombineArrangementsCompleted of unit
-    | CreatePreview of targetFile : string option
-    | SelectTargetAudioFile of defaultFileName : string option * cmd : (string option -> Msg)
+    | CreatePreview of targetFile : string
 
 let update msg state : ProgramState * Cmd<_> =
     match msg with
-    | SelectTargetAudioFile (defaultFileName, cmd) ->
-        let initialDir = state.OpenProjectFile |> Option.map Path.GetDirectoryName
-        let dialog = Dialogs.saveFileDialog "Select Target File" Dialogs.audioFileFiltersSave defaultFileName
-        state, Cmd.OfAsync.perform dialog initialDir cmd
-
-    | CombineAudioFiles (Some targetFile) ->
+    | CombineAudioFiles targetFile ->
         let task() = async { return AudioCombiner.combineWithResampling state.Tracks targetFile } 
         { state with AudioCombinerProgress = Some(0.0)
                      StatusMessage = "Combining audio files..." }, Cmd.OfAsync.perform task () CombineAudioCompleted
     
-    | CreatePreview (Some targetFile) ->
+    | CreatePreview targetFile ->
         let task file = 
             async {
                 try
@@ -51,7 +44,7 @@ let update msg state : ProgramState * Cmd<_> =
 
         { state with StatusMessage = message; AudioCombinerProgress = None }, Cmd.none
 
-    | CombineArrangements (Some targetFolder) ->
+    | CombineArrangements targetFolder ->
         let trackCount = state.Tracks.Length
         // Calculate the maximum value for the progress bar
         let max =
@@ -77,18 +70,10 @@ let update msg state : ProgramState * Cmd<_> =
     | CombineArrangementsCompleted ->
         { state with StatusMessage = "Arrangements combined."; ArrangementCombinerProgress = None }, Cmd.none
 
-    | SelectCombinationTargetFolder ->
-        let initialDir = state.OpenProjectFile |> Option.map Path.GetDirectoryName
-        let dialog = Dialogs.openFolderDialog "Select Target Folder"
-        state, Cmd.OfAsync.perform dialog initialDir CombineArrangements
-
     | UpdateCombinationTitle newTitle -> { state with CombinationTitle = newTitle }, Cmd.none
     | CoercePhrasesChanged value -> { state with CoercePhrases = value }, Cmd.none
     | OnePhrasePerTrackChanged value -> { state with OnePhrasePerTrack = value }, Cmd.none
     | AddTrackNamesChanged value -> { state with AddTrackNamesToLyrics = value }, Cmd.none
-
-    // User canceled the dialog
-    | CombineAudioFiles None | CreatePreview None | CombineArrangements None -> state, Cmd.none
 
 let view state dispatch =
     // Only enable the button if there is more than one track and every track has an audio file
@@ -101,6 +86,9 @@ let view state dispatch =
     let canCombineArrangements =
         state.ArrangementCombinerProgress |> Option.isNone
         && state.Tracks.Length > 1
+
+    let projectDir =
+        state.OpenProjectFile |> Option.map Path.GetDirectoryName
 
     // Bottom Panel
     Grid.create [
@@ -115,7 +103,9 @@ let view state dispatch =
                     Button.create [
                         Button.content "Combine Audio"
                         Button.fontSize 20.0
-                        Button.onClick (fun _ -> SelectTargetAudioFile (Some "combo.wav", CombineAudioFiles) |> dispatch)
+                        Button.onClick (fun _ -> 
+                            Dialogs.saveFileDialog "Select Target File" Dialogs.audioFileFiltersSave (Some "combo.wav") projectDir (CombineAudioFiles >> dispatch)
+                        )
                         Button.isEnabled canCombineAudio
                     ]
                     // Create Preview Button
@@ -123,7 +113,9 @@ let view state dispatch =
                         Button.content "Create Preview"
                         Button.fontSize 12.0
                         Button.margin (0.0, 1.0)
-                        Button.onClick (fun _ -> SelectTargetAudioFile (Some "combo_preview.wav", CreatePreview) |> dispatch)
+                        Button.onClick (fun _ ->
+                            Dialogs.saveFileDialog "Select Target File" Dialogs.audioFileFiltersSave (Some "combo_preview.wav") projectDir (CreatePreview >> dispatch)
+                        )
                         Button.isEnabled canCombineAudio
                         ToolTip.tip "Creates a preview audio file from randomly selected sections from randomly selected files (up to 4)."
                     ]
@@ -180,7 +172,9 @@ let view state dispatch =
                     // Combine Arrangements Button
                     Button.create [
                         Button.content "Combine Arrangements"
-                        Button.onClick (fun _ -> dispatch SelectCombinationTargetFolder)
+                        Button.onClick (fun _ ->
+                            Dialogs.openFolderDialog "Select Target Folder" projectDir (CombineArrangements >> dispatch)
+                        )
                         Button.fontSize 20.0
                         Button.isEnabled canCombineArrangements
                     ]

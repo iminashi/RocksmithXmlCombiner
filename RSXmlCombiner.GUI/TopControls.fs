@@ -12,16 +12,15 @@ open XmlUtils
 open ArrangementType
 
 type Msg =
-    | SelectAddTrackFiles
-    | AddTrack of arrangementFiles : string[] option
-    | SelectOpenProjectFile
-    | OpenProject of projectFile : string option
-    | SelectToolkitTemplate
-    | ImportToolkitTemplate of templateFile : string option
+    | AddTrack of arrangementFiles : string[]
+    | OpenProject of projectFile : string
+    | ImportToolkitTemplate of templateFile : string
     | NewProject
-    | SaveProject of fileName : string option
-    | SelectSaveProjectFile
+    | SaveProject of fileName : string
     | AddTemplate of arrType : ArrangementType * ordering : ArrangementOrdering option
+
+let openProject dispatch =
+    Dialogs.openFileDialog "Select Project File" Dialogs.projectFileFilter None (OpenProject >> dispatch)
 
 let private createTrack instArrFile (title : string option) (audioFile : string option) arrangements =
     let song = InstrumentalArrangement.Load(instArrFile)
@@ -68,16 +67,9 @@ let private addNewTrack state arrangementFileNames =
 
 let update (msg: Msg) state : ProgramState * Cmd<_> =
     match msg with
-    | SelectAddTrackFiles ->
-        let dialog = Dialogs.openMultiFileDialog "Select Arrangement File(s)" Dialogs.xmlFileFilter
-        state, Cmd.OfAsync.perform dialog None AddTrack
-
-    | AddTrack arrangementFiles -> 
-        match arrangementFiles with
-        | None -> state, Cmd.none
-        | Some files -> addNewTrack state files, Cmd.none
+    | AddTrack files -> addNewTrack state files, Cmd.none
     
-    | ImportToolkitTemplate (Some templateFile) ->
+    | ImportToolkitTemplate templateFile ->
         let foundArrangements, title, audioFilePath = ToolkitImporter.import templateFile
 
         let audioFile =
@@ -121,7 +113,7 @@ let update (msg: Msg) state : ProgramState * Cmd<_> =
     
     | NewProject -> ProgramState.init, Cmd.none
 
-    | OpenProject (Some projectFile) ->
+    | OpenProject projectFile ->
         let result = Project.load projectFile
         match result with
         | Error message -> { state with StatusMessage = message }, Cmd.none
@@ -157,23 +149,9 @@ let update (msg: Msg) state : ProgramState * Cmd<_> =
 
             Project.toProgramState templates projectFile statusMessage project, Cmd.none
 
-    | SaveProject (Some fileName) ->
+    | SaveProject fileName ->
         state |> Project.save fileName
         { state with OpenProjectFile = Some fileName; StatusMessage = "Project saved." }, Cmd.none
-
-    | SelectToolkitTemplate ->
-        let dialog = Dialogs.openFileDialog "Select Toolkit Template" Dialogs.toolkitTemplateFilter
-        state, Cmd.OfAsync.perform dialog None ImportToolkitTemplate
-
-    | SelectOpenProjectFile ->
-        let dialog = Dialogs.openFileDialog "Select Project File" Dialogs.projectFileFilter
-        state, Cmd.OfAsync.perform dialog None OpenProject
-
-    | SelectSaveProjectFile ->
-        let initialDir = state.OpenProjectFile |> Option.map Path.GetDirectoryName
-        let initialFile = state.OpenProjectFile |> Option.map Path.GetFileName |> Option.orElse (Some "combo.rscproj")
-        let dialog = Dialogs.saveFileDialog "Save Project As" Dialogs.projectFileFilter initialFile
-        state, Cmd.OfAsync.perform dialog initialDir SaveProject
 
     | AddTemplate (arrtype, ordering) ->
         let (Templates templates) = state.Templates
@@ -190,9 +168,6 @@ let update (msg: Msg) state : ProgramState * Cmd<_> =
         let updatedTracks = state.Tracks |> ProgramState.updateTracks updatedTemplates
 
         { state with Tracks = updatedTracks; Templates = updatedTemplates }, Cmd.none
-
-    // User canceled the dialog
-    | ImportToolkitTemplate None | OpenProject None | SaveProject None -> state, Cmd.none
 
 /// Creates the menu items for adding arrangements.
 let addArrangementMenuItems state dispatch : IView list =
@@ -225,11 +200,15 @@ let view state dispatch =
                 StackPanel.children [
                     Button.create [
                         Button.content "Add Track..."
-                        Button.onClick (fun _ -> dispatch SelectAddTrackFiles)
+                        Button.onClick (fun _ ->
+                            Dialogs.openMultiFileDialog "Select Arrangement File(s)" Dialogs.xmlFileFilter None (AddTrack >> dispatch)
+                        )
                     ]
                     Button.create [
                         Button.content "Import..."
-                        Button.onClick (fun _ -> dispatch SelectToolkitTemplate)
+                        Button.onClick (fun _ ->
+                            Dialogs.openFileDialog "Select Toolkit Template" Dialogs.toolkitTemplateFilter None (ImportToolkitTemplate >> dispatch)
+                        )
                         ToolTip.tip "Imports a track from a Toolkit template file."
                      ]
                 ]
@@ -259,11 +238,20 @@ let view state dispatch =
                     ]
                     Button.create [
                         Button.content "Open Project..."
-                        Button.onClick (fun _ -> dispatch SelectOpenProjectFile)
+                        Button.onClick (fun _ -> openProject dispatch)
                     ]
                     Button.create [
                         Button.content "Save Project..."
-                        Button.onClick (fun _ -> dispatch SelectSaveProjectFile)
+                        Button.onClick (fun _ ->
+                            let initialDir =
+                                state.OpenProjectFile
+                                |> Option.map Path.GetDirectoryName
+                            let initialFile =
+                                state.OpenProjectFile
+                                |> Option.map Path.GetFileName
+                                |> Option.orElse (Some "combo.rscproj")
+                            Dialogs.saveFileDialog "Save Project As" Dialogs.projectFileFilter initialFile initialDir (SaveProject >> dispatch)
+                        )
                         Button.isEnabled (not state.Tracks.IsEmpty)
                     ]
                 ]

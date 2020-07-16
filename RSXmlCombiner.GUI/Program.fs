@@ -20,8 +20,8 @@ type MainWindow() as this =
         let handleHotkeys dispatch (event : KeyEventArgs) =
             let dispatch = Shell.Msg.TopControlsMsg >> dispatch
             match event.KeyModifiers, event.Key with
-            | KeyModifiers.Control, Key.O -> dispatch TopControls.Msg.SelectOpenProjectFile
-            | KeyModifiers.Control, Key.S -> dispatch TopControls.Msg.SelectSaveProjectFile
+            | KeyModifiers.Control, Key.O -> TopControls.openProject dispatch
+            //| KeyModifiers.Control, Key.S -> dispatch TopControls.Msg.SelectSaveProjectFile
             | KeyModifiers.Control, Key.N -> dispatch TopControls.Msg.NewProject
             | _ -> ()
 
@@ -36,7 +36,7 @@ type MainWindow() as this =
             Cmd.ofSub sub
         
         let hotKeysSub _initialModel =
-            Cmd.ofSub (fun dispatch -> this.KeyDown.Add(handleHotkeys dispatch))
+            Cmd.ofSub (fun dispatch -> this.KeyDown.Add (handleHotkeys dispatch))
 
         //this.VisualRoot.VisualRoot.Renderer.DrawFps <- true
         //this.VisualRoot.VisualRoot.Renderer.DrawDirtyRects <- true
@@ -47,7 +47,6 @@ type MainWindow() as this =
         |> Program.withSubscription arrangementCombinerProgress
         |> Program.withSubscription hotKeysSub
         |> Program.run
-
         
 type App() =
     inherit Application()

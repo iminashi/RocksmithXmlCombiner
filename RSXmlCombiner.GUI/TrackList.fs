@@ -16,10 +16,8 @@ open ArrangementType
 
 type Msg =
     | RemoveTrack of trackIndex : int
-    | ChangeAudioFile of trackIndex : int
-    | ChangeAudioFileResult of trackIndex : int * newFile : string option
-    | SelectArrangementFile of trackIndex : int * arrIndex : int
-    | ChangeArrangementFile of trackIndex : int * arrIndex : int * newFile : string option
+    | ChangeAudioFileResult of trackIndex : int * newFile : string
+    | ChangeArrangementFile of trackIndex : int * arrIndex : int * newFile : string
     | ArrangementBaseToneChanged of trackIndex : int * arrIndex : int * toneIndex : int
     | RemoveArrangementFile of trackIndex : int * arrIndex : int
     | ShowReplacementToneEditor of trackIndex : int * arrIndex : int
@@ -44,59 +42,43 @@ let update (msg: Msg) (state: ProgramState) =
     | RemoveTrack trackIndex ->
         { state with Tracks = state.Tracks |> List.except (seq { state.Tracks.[trackIndex] }) }, Cmd.none
 
-    | ChangeAudioFile trackIndex ->
-        let initialDir = getInitialDir state.Tracks.[trackIndex].AudioFile state trackIndex
-        let dialog = Dialogs.openFileDialog "Select Audio File" Dialogs.audioFileFiltersOpen
-        state, Cmd.OfAsync.perform dialog initialDir (fun file -> ChangeAudioFileResult (trackIndex, file))
+    | ChangeAudioFileResult (trackIndex, fileName) ->
+        let oldSongLength = state.Tracks.[trackIndex].SongLength
+        let updatedTracks =
+            state.Tracks
+            |> List.mapi (fun i t -> if i = trackIndex then changeAudioFile t fileName else t)
+        let newSongLength = updatedTracks.[trackIndex].SongLength
 
-    | ChangeAudioFileResult (trackIndex, file) ->
-        match file with
-        | None -> state, Cmd.none
-        | Some fileName ->
-            let oldSongLength = state.Tracks.[trackIndex].SongLength
-            let updatedTracks =
-                state.Tracks
-                |> List.mapi (fun i t -> if i = trackIndex then changeAudioFile t fileName else t)
-            let newSongLength = updatedTracks.[trackIndex].SongLength
+        let message =
+            if oldSongLength <> newSongLength then
+                sprintf "Old song length: %.3f, new: %.3f" (float oldSongLength / 1000.0) (float newSongLength / 1000.0)
+            else
+                "Audio file changed."
 
-            let message =
-                if oldSongLength <> newSongLength then
-                    sprintf "Old song length: %.3f, new: %.3f" (float oldSongLength / 1000.0) (float newSongLength / 1000.0)
-                else
-                    "Audio file changed."
+        { state with Tracks = updatedTracks; StatusMessage = message }, Cmd.none
 
-            { state with Tracks = updatedTracks; StatusMessage = message }, Cmd.none
+    | ChangeArrangementFile (trackIndex, arrIndex, fileName) ->
+        let rootName = XmlHelper.GetRootElementName(fileName)
+        let arrangement = state |> getArr trackIndex arrIndex
 
-    | SelectArrangementFile (trackIndex, arrIndex) ->
-        let initialDir = getInitialDir (state |> getArr trackIndex arrIndex).FileName state trackIndex
-        let dialog = Dialogs.openFileDialog "Select Arrangement File" Dialogs.xmlFileFilter
-        state, Cmd.OfAsync.perform dialog initialDir (fun file -> ChangeArrangementFile (trackIndex, arrIndex, file))
+        let newArr =
+            match rootName, arrangement.ArrangementType with
+            // For instrumental arrangements, create an arrangement from the file, preserving the arrangement type and name
+            | "song", Instrumental t ->
+                Ok { createInstrumental fileName (Some t) with Name = arrangement.Name }
 
-    | ChangeArrangementFile (trackIndex, arrIndex, file) ->
-        match file with
-        | None -> state, Cmd.none
-        | Some fileName ->
-            let rootName = XmlHelper.GetRootElementName(fileName)
-            let arrangement = state |> getArr trackIndex arrIndex
+            // For vocals and show lights, just change the file name
+            | "vocals", Vocals _
+            | "showlights", ArrangementType.ShowLights -> Ok { arrangement with FileName = Some fileName }
 
-            let newArr =
-                match rootName, arrangement.ArrangementType with
-                // For instrumental arrangements, create an arrangement from the file, preserving the arrangement type and name
-                | "song", Instrumental t ->
-                    Ok { createInstrumental fileName (Some t) with Name = arrangement.Name }
+            | _ -> Error "Incorrect arrangement type."
 
-                // For vocals and show lights, just change the file name
-                | "vocals", Vocals _
-                | "showlights", ArrangementType.ShowLights -> Ok { arrangement with FileName = Some fileName }
-
-                | _ -> Error "Incorrect arrangement type."
-
-            match newArr with
-            | Ok arr ->
-                let updatedTracks = updateSingleArrangement state.Tracks trackIndex arrIndex arr
-                { state with Tracks = updatedTracks }, Cmd.none
-            | Error message->
-                { state with StatusMessage = message }, Cmd.none
+        match newArr with
+        | Ok arr ->
+            let updatedTracks = updateSingleArrangement state.Tracks trackIndex arrIndex arr
+            { state with Tracks = updatedTracks }, Cmd.none
+        | Error message->
+            { state with StatusMessage = message }, Cmd.none
 
     | ArrangementBaseToneChanged (trackIndex, arrIndex, toneIndex) ->
         match state |> getArr trackIndex arrIndex with
@@ -213,7 +195,10 @@ let private arrangementView (arr : Arrangement) trackIndex arrIndex state dispat
                                 TextBlock.text arr.Name
                                 TextBlock.foreground color
                                 TextBlock.cursor Cursors.hand
-                                TextBlock.onTapped (fun _ -> SelectArrangementFile(trackIndex, arrIndex) |> dispatch)
+                                TextBlock.onTapped (fun _ ->
+                                    let initialDir = getInitialDir (state |> getArr trackIndex arrIndex).FileName state trackIndex
+                                    Dialogs.openFileDialog "Select Arrangement File" Dialogs.xmlFileFilter initialDir (fun f -> ChangeArrangementFile (trackIndex, arrIndex, f) |> dispatch)
+                                )
                             ]
                         ]
                     ]
@@ -223,7 +208,10 @@ let private arrangementView (arr : Arrangement) trackIndex arrIndex state dispat
                         TextBlock.width 100.0
                         TextBlock.foreground fileNameBrush
                         TextBlock.cursor Cursors.hand
-                        TextBlock.onTapped (fun _ -> SelectArrangementFile(trackIndex, arrIndex) |> dispatch)
+                        TextBlock.onTapped (fun _ -> 
+                            let initialDir = getInitialDir (state |> getArr trackIndex arrIndex).FileName state trackIndex
+                            Dialogs.openFileDialog "Select Arrangement File" Dialogs.xmlFileFilter initialDir (fun f -> ChangeArrangementFile (trackIndex, arrIndex, f) |> dispatch)
+                        )
                         ToolTip.tip (fileName |> Option.defaultValue "Click to select a file.")
                     ]
 
@@ -325,7 +313,10 @@ let private trackView (track : Track) index state dispatch =
                                         TextBlock.foreground audioFileBrush
                                         TextBlock.maxWidth 100.0
                                         TextBlock.cursor Cursors.hand
-                                        TextBlock.onTapped (fun _ -> ChangeAudioFile index |> dispatch)
+                                        TextBlock.onTapped (fun _ ->
+                                            let initialDir = getInitialDir state.Tracks.[index].AudioFile state index
+                                            Dialogs.openFileDialog "Select Audio File" Dialogs.audioFileFiltersOpen initialDir (fun f -> ChangeAudioFileResult (index, f) |> dispatch)
+                                        )
                                         TextBlock.text (track.AudioFile |> Option.map Path.GetFileName |> Option.defaultValue "None selected" )
                                         ToolTip.tip (track.AudioFile |> Option.defaultValue "Click to select a file.")
                                     ]
