@@ -156,7 +156,7 @@ let private arrangementView (arr : Arrangement) trackIndex arrIndex state dispat
 
     let color =
         match fileName with
-        | Some ->
+        | Some _ ->
             match arr.ArrangementType with
             | ArrangementType.Lead -> Brushes.lead
             | ArrangementType.Rhythm | ArrangementType.Combo -> Brushes.rhythm

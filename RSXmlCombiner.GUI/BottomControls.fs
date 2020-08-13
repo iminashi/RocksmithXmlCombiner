@@ -74,7 +74,7 @@ let update msg state : ProgramState * Cmd<_> =
         let task = ArrangementCombiner.combine state
         { state with ArrangementCombinerProgress = Some(0, max) }, Cmd.OfAsync.perform task targetFolder CombineArrangementsCompleted
 
-    | CombineArrangementsCompleted ->
+    | CombineArrangementsCompleted _ ->
         { state with StatusMessage = "Arrangements combined."; ArrangementCombinerProgress = None }, Cmd.none
 
     | SelectCombinationTargetFolder ->

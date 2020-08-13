@@ -11,13 +11,17 @@
   </Style>
 
   <Style Selector="Path.close">
-    <Setter Property="Fill" Value="Gray"/>
+    <Setter Property="Fill" Value="Transparent"/>
   </Style>
 
   <Style Selector="ContentControl.close">
     <Setter Property="VerticalAlignment" Value="Center"/>
     <Setter Property="HorizontalAlignment" Value="Center"/>
     <Setter Property="Background" Value="Transparent"/>
+  </Style>
+
+  <Style Selector="Border.track:pointerover ContentControl.close Path">
+    <Setter Property="Fill" Value="Gray"/>
   </Style>
 
   <Style Selector="ContentControl.close:pointerover Path">
