@@ -7,6 +7,13 @@
     <Authors>iminashi</Authors>
     <Company>iminashi</Company>
     <Product>Rocksmith 2014 XML Combiner</Product>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <RuntimeIdentifiers>win-x64;osx-x64</RuntimeIdentifiers>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
   </PropertyGroup>
 
   <ItemGroup>

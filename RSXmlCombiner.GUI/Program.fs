@@ -69,5 +69,6 @@ module Program =
         AppBuilder
             .Configure<App>()
             .UsePlatformDetect()
+            //.With(AvaloniaNativePlatformOptions(UseGpu = false))
             .UseSkia()
             .StartWithClassicDesktopLifetime(args)
