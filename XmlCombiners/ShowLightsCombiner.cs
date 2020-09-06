@@ -1,21 +1,24 @@
-﻿using Rocksmith2014Xml;
+﻿using Rocksmith2014.XML;
+
+using System.Collections.Generic;
 
 namespace XmlCombiners
 {
     public sealed class ShowLightsCombiner
     {
-        private ShowLights? CombinedShowlights { get; set; }
+        private List<ShowLight>? CombinedShowlights { get; set; }
         private int SongLength { get; set; }
 
         public void Save(string fileName)
         {
-            CombinedShowlights?.Save(fileName);
+            if (CombinedShowlights != null)
+                ShowLights.Save(fileName, CombinedShowlights);
         }
 
-        public void AddNext(ShowLights next, int songLength, int trimAmount)
+        public void AddNext(List<ShowLight> next, int songLength, int trimAmount)
         {
             // Adding first arrangement
-            if(CombinedShowlights is null)
+            if (CombinedShowlights is null)
             {
                 CombinedShowlights = next;
 
@@ -31,7 +34,7 @@ namespace XmlCombiners
             SongLength += songLength - trimAmount;
         }
 
-        private void UpdateShowLights(ShowLights showLights, int startTime)
+        private void UpdateShowLights(List<ShowLight> showLights, int startTime)
         {
             foreach (var sl in showLights)
             {

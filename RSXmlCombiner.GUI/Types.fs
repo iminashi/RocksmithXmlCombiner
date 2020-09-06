@@ -3,7 +3,7 @@
 [<AutoOpen>]
 module Types =
     open System
-    open Rocksmith2014Xml
+    open Rocksmith2014.XML
 
     [<Measure>] type ms
 
@@ -45,8 +45,8 @@ module Types =
                 song.Tones.Names |> Seq.filter String.notEmpty |> Seq.toList
 
         let ordering =
-            if song.ArrangementProperties.BonusArrangement then ArrangementOrdering.Bonus
-            else if song.ArrangementProperties.Represent then ArrangementOrdering.Main
+            if song.MetaData.ArrangementProperties.BonusArrangement then ArrangementOrdering.Bonus
+            else if song.MetaData.ArrangementProperties.Represent then ArrangementOrdering.Main
             else ArrangementOrdering.Alternative
 
         let arrData =

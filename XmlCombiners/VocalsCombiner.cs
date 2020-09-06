@@ -1,21 +1,24 @@
-﻿using Rocksmith2014Xml;
+﻿using Rocksmith2014.XML;
+
+using System.Collections.Generic;
 
 namespace XmlCombiners
 {
     public sealed class VocalsCombiner
     {
-        private Vocals? CombinedVocals { get; set; }
+        private List<Vocal>? CombinedVocals { get; set; }
         private int SongLength { get; set; }
 
         public void Save(string fileName)
         {
-            CombinedVocals?.Save(fileName);
+            if (CombinedVocals != null)
+                Vocals.Save(fileName, CombinedVocals);
         }
 
-        public void AddNext(Vocals? next, int songLength, int trimAmount)
+        public void AddNext(List<Vocal>? next, int songLength, int trimAmount)
         {
             // Adding first arrangement
-            if(CombinedVocals is null)
+            if (CombinedVocals is null)
             {
                 AddFirst(next, songLength);
                 return;
@@ -35,17 +38,17 @@ namespace XmlCombiners
             SongLength += songLength - trimAmount;
         }
 
-        private void AddFirst(Vocals? next, int songLength)
+        private void AddFirst(List<Vocal>? next, int songLength)
         {
-            if (next is Vocals)
+            if (next is List<Vocal>)
                 CombinedVocals = next;
             else
-                CombinedVocals = new Vocals();
+                CombinedVocals = new List<Vocal>();
 
             SongLength = songLength;
         }
 
-        private void UpdateVocals(Vocals vocals, int startTime)
+        private void UpdateVocals(List<Vocal> vocals, int startTime)
         {
             foreach (var vocal in vocals)
             {

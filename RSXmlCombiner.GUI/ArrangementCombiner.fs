@@ -2,7 +2,7 @@
 
 open System
 open System.IO
-open Rocksmith2014Xml
+open Rocksmith2014.XML
 open XmlCombiners
 open ArrangementType
 
@@ -22,7 +22,7 @@ let private combineShowLights tracks arrIndex targetFolder =
         increaseProgress ()
 
 /// Inserts the given title at the beginning of the given vocals arrangement.
-let private addTitle (vocals : Vocals) (title : string) (startBeat : int<ms>) =
+let private addTitle (vocals : ResizeArray<Vocal>) (title : string) (startBeat : int<ms>) =
     let defaultDisplayTime = 3000<ms>
 
     let displayTime =
@@ -50,7 +50,7 @@ let private combineVocals (tracks : Track list) arrIndex targetFolder addTitles 
             let next = 
                 match track.Arrangements.[arrIndex].FileName with
                 | Some fn -> Vocals.Load(fn)
-                | None -> Vocals()
+                | None -> ResizeArray<Vocal>()
             
             if addTitles then
                 let title = sprintf "%i. %s+" (trackIndex + 1) track.Title
@@ -91,9 +91,9 @@ let private replaceToneNames (song : InstrumentalArrangement) (toneReplacements 
 
 /// Updates the metadata of the given instrumental arrangement file to match the given arrangement.
 let private updateArrangementMetadata arr (combined : InstrumentalArrangement) =
-    combined.Arrangement <- arr.ArrangementType.ToString()
+    combined.MetaData.Arrangement <- arr.ArrangementType.ToString()
 
-    let arrProps = combined.ArrangementProperties
+    let arrProps = combined.MetaData.ArrangementProperties
     arrProps.PathBass <- false
     arrProps.PathLead <- false
     arrProps.PathRhythm <- false

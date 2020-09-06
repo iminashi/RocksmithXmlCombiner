@@ -50,6 +50,7 @@
     <PackageReference Include="JaggerJo.Avalonia.FuncUI.Elmish" Version="0.4.0" />
     <PackageReference Include="NAudio" Version="1.10.0" />
     <PackageReference Include="NAudio.Vorbis" Version="1.2.0" />
+    <PackageReference Include="Rocksmith2014.XML" Version="1.0.1" />
   </ItemGroup>
 
   <ItemGroup>
@@ -61,9 +62,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="Rocksmith2014Xml">
-      <HintPath>..\lib\Rocksmith2014Xml.dll</HintPath>
-    </Reference>
     <Reference Include="XmlUtils">
       <HintPath>..\lib\XmlUtils.dll</HintPath>
     </Reference>

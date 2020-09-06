@@ -11,14 +11,11 @@ type ArrangementType =
     | ShowLights = 0b1000000
 
 module ArrangementType =
-    open Rocksmith2014Xml
+    open Rocksmith2014.XML
 
-    [<Literal>]
-    let private instrumentalArrangement = ArrangementType.Lead ||| ArrangementType.Rhythm ||| ArrangementType.Combo ||| ArrangementType.Bass
-    [<Literal>]
-    let private vocalsArrangement = ArrangementType.Vocals ||| ArrangementType.JVocals
-    [<Literal>]
-    let private otherArrangement = vocalsArrangement ||| ArrangementType.ShowLights
+    let [<Literal>] private instrumentalArrangement = ArrangementType.Lead ||| ArrangementType.Rhythm ||| ArrangementType.Combo ||| ArrangementType.Bass
+    let [<Literal>] private vocalsArrangement = ArrangementType.Vocals ||| ArrangementType.JVocals
+    let [<Literal>] private otherArrangement = vocalsArrangement ||| ArrangementType.ShowLights
 
     /// Tests if the arrangement type is lead, rhythm, bass or combo.
     let isInstrumental arrType = (arrType &&& instrumentalArrangement) <> ArrangementType.Unknown
@@ -34,7 +31,7 @@ module ArrangementType =
 
     /// Creates an ArrangementType from an instrumental arrangement.
     let fromArrangement (arr : InstrumentalArrangement) =
-        let props = arr.ArrangementProperties
+        let props = arr.MetaData.ArrangementProperties
         if props.PathLead then ArrangementType.Lead
         elif props.PathRhythm then ArrangementType.Rhythm
         elif props.PathBass then ArrangementType.Bass

@@ -1,5 +1,5 @@
-﻿using Rocksmith2014Xml;
-using Rocksmith2014Xml.Extensions;
+﻿using Rocksmith2014.XML;
+using Rocksmith2014.XML.Extensions;
 
 using System;
 using System.Collections.Generic;
@@ -21,7 +21,7 @@ namespace XmlCombiners
             if (CombinedArrangement is null)
                 throw new InvalidOperationException("Cannot save an empty arrangement.");
 
-            CombinedArrangement.AverageTempo = TempoSum / ArrangementNumber;
+            CombinedArrangement.MetaData.AverageTempo = TempoSum / ArrangementNumber;
 
             CleanupToneChanges(CombinedArrangement);
 
@@ -53,7 +53,7 @@ namespace XmlCombiners
             if (isFirstArrangement)
             {
                 CombinedArrangement = next;
-                CombinedArrangement.SongLength = songLength;
+                CombinedArrangement.MetaData.SongLength = songLength;
                 // Remove the transcription track in case one is present
                 CombinedArrangement.TranscriptionTrack = new Level();
                 return;
@@ -63,7 +63,7 @@ namespace XmlCombiners
                 RemoveCountPhrase(next);
             }
 
-            int startTime = CombinedArrangement!.SongLength - trimAmount;
+            int startTime = CombinedArrangement!.MetaData.SongLength - trimAmount;
             short lastMeasure = FindLastMeasure(CombinedArrangement);
             short lastChordId = (short)CombinedArrangement.ChordTemplates.Count;
             int lastPhraseId = CombinedArrangement.Phrases.Count;
@@ -105,8 +105,8 @@ namespace XmlCombiners
 
             CombineTones(CombinedArrangement, next, startTime);
 
-            CombinedArrangement.SongLength += songLength - trimAmount;
-            TempoSum += next.AverageTempo;
+            CombinedArrangement.MetaData.SongLength += songLength - trimAmount;
+            TempoSum += next.MetaData.AverageTempo;
             CombineArrangementProperties(CombinedArrangement, next);
         }
 
@@ -189,9 +189,9 @@ namespace XmlCombiners
             var mainPi = new PhraseIteration(pTime, arr.Phrases.Count - 1)
             {
                 HeroLevels = new HeroLevels(
-                    easy: (sbyte)((arr.Levels.Count - 1) / 3),
-                    medium: (sbyte)((arr.Levels.Count - 1) / 2),
-                    hard: (sbyte)(arr.Levels.Count - 1))
+                    easy: (byte)((arr.Levels.Count - 1) / 3),
+                    medium: (byte)((arr.Levels.Count - 1) / 2),
+                    hard: (byte)(arr.Levels.Count - 1))
             };
             arr.PhraseIterations.Add(mainPi);
             arr.Sections.Add(new Section("riff", pTime, 1));
@@ -312,7 +312,7 @@ namespace XmlCombiners
 
         private bool IsSameChordTemplate(ChordTemplate first, ChordTemplate second)
         {
-            if (first.ChordName != second.ChordName || first.DisplayName != second.DisplayName)
+            if (first.Name != second.Name || first.DisplayName != second.DisplayName)
                 return false;
 
             for (int i = 0; i < first.Frets.Length; i++)
@@ -328,8 +328,8 @@ namespace XmlCombiners
         {
             if (CombinedArrangement != null)
             {
-                CombinedArrangement.Title = combinedTitle;
-                CombinedArrangement.TitleSort = combinedTitle;
+                CombinedArrangement.MetaData.Title = combinedTitle;
+                CombinedArrangement.MetaData.TitleSort = combinedTitle;
             }
         }
 
@@ -413,7 +413,7 @@ namespace XmlCombiners
 
         private void RemoveExtraBeats(InstrumentalArrangement song)
         {
-            int songLength = song.SongLength;
+            int songLength = song.MetaData.SongLength;
 
             for (int i = song.Ebeats.Count - 1; i >= 0; i--)
             {
@@ -617,15 +617,15 @@ namespace XmlCombiners
         private void CombineArrangementProperties(InstrumentalArrangement combined, InstrumentalArrangement next)
         {
             string[] skip = { "Represent", "BonusArrangement", "PathLead", "PathRhythm", "PathBass" };
-            var properties = combined.ArrangementProperties.GetType().GetProperties();
+            var properties = combined.MetaData.ArrangementProperties.GetType().GetProperties();
 
             foreach (var property in properties)
             {
                 if (skip.Contains(property.Name))
                     continue;
 
-                if ((bool)property.GetValue(next.ArrangementProperties)! != (bool)property.GetValue(combined.ArrangementProperties)!)
-                    property.SetValue(combined.ArrangementProperties, true);
+                if ((bool)property.GetValue(next.MetaData.ArrangementProperties)! != (bool)property.GetValue(combined.MetaData.ArrangementProperties)!)
+                    property.SetValue(combined.MetaData.ArrangementProperties, true);
             }
         }
 

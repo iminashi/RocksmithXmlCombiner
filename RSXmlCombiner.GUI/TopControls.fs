@@ -7,7 +7,7 @@ open Avalonia.FuncUI.DSL
 open Avalonia.FuncUI.Types
 open System
 open System.IO
-open Rocksmith2014Xml
+open Rocksmith2014.XML
 open XmlUtils
 open ArrangementType
 
@@ -28,9 +28,9 @@ let private createTrack instArrFile (title : string option) (audioFile : string 
     let songLength =
         audioFile
         |> Option.map Audio.getLength
-        |> Option.defaultValue (song.SongLength * 1<ms>)
+        |> Option.defaultValue (song.MetaData.SongLength * 1<ms>)
 
-    { Title = title |> Option.defaultValue song.Title
+    { Title = title |> Option.defaultValue song.MetaData.Title
       AudioFile = audioFile
       SongLength = songLength
       TrimAmount = song.StartBeat * 1<ms>

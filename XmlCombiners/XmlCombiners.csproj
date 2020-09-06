@@ -15,9 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Reference Include="Rocksmith2014Xml">
-      <HintPath>..\lib\Rocksmith2014Xml.dll</HintPath>
-    </Reference>
+    <PackageReference Include="Rocksmith2014.XML" Version="1.0.1" />
   </ItemGroup>
 
 </Project>
