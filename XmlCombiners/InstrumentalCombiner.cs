@@ -214,7 +214,7 @@ namespace XmlCombiners
             }
         }
 
-        private void CleanupToneChanges(InstrumentalArrangement song)
+        private static void CleanupToneChanges(InstrumentalArrangement song)
         {
             if (song.Tones.Changes is null)
                 return;
@@ -223,7 +223,7 @@ namespace XmlCombiners
             for (int i = song.Tones.Changes.Count - 1; i >= 0; i--)
             {
                 var t = song.Tones.Changes[i];
-                if (!song.Tones.Names.Any(tn => tn == t.Name))
+                if (!Array.Exists(song.Tones.Names, tn => tn == t.Name))
                     song.Tones.Changes.RemoveAt(i);
             }
 
@@ -236,7 +236,7 @@ namespace XmlCombiners
             }
         }
 
-        private void CombinePhrases(InstrumentalArrangement song)
+        private static void CombinePhrases(InstrumentalArrangement song)
         {
             for (int id1 = song.Phrases.Count - 1; id1 >= 0; id1--)
             {
@@ -276,7 +276,7 @@ namespace XmlCombiners
             }
         }
 
-        private void CombineChords(InstrumentalArrangement combined)
+        private static void CombineChords(InstrumentalArrangement combined)
         {
             for (short id1 = (short)(combined.ChordTemplates.Count - 1); id1 >= 0; id1--)
             {
@@ -310,7 +310,7 @@ namespace XmlCombiners
             }
         }
 
-        private bool IsSameChordTemplate(ChordTemplate first, ChordTemplate second)
+        private static bool IsSameChordTemplate(ChordTemplate first, ChordTemplate second)
         {
             if (first.Name != second.Name || first.DisplayName != second.DisplayName)
                 return false;
@@ -333,7 +333,7 @@ namespace XmlCombiners
             }
         }
 
-        private void CoercePhrasesAndSections(InstrumentalArrangement song)
+        private static void CoercePhrasesAndSections(InstrumentalArrangement song)
         {
             var phraseIterations = song.PhraseIterations;
 
@@ -411,7 +411,7 @@ namespace XmlCombiners
             UpdateSectionNumbers(song);
         }
 
-        private void RemoveExtraBeats(InstrumentalArrangement song)
+        private static void RemoveExtraBeats(InstrumentalArrangement song)
         {
             int songLength = song.MetaData.SongLength;
 
@@ -424,7 +424,7 @@ namespace XmlCombiners
             }
         }
 
-        private void RemoveEndPhrase(InstrumentalArrangement song)
+        private static void RemoveEndPhrase(InstrumentalArrangement song)
         {
             int endPhraseId = song.Phrases.FindIndex(p => p.Name.Equals("END", StringComparison.OrdinalIgnoreCase));
             if (endPhraseId == -1)
@@ -462,7 +462,7 @@ namespace XmlCombiners
             }
         }
 
-        private void RemoveCountPhrase(InstrumentalArrangement song)
+        private static void RemoveCountPhrase(InstrumentalArrangement song)
         {
             int countPhraseId = song.PhraseIterations[0].PhraseId;
             song.Phrases.RemoveAt(countPhraseId);
@@ -480,7 +480,7 @@ namespace XmlCombiners
             }
         }
 
-        private short FindLastMeasure(InstrumentalArrangement song)
+        private static short FindLastMeasure(InstrumentalArrangement song)
         {
             for (int i = song.Ebeats.Count - 1; i >= 0; i--)
             {
@@ -491,7 +491,7 @@ namespace XmlCombiners
             return 0;
         }
 
-        private void UpdatePhraseIterations(InstrumentalArrangement song, int startTime, int lastPhraseId)
+        private static void UpdatePhraseIterations(InstrumentalArrangement song, int startTime, int lastPhraseId)
         {
             foreach (var pi in song.PhraseIterations)
             {
@@ -500,7 +500,7 @@ namespace XmlCombiners
             }
         }
 
-        private void UpdateLinkedDiffs(InstrumentalArrangement song, int lastPhraseId)
+        private static void UpdateLinkedDiffs(InstrumentalArrangement song, int lastPhraseId)
         {
             foreach (var nld in song.NewLinkedDiffs)
             {
@@ -511,7 +511,7 @@ namespace XmlCombiners
             }
         }
 
-        private void UpdateBeats(InstrumentalArrangement song, int startTime, short lastMeasure)
+        private static void UpdateBeats(InstrumentalArrangement song, int startTime, short lastMeasure)
         {
             short measureCounter = 1;
             foreach (var beat in song.Ebeats)
@@ -523,7 +523,7 @@ namespace XmlCombiners
             }
         }
 
-        private void UpdateSections(InstrumentalArrangement song, int startTime)
+        private static void UpdateSections(InstrumentalArrangement song, int startTime)
         {
             foreach (var section in song.Sections)
             {
@@ -531,7 +531,7 @@ namespace XmlCombiners
             }
         }
 
-        private void UpdateEvents(InstrumentalArrangement song, int startTime)
+        private static void UpdateEvents(InstrumentalArrangement song, int startTime)
         {
             foreach (var @event in song.Events)
             {
@@ -539,7 +539,7 @@ namespace XmlCombiners
             }
         }
 
-        private void UpdateNotes(InstrumentalArrangement song, int startTime)
+        private static void UpdateNotes(InstrumentalArrangement song, int startTime)
         {
             foreach (var note in song.Levels.SelectMany(l => l.Notes))
             {
@@ -555,7 +555,7 @@ namespace XmlCombiners
             }
         }
 
-        private void UpdateChords(InstrumentalArrangement song, int startTime, short lastChordId)
+        private static void UpdateChords(InstrumentalArrangement song, int startTime, short lastChordId)
         {
             foreach (var chord in song.Levels.SelectMany(l => l.Chords))
             {
@@ -579,7 +579,7 @@ namespace XmlCombiners
             }
         }
 
-        private void UpdateAnchors(InstrumentalArrangement song, int startTime)
+        private static void UpdateAnchors(InstrumentalArrangement song, int startTime)
         {
             foreach (var anchor in song.Levels.SelectMany(l => l.Anchors))
             {
@@ -587,7 +587,7 @@ namespace XmlCombiners
             }
         }
 
-        private void UpdateHandShapes(InstrumentalArrangement song, int startTime, short lastChordId)
+        private static void UpdateHandShapes(InstrumentalArrangement song, int startTime, short lastChordId)
         {
             foreach (var hs in song.Levels.SelectMany(l => l.HandShapes))
             {
@@ -597,7 +597,7 @@ namespace XmlCombiners
             }
         }
 
-        private void UpdateSectionNumbers(InstrumentalArrangement combined)
+        private static void UpdateSectionNumbers(InstrumentalArrangement combined)
         {
             Dictionary<string, short> numbers = new Dictionary<string, short>();
             foreach (var section in combined.Sections)
@@ -614,7 +614,7 @@ namespace XmlCombiners
             }
         }
 
-        private void CombineArrangementProperties(InstrumentalArrangement combined, InstrumentalArrangement next)
+        private static void CombineArrangementProperties(InstrumentalArrangement combined, InstrumentalArrangement next)
         {
             string[] skip = { "Represent", "BonusArrangement", "PathLead", "PathRhythm", "PathBass" };
             var properties = combined.MetaData.ArrangementProperties.GetType().GetProperties();
@@ -629,7 +629,7 @@ namespace XmlCombiners
             }
         }
 
-        private void CombineTones(InstrumentalArrangement combined, InstrumentalArrangement next, int startTime)
+        private static void CombineTones(InstrumentalArrangement combined, InstrumentalArrangement next, int startTime)
         {
             if (combined.Tones.Changes is null)
                 combined.Tones.Changes = new List<ToneChange>();
@@ -659,10 +659,10 @@ namespace XmlCombiners
             }
         }
 
-        private void TryAddTone(InstrumentalArrangement combined, ToneChange t)
+        private static void TryAddTone(InstrumentalArrangement combined, ToneChange t)
         {
             // Check if the tone name already exists
-            if (combined.Tones.Names.Any(tn => tn == t.Name))
+            if (Array.Exists(combined.Tones.Names, tn => tn == t.Name))
                 return;
 
             // Try to add the tone name to the first available slot

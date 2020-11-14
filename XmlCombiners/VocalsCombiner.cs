@@ -48,7 +48,7 @@ namespace XmlCombiners
             SongLength = songLength;
         }
 
-        private void UpdateVocals(List<Vocal> vocals, int startTime)
+        private static void UpdateVocals(List<Vocal> vocals, int startTime)
         {
             foreach (var vocal in vocals)
             {

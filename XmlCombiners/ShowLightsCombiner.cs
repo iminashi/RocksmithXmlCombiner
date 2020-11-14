@@ -34,7 +34,7 @@ namespace XmlCombiners
             SongLength += songLength - trimAmount;
         }
 
-        private void UpdateShowLights(List<ShowLight> showLights, int startTime)
+        private static void UpdateShowLights(List<ShowLight> showLights, int startTime)
         {
             foreach (var sl in showLights)
             {
