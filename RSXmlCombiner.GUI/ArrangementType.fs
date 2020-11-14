@@ -13,16 +13,16 @@ type ArrangementType =
 module ArrangementType =
     open Rocksmith2014.XML
 
-    let [<Literal>] private instrumentalArrangement = ArrangementType.Lead ||| ArrangementType.Rhythm ||| ArrangementType.Combo ||| ArrangementType.Bass
-    let [<Literal>] private vocalsArrangement = ArrangementType.Vocals ||| ArrangementType.JVocals
-    let [<Literal>] private otherArrangement = vocalsArrangement ||| ArrangementType.ShowLights
+    let [<Literal>] private InstrumentalArrangement = ArrangementType.Lead ||| ArrangementType.Rhythm ||| ArrangementType.Combo ||| ArrangementType.Bass
+    let [<Literal>] private VocalsArrangement = ArrangementType.Vocals ||| ArrangementType.JVocals
+    let [<Literal>] private OtherArrangement = VocalsArrangement ||| ArrangementType.ShowLights
 
     /// Tests if the arrangement type is lead, rhythm, bass or combo.
-    let isInstrumental arrType = (arrType &&& instrumentalArrangement) <> ArrangementType.Unknown
+    let isInstrumental arrType = (arrType &&& InstrumentalArrangement) <> ArrangementType.Unknown
     /// Tests if the arrangement type is vocals or j-vocals.
-    let isVocals arrType = (arrType &&& vocalsArrangement) <> ArrangementType.Unknown
+    let isVocals arrType = (arrType &&& VocalsArrangement) <> ArrangementType.Unknown
     /// Tests if the arrangement type is vocals, j-vocals or show lights.
-    let isOther arrType = (arrType &&& otherArrangement) <> ArrangementType.Unknown
+    let isOther arrType = (arrType &&& OtherArrangement) <> ArrangementType.Unknown
 
     /// Active pattern for matching an instrumental arrangement.
     let (|Instrumental|_|) (arrType : ArrangementType) = Option.create isInstrumental arrType
