@@ -11,7 +11,7 @@ namespace XmlCombiners
 
         public void Save(string fileName)
         {
-            if (CombinedVocals != null)
+            if (CombinedVocals is not null)
                 Vocals.Save(fileName, CombinedVocals);
         }
 

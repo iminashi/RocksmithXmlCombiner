@@ -11,7 +11,7 @@ namespace XmlCombiners
 
         public void Save(string fileName)
         {
-            if (CombinedShowlights != null)
+            if (CombinedShowlights is not null)
                 ShowLights.Save(fileName, CombinedShowlights);
         }
 

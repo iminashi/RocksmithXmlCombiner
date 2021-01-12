@@ -545,9 +545,9 @@ namespace XmlCombiners
             {
                 note.Time += startTime;
 
-                if (note.BendValues?.Count > 0)
+                if (note.IsBend)
                 {
-                    for (int i = 0; i < note.BendValues.Count; i++)
+                    for (int i = 0; i < note.BendValues!.Count; i++)
                     {
                         note.BendValues[i] = new BendValue(note.BendValues[i].Time + startTime, note.BendValues[i].Step);
                     }
@@ -561,15 +561,15 @@ namespace XmlCombiners
             {
                 chord.Time += startTime;
                 chord.ChordId += lastChordId;
-                if (chord.ChordNotes?.Count > 0)
+                if (chord.HasChordNotes)
                 {
-                    foreach (var cn in chord.ChordNotes)
+                    foreach (var cn in chord.ChordNotes!)
                     {
                         cn.Time += startTime;
 
-                        if (cn.BendValues?.Count > 0)
+                        if (cn.IsBend)
                         {
-                            for (int i = 0; i < cn.BendValues.Count; i++)
+                            for (int i = 0; i < cn.BendValues!.Count; i++)
                             {
                                 cn.BendValues[i] = new BendValue(cn.BendValues[i].Time + startTime, cn.BendValues[i].Step);
                             }
@@ -662,7 +662,7 @@ namespace XmlCombiners
         private static void TryAddTone(InstrumentalArrangement combined, ToneChange t)
         {
             // Check if the tone name already exists
-            if (Array.Exists(combined.Tones.Names, tn => tn == t.Name))
+            if (Array.IndexOf(combined.Tones.Names, t.Name) >= 0)
                 return;
 
             // Try to add the tone name to the first available slot
