@@ -222,16 +222,14 @@ namespace XmlCombiners
             // Remove tones not included in the four tones
             for (int i = song.Tones.Changes.Count - 1; i >= 0; i--)
             {
-                var t = song.Tones.Changes[i];
-                if (!Array.Exists(song.Tones.Names, tn => tn == t.Name))
+                if (Array.IndexOf(song.Tones.Names, song.Tones.Changes[i].Name) == -1)
                     song.Tones.Changes.RemoveAt(i);
             }
 
             // Remove duplicate tone changes
             for (int i = song.Tones.Changes.Count - 2; i >= 0; i--)
             {
-                var t = song.Tones.Changes[i];
-                if (t.Name == song.Tones.Changes[i + 1].Name)
+                if (song.Tones.Changes[i].Name == song.Tones.Changes[i + 1].Name)
                     song.Tones.Changes.RemoveAt(i + 1);
             }
         }
