@@ -326,7 +326,7 @@ namespace XmlCombiners
 
         public void SetTitle(string combinedTitle)
         {
-            if (CombinedArrangement != null)
+            if (CombinedArrangement is not null)
             {
                 CombinedArrangement.MetaData.Title = combinedTitle;
                 CombinedArrangement.MetaData.TitleSort = combinedTitle;
@@ -644,7 +644,7 @@ namespace XmlCombiners
                (next.Tones.Changes.Count == 0 && currentTone != next.Tones.BaseToneName))
             {
                 // Add a tone change for the base tone of the next song
-                if (next.Tones.BaseToneName != null)
+                if (next.Tones.BaseToneName is not null)
                     next.Tones.Changes.Insert(0, new ToneChange(next.Tones.BaseToneName, next.StartBeat - startTime, 0));
 
                 for (int i = 0; i < next.Tones.Changes.Count; i++)
