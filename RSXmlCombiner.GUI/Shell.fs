@@ -141,6 +141,7 @@ let view state dispatch =
         TabControl.viewItems [
             TabItem.create [
                 TabItem.header "Tracks"
+                TabItem.foreground Brushes.AntiqueWhite
                 TabItem.onIsSelectedChanged (ProjectViewActiveChanged >> dispatch)
                 TabItem.content (
                     Grid.create [
@@ -194,7 +195,8 @@ let view state dispatch =
             TabItem.create [
                 TabItem.header "Common Tones"
                 TabItem.content (CommonToneEditor.view state (CommonTonesMsg >> dispatch))
+                TabItem.foreground Brushes.AntiqueWhite
             ]
-            TabItem.create [ TabItem.header "Help"; TabItem.content Help.helpView ]
+            TabItem.create [ TabItem.header "Help"; TabItem.foreground Brushes.AntiqueWhite; TabItem.content Help.helpView ]
         ]
     ]

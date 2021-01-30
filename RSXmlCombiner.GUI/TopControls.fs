@@ -45,18 +45,18 @@ let private addNewTrack state arrangementFileNames =
     | Some instArrFile ->
         let alreadyHas arrType = List.exists (fun a -> a.ArrangementType = arrType)
 
-        let arrangementFolder state fileName =
+        let arrangementFolder (state: Arrangement list) fileName =
             match XmlHelper.GetRootElementName(fileName) with
             | "song" ->
                 let arr = createInstrumental fileName None
                 if state |> List.exists (fun a -> a.Name = arr.Name) then
                     state
                 else
-                    arr :: state
+                    arr::state
             | "vocals" when state |> alreadyHas ArrangementType.Vocals |> not ->
-                { Name = "Vocals"; FileName = Some fileName; ArrangementType = ArrangementType.Vocals; Data = None  } :: state
+                { Name = "Vocals"; FileName = Some fileName; ArrangementType = ArrangementType.Vocals; Data = None  }::state
             | "showlights" when state |> alreadyHas ArrangementType.ShowLights |> not ->
-                { Name = "Show Lights"; FileName = Some fileName; ArrangementType = ArrangementType.ShowLights; Data = None } :: state
+                { Name = "Show Lights"; FileName = Some fileName; ArrangementType = ArrangementType.ShowLights; Data = None }::state
             | _ -> state
 
         arrangementFileNames

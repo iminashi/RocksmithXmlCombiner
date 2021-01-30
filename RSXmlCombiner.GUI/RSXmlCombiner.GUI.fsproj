@@ -43,11 +43,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Avalonia.Desktop" Version="0.9.12" />
-    <PackageReference Include="FSharp.SystemTextJson" Version="0.15.14" />
-    <PackageReference Include="JaggerJo.Avalonia.FuncUI" Version="0.4.1" />
-    <PackageReference Include="JaggerJo.Avalonia.FuncUI.DSL" Version="0.4.3" />
-    <PackageReference Include="JaggerJo.Avalonia.FuncUI.Elmish" Version="0.4.0" />
+    <PackageReference Include="Avalonia.Desktop" Version="0.10.0" />
+    <PackageReference Include="FSharp.SystemTextJson" Version="0.16.6" />
+    <PackageReference Include="JaggerJo.Avalonia.FuncUI" Version="0.5.0-beta" />
+    <PackageReference Include="JaggerJo.Avalonia.FuncUI.DSL" Version="0.5.0-beta" />
+    <PackageReference Include="JaggerJo.Avalonia.FuncUI.Elmish" Version="0.5.0-beta" />
     <PackageReference Include="NAudio" Version="1.10.0" />
     <PackageReference Include="NAudio.Vorbis" Version="1.2.0" />
     <PackageReference Include="Rocksmith2014.XML" Version="1.0.2" />
