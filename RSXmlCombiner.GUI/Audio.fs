@@ -7,13 +7,13 @@ open System
 
 /// Returns a wave stream for wave and vorbis files.
 let private getWaveStream (fileName : string)  =
-    if fileName.EndsWith(".wav", StringComparison.OrdinalIgnoreCase) then new AudioFileReader(fileName) :> WaveStream
+    if fileName.EndsWith(".wav", StringComparison.OrdinalIgnoreCase) then new WaveFileReader(fileName) :> WaveStream
     elif fileName.EndsWith(".ogg", StringComparison.OrdinalIgnoreCase) then new VorbisWaveReader(fileName) :> WaveStream
     else invalidOp "The audio file must be a wav or ogg file."
 
 /// Returns a sample provider for wave and vorbis files.
 let getSampleProvider (fileName : string)  =
-    if fileName.EndsWith(".wav", StringComparison.OrdinalIgnoreCase) then new AudioFileReader(fileName) :> ISampleProvider
+    if fileName.EndsWith(".wav", StringComparison.OrdinalIgnoreCase) then (new WaveFileReader(fileName)).ToSampleProvider()
     elif fileName.EndsWith(".ogg", StringComparison.OrdinalIgnoreCase) then new VorbisWaveReader(fileName) :> ISampleProvider
     else invalidOp "The audio file must be a wav or ogg file."
 

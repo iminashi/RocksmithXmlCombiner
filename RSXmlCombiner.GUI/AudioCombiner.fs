@@ -4,7 +4,7 @@ open System
 
 let progress = Progress<float>()
 
-let private targetSampleRate = 48000
+let [<Literal>] private TargetSampleRate = 48000
 
 /// Combines the audio files of the given tracks into the target file.
 let combineWithResampling (tracks : Track list) (targetFile : string) =
@@ -14,7 +14,7 @@ let combineWithResampling (tracks : Track list) (targetFile : string) =
             let sampler =
                 track.AudioFile
                 |> Option.get
-                |> Audio.getSampleProviderWithRate targetSampleRate
+                |> Audio.getSampleProviderWithRate TargetSampleRate
             if i = 0 then sampler else sampler |> Audio.trimStart track.TrimAmount)
         |> Audio.concatenate targetFile 
   
@@ -30,7 +30,7 @@ let private createSampleProviderWithRandomOffset take (fileName, audioLength) =
             else rand.Next(10_000, int (audioLength - 30_000<ms>))
         startOffset |> float |> TimeSpan.FromMilliseconds
 
-    Audio.getSampleProviderWithRate targetSampleRate fileName
+    Audio.getSampleProviderWithRate TargetSampleRate fileName
     |> Audio.offset randomOffset (TimeSpan.FromMilliseconds(float take))
 
 /// Creates a preview audio file from up to four randomly selected files.
