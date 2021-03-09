@@ -20,10 +20,8 @@ let private fromProgramState (state : ProgramState) =
 
 /// Saves a project with the given filename.
 let save fileName (state : ProgramState) =
-    let options = JsonSerializerOptions()
+    let options = JsonSerializerOptions(WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase)
     options.Converters.Add(JsonFSharpConverter())
-    options.PropertyNamingPolicy <- JsonNamingPolicy.CamelCase
-    options.WriteIndented <- true
 
     let project = fromProgramState state
     let json = JsonSerializer.Serialize(project, options)
@@ -31,15 +29,14 @@ let save fileName (state : ProgramState) =
 
 /// Loads a project from a file.
 let load fileName =
-    let options = JsonSerializerOptions()
+    let options = JsonSerializerOptions(PropertyNamingPolicy = JsonNamingPolicy.CamelCase)
     options.Converters.Add(JsonFSharpConverter())
-    options.PropertyNamingPolicy <- JsonNamingPolicy.CamelCase
 
     let json = File.ReadAllText(fileName)
     try
         JsonSerializer.Deserialize<Dto>(json, options) |> Ok
     with
-    | :? JsonException as e -> Error(sprintf "Opening project failed: %s" e.Message)
+    | :? JsonException as e -> Error($"Opening project failed: {e.Message}")
 
 /// Converts a project DTO into a program state record.
 let toProgramState templates fileName statusMessage dto =
