@@ -7,7 +7,7 @@ open Avalonia.Threading
 let private window =
     (Application.Current.ApplicationLifetime :?> ApplicationLifetimes.ClassicDesktopStyleApplicationLifetime).MainWindow
 
-let private createFilters name (extensions : string seq) =
+let private createFilters name (extensions: string seq) =
     let filter = FileDialogFilter(Extensions = ResizeArray(extensions), Name = name)
     ResizeArray(seq { filter })
 

@@ -11,7 +11,7 @@ open Media
 open ArrangementType
 
 /// Creates the view for an arrangement.
-let private arrangementView (arr : Arrangement) trackIndex arrIndex state dispatch =
+let private arrangementView (arr: Arrangement) trackIndex arrIndex state dispatch =
     let fileName = arr.FileName
     let fileNameBrush =
         match fileName with
@@ -132,7 +132,7 @@ let private arrangementView (arr : Arrangement) trackIndex arrIndex state dispat
     ]
   
 /// Creates the view for a track.
-let private trackView (track : Track) index state dispatch =
+let private trackView (track: Track) index state dispatch =
     let audioFileBrush =
         match track.AudioFile with
         | Some fn when not <| File.Exists(fn) -> Brushes.Red

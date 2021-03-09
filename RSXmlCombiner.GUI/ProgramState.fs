@@ -36,14 +36,14 @@ module ProgramState =
         OpenProjectFile = None
         SelectedFileTones = Map.empty }
 
-    let private updateTemplates (arrangements : Arrangement list) (Templates currentTemplates) =
+    let private updateTemplates (arrangements: Arrangement list) (Templates currentTemplates) =
         let newTemplates =
             arrangements
             |> List.filter (fun arr -> currentTemplates |> List.exists (fun temp -> arr.Name = temp.Name) |> not)
             |> List.map createTemplate
         Templates (currentTemplates @ newTemplates)
 
-    let addMissingArrangements (Templates templates) (arrs : Arrangement list) =
+    let addMissingArrangements (Templates templates) (arrs: Arrangement list) =
         let missing = 
             templates
             |> List.filter (fun temp -> arrs |> List.exists (fun arr -> arr.Name = temp.Name) |> not)

@@ -2,7 +2,7 @@
 
 open NAudio.Wave
 
-type AudioFader(source: ISampleProvider, fadeInLength: int<ms>, fadeOutLength : int<ms>, audioLength : int64<ms>) =
+type AudioFader(source: ISampleProvider, fadeInLength: int<ms>, fadeOutLength: int<ms>, audioLength: int64<ms>) =
     let mutable fadeInSamplePosition = 0
     let mutable fadeOutSamplePosition = 0
     let mutable totalSamplesRead = 0L

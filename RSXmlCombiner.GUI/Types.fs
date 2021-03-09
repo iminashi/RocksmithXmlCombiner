@@ -80,7 +80,7 @@ let createNamePrefix = function
     | _ -> ""
 
 /// Creates an instrumental arrangement from the given file.
-let createInstrumental fileName (arrType : ArrangementType option) =
+let createInstrumental fileName (arrType: ArrangementType option) =
     let song = InstrumentalArrangement.Load(fileName)
     let arrangementType =
         arrType |> Option.defaultWith (fun () -> ArrangementType.fromArrangement song)
@@ -148,7 +148,7 @@ let updateSingleArrangement tracks trackIndex arrIndex newArr =
     tracks
     |> List.mapi (fun i t -> if i = trackIndex then { t with Arrangements = changeArrangement t.Arrangements } else t)
 
-let arrangementSort (arr : Arrangement) =
+let arrangementSort (arr: Arrangement) =
     let ordering =
         match arr.Data with
         | Some data ->

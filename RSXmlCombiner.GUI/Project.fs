@@ -11,7 +11,7 @@ type Dto =
      CoercePhrases : bool
      AddTrackNamesToLyrics : bool }
 
-let private fromProgramState (state : ProgramState) =
+let private fromProgramState (state: ProgramState) =
    { Tracks = state.Tracks
      CommonTones = state.CommonTones
      CombinationTitle = state.CombinationTitle
@@ -19,7 +19,7 @@ let private fromProgramState (state : ProgramState) =
      AddTrackNamesToLyrics = state.AddTrackNamesToLyrics }
 
 /// Saves a project with the given filename.
-let save fileName (state : ProgramState) =
+let save fileName (state: ProgramState) =
     let options = JsonSerializerOptions(WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase)
     options.Converters.Add(JsonFSharpConverter())
 

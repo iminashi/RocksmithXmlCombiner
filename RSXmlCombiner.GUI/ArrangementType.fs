@@ -25,12 +25,12 @@ module ArrangementType =
     let isOther arrType = (arrType &&& OtherArrangement) <> ArrangementType.Unknown
 
     /// Active pattern for matching an instrumental arrangement.
-    let (|Instrumental|_|) (arrType : ArrangementType) = Option.create isInstrumental arrType
+    let (|Instrumental|_|) (arrType: ArrangementType) = Option.create isInstrumental arrType
     /// Active pattern for matching a vocals arrangement.
-    let (|Vocals|_|) (arrType : ArrangementType) = Option.create isVocals arrType
+    let (|Vocals|_|) (arrType: ArrangementType) = Option.create isVocals arrType
 
     /// Creates an ArrangementType from an instrumental arrangement.
-    let fromArrangement (arr : InstrumentalArrangement) =
+    let fromArrangement (arr: InstrumentalArrangement) =
         let props = arr.MetaData.ArrangementProperties
         if props.PathLead then ArrangementType.Lead
         elif props.PathRhythm then ArrangementType.Rhythm
