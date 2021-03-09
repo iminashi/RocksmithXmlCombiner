@@ -35,7 +35,7 @@ type MainWindow() as this =
             Cmd.ofSub sub
         
         let hotKeysSub _initialModel =
-            Cmd.ofSub (fun dispatch -> this.KeyDown.Add(handleHotkeys dispatch))
+            Cmd.ofSub (handleHotkeys >> this.KeyDown.Add)
 
         //this.VisualRoot.VisualRoot.Renderer.DrawFps <- true
         //this.VisualRoot.VisualRoot.Renderer.DrawDirtyRects <- true

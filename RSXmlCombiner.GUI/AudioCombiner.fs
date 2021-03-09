@@ -7,7 +7,7 @@ let progress = Progress<float>()
 let [<Literal>] private TargetSampleRate = 48000
 
 /// Combines the audio files of the given tracks into the target file.
-let combineWithResampling (tracks : Track list) (targetFile : string) =
+let combineWithResampling (tracks: Track list) (targetFile: string) =
     try
         tracks
         |> Seq.mapi (fun i track -> 
@@ -18,9 +18,9 @@ let combineWithResampling (tracks : Track list) (targetFile : string) =
             if i = 0 then sampler else sampler |> Audio.trimStart track.TrimAmount)
         |> Audio.concatenate targetFile 
   
-        sprintf "Audio files combined as %s" targetFile
+        $"Audio files combined as {targetFile}" 
     with
-    e -> sprintf "Error: %s" e.Message
+    e -> $"Error: {e.Message}" 
 
 let private createSampleProviderWithRandomOffset take (fileName, audioLength) =
     let randomOffset =
@@ -34,7 +34,7 @@ let private createSampleProviderWithRandomOffset take (fileName, audioLength) =
     |> Audio.offset randomOffset (TimeSpan.FromMilliseconds(float take))
 
 /// Creates a preview audio file from up to four randomly selected files.
-let createPreview (tracks : Track list) (targetFile : string) =
+let createPreview (tracks: Track list) (targetFile: string) =
     let rand = Random()
     let fadeBetweenSections = 400<ms>
     let numFiles = min 4 tracks.Length

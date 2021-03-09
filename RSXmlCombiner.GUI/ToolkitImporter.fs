@@ -1,6 +1,5 @@
 ﻿module RSXmlCombiner.FuncUI.ToolkitImporter
 
-open System.Collections.Generic
 open System.IO
 open System.Linq
 open System.Xml.Linq
@@ -8,8 +7,8 @@ open System.Xml.Linq
 let private ad = XNamespace.Get "http://schemas.datacontract.org/2004/07/RocksmithToolkitLib.DLCPackage"
 let private d4p1 = XNamespace.Get "http://schemas.datacontract.org/2004/07/RocksmithToolkitLib.DLCPackage.AggregateGraph"
 
-let private importOld (arrangements : IEnumerable<XElement>) templatePath =
-    let folder (state :  Map<ArrangementType, string>) (itemNode : XElement) =
+let private importOld (arrangements: XElement seq) templatePath =
+    let folder (state:  Map<ArrangementType, string>) (itemNode: XElement) =
         let bonusArr = itemNode.Element(ad + "BonusArr").Value = "true"
 
         // Try to read the arrangement type from the name
@@ -25,8 +24,8 @@ let private importOld (arrangements : IEnumerable<XElement>) templatePath =
     arrangements |> Seq.fold folder Map.empty
 
 /// Imports the main arrangements from a Toolkit template.
-/// Returns them in a map: arrangement type to file name.
-let import (fileName : string) =
+/// Returns them in a map: arrangement type to filename.
+let import (fileName: string) =
     let templatePath = Path.GetDirectoryName(fileName)
     let xdoc = XElement.Load(fileName)
     let arrangements = xdoc.Element(ad + "Arrangements").Elements()
@@ -38,7 +37,7 @@ let import (fileName : string) =
         importOld arrangements templatePath, title, audioFile
     else
         // Map ArrangementType to file name
-        let folder (state : Map<ArrangementType, string>) (itemNode : XElement) =
+        let folder (state: Map<ArrangementType, string>) (itemNode: XElement) =
             let arrFn = Path.Combine(templatePath, itemNode.Element(ad + "SongXml").Element(d4p1 + "File").Value)
             let arrType = ArrangementType.Parse(itemNode.Element(ad + "ArrangementName").Value)
             let isMainArr = itemNode.Element(ad + "Represent").Value = "true"

@@ -6,15 +6,15 @@ open Avalonia.Layout
 open Avalonia.FuncUI.DSL
 open Avalonia.FuncUI.Types
 open Avalonia.Media
+open System
 open System.IO
 open XmlUtils
 open Rocksmith2014.XML
 open RSXmlCombiner.FuncUI.ArrangementType
-open System
 
 let init () = ProgramState.init, Cmd.none
 
-let private createTrack instArrFile (title : string option) (audioFile : string option) arrangements =
+let private createTrack instArrFile (title: string option) (audioFile: string option) arrangements =
     let song = InstrumentalArrangement.Load(instArrFile)
     let songLength =
         audioFile
@@ -61,7 +61,7 @@ let private changeAudioFile track newFile =
     let length = Audio.getLength newFile
     { track with AudioFile = Some newFile; SongLength = length }
 
-let private getInitialDir (fileName : string option) state trackIndex =
+let private getInitialDir (fileName: string option) state trackIndex =
     fileName
     // If no file is set, use the directory of the first arrangement that has a file
     |> Option.orElse (state.Tracks.[trackIndex].Arrangements |> List.tryPick (fun a -> a.FileName))
@@ -109,11 +109,11 @@ let update msg state : ProgramState * Cmd<_> =
         let audioFile =
             let wav = Path.ChangeExtension(audioFilePath, "wav")
             let ogg = Path.ChangeExtension(audioFilePath, "ogg")
-            let oggFixed = lazy (audioFilePath.Substring(0, audioFilePath.Length - 4) + "_fixed.ogg")
+            let oggFixed = audioFilePath.Substring(0, audioFilePath.Length - 4) + "_fixed.ogg"
             Option.create File.Exists wav
             |> Option.orElse (Option.create File.Exists ogg)
-            // Try to find the _fixed.ogg from an unpacked psarc file
-            |> Option.orElse (Option.create File.Exists oggFixed.Value)
+            // Try to find the _fixed.ogg from an unpacked PSARC file
+            |> Option.orElse (Option.create File.Exists oggFixed)
 
         // Try to find an instrumental arrangement to read metadata from
         let instArrType = foundArrangements |> Map.tryFindKey (fun arrType _ -> isInstrumental arrType)
@@ -208,7 +208,7 @@ let update msg state : ProgramState * Cmd<_> =
                 ordering
                 |> Option.map (fun o -> { Ordering = o; BaseToneIndex = -1; ToneNames = []; ToneReplacements = Map.empty })
             { ArrangementType = arrtype
-              Name = "" 
+              Name = String.Empty
               FileName = None
               Data = data }
 
@@ -228,14 +228,11 @@ let update msg state : ProgramState * Cmd<_> =
                      StatusMessage = "Combining audio files..." }, Cmd.OfAsync.perform task () CombineAudioCompleted
     
     | CreatePreview (Some targetFile) ->
-        let task file = 
-            async {
-                try
-                    AudioCombiner.createPreview state.Tracks file
-                    return "Preview created."
-                with
-                e -> return sprintf "Error: %s" e.Message
-            }
+        let task file = async {
+            try
+                AudioCombiner.createPreview state.Tracks file
+                return "Preview created."
+            with e -> return $"Error: {e.Message}" }
 
         { state with AudioCombinerProgress = Some(0.0)
                      StatusMessage = "Creating preview audio..." }, Cmd.OfAsync.perform task targetFile CombineAudioCompleted
@@ -320,23 +317,21 @@ let update msg state : ProgramState * Cmd<_> =
             let rootName = XmlHelper.GetRootElementName(fileName)
             let arrangement = state |> getArr trackIndex arrIndex
 
-            let newArr =
-                match rootName, arrangement.ArrangementType with
+            match rootName, arrangement.ArrangementType with
+            | "song", Instrumental t ->
                 // For instrumental arrangements, create an arrangement from the file, preserving the arrangement type and name
-                | "song", Instrumental t ->
-                    Ok { createInstrumental fileName (Some t) with Name = arrangement.Name }
-
+                Ok { createInstrumental fileName (Some t) with Name = arrangement.Name }
+            | "vocals", Vocals _
+            | "showlights", ArrangementType.ShowLights ->
                 // For vocals and show lights, just change the file name
-                | "vocals", Vocals _
-                | "showlights", ArrangementType.ShowLights -> Ok { arrangement with FileName = Some fileName }
-
-                | _ -> Error "Incorrect arrangement type."
-
-            match newArr with
+                Ok { arrangement with FileName = Some fileName }
+            | _ ->
+                Error "Incorrect arrangement type."
+            |> function
             | Ok arr ->
                 let updatedTracks = updateSingleArrangement state.Tracks trackIndex arrIndex arr
                 { state with Tracks = updatedTracks }, Cmd.none
-            | Error message->
+            | Error message ->
                 { state with StatusMessage = message }, Cmd.none
 
     | ArrangementBaseToneChanged (trackIndex, arrIndex, toneIndex) ->
@@ -388,7 +383,7 @@ let update msg state : ProgramState * Cmd<_> =
             SelectedFileTones = updatedSelectedTones }, Cmd.none
 
     | UpdateToneName (arrName, index, newName) ->
-        let names = state.CommonTones |> Map.find arrName
+        let names = state.CommonTones.[arrName]
         let oldName = names.[index]
         if oldName = newName then
             state, Cmd.none
@@ -403,7 +398,7 @@ let update msg state : ProgramState * Cmd<_> =
         let st = state.SelectedFileTones |> Map.add arrName selectedTone
         { state with SelectedFileTones = st }, Cmd.none
 
-    | AddSelectedToneFromFile (arrName) ->
+    | AddSelectedToneFromFile arrName ->
         let tones = state.CommonTones.[arrName]
         // Find an empty index that is not the base tone
         let availableIndex = tones.[1..] |> Array.tryFindIndex String.IsNullOrEmpty
@@ -413,7 +408,7 @@ let update msg state : ProgramState * Cmd<_> =
         | Some i, Some newTone ->
             let updatedTones =
                 let i = i + 1
-                if i = 1 && tones.[0] |> String.IsNullOrEmpty then
+                if i = 1 && String.IsNullOrEmpty tones.[0] then
                     // If the base tone and tone A are empty, use this name for them both
                     tones |> Array.mapi (fun j t -> if j = 0 || j = i then newTone else t)
                 else
@@ -425,9 +420,7 @@ let update msg state : ProgramState * Cmd<_> =
             state, Cmd.none
 
     // User canceled the dialog
-    | CombineAudioFiles None | CreatePreview None | CombineArrangements None -> state, Cmd.none
-
-    // User canceled the dialog
+    | CombineAudioFiles None | CreatePreview None | CombineArrangements None
     | ImportToolkitTemplate None | OpenProject None | SaveProject None -> state, Cmd.none
 
 let private replacementToneView state trackIndex arrIndex dispatch =
@@ -522,13 +515,13 @@ let view state dispatch =
                                     // Status Bar with Message
                                     Border.create [
                                         Border.classes [ "statusbar" ]
-                                        Border.dock Dock.Bottom
+                                        DockPanel.dock Dock.Bottom
                                         Border.child (TextBlock.create [ TextBlock.text state.StatusMessage ])
                                     ]
 
                                     // Progress Bar for Audio Combining
                                     ProgressBar.create [
-                                          Border.dock Dock.Bottom
+                                          DockPanel.dock Dock.Bottom
                                           ProgressBar.background "#181818"
                                           ProgressBar.height 1.0
                                           ProgressBar.minHeight 1.0
@@ -539,7 +532,7 @@ let view state dispatch =
 
                                     // Progress Bar for Arrangement Combining
                                     ProgressBar.create [
-                                          Border.dock Dock.Bottom
+                                          DockPanel.dock Dock.Bottom
                                           ProgressBar.background "#181818"
                                           ProgressBar.foreground Brushes.Red
                                           ProgressBar.height 1.0
