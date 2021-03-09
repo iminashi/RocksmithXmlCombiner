@@ -18,21 +18,20 @@ type MainWindow() as this =
         base.MinHeight <- 450.0
 
         let handleHotkeys dispatch (event : KeyEventArgs) =
-            let dispatch = Shell.Msg.TopControlsMsg >> dispatch
             match event.KeyModifiers, event.Key with
-            | KeyModifiers.Control, Key.O -> dispatch TopControls.Msg.SelectOpenProjectFile
-            | KeyModifiers.Control, Key.S -> dispatch TopControls.Msg.SelectSaveProjectFile
-            | KeyModifiers.Control, Key.N -> dispatch TopControls.Msg.NewProject
+            | KeyModifiers.Control, Key.O -> dispatch SelectOpenProjectFile
+            | KeyModifiers.Control, Key.S -> dispatch SelectSaveProjectFile
+            | KeyModifiers.Control, Key.N -> dispatch NewProject
             | _ -> ()
 
         let audioCombinerProgress _initialModel =
             let sub dispatch =
-                AudioCombiner.progress.ProgressChanged.Add (Shell.Msg.CombineAudioProgressChanged >> dispatch)
+                AudioCombiner.progress.ProgressChanged.Add (CombineAudioProgressChanged >> dispatch)
             Cmd.ofSub sub
 
         let arrangementCombinerProgress _initialModel =
             let sub dispatch =
-                ArrangementCombiner.progress.ProgressChanged.Add (Shell.Msg.CombineArrangementsProgressChanged >> dispatch)
+                ArrangementCombiner.progress.ProgressChanged.Add (CombineArrangementsProgressChanged >> dispatch)
             Cmd.ofSub sub
         
         let hotKeysSub _initialModel =

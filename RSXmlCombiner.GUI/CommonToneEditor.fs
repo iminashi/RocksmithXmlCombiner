@@ -1,55 +1,10 @@
 ﻿module RSXmlCombiner.FuncUI.CommonToneEditor
 
-open Elmish
 open Avalonia.Controls
 open Avalonia.FuncUI.DSL
 open Avalonia.Layout
 open Avalonia.FuncUI.Types
 open System
-
-type Msg =
-    | UpdateToneName of arrName:string * index:int * newName:string
-    | SelectedToneFromFileChanged of arrName:string * selectedTone:string
-    | AddSelectedToneFromFile of arrName:string
-
-let update (msg: Msg) state : ProgramState * Cmd<_> =
-    match msg with
-    | UpdateToneName (arrName, index, newName) ->
-        let names = state.CommonTones |> Map.find arrName
-        let oldName = names.[index]
-        if oldName = newName then
-            state, Cmd.none
-        else 
-            let newTones = 
-                state.CommonTones
-                |> Map.add arrName (names |> Array.updateAt index newName)
-
-            { state with CommonTones = newTones }, Cmd.none
-
-    | SelectedToneFromFileChanged (arrName, selectedTone) ->
-        let st = state.SelectedFileTones |> Map.add arrName selectedTone
-        { state with SelectedFileTones = st }, Cmd.none
-
-    | AddSelectedToneFromFile (arrName) ->
-        let tones = state.CommonTones.[arrName]
-        // Find an empty index that is not the base tone
-        let availableIndex = tones.[1..] |> Array.tryFindIndex String.IsNullOrEmpty
-        let selectedTone = state.SelectedFileTones |> Map.tryFind arrName
-
-        match availableIndex, selectedTone with
-        | Some i, Some newTone ->
-            let updatedTones =
-                let i = i + 1
-                if i = 1 && tones.[0] |> String.IsNullOrEmpty then
-                    // If the base tone and tone A are empty, use this name for them both
-                    tones |> Array.mapi (fun j t -> if j = 0 || j = i then newTone else t)
-                else
-                    tones |> Array.updateAt i newTone
-
-            let updatedCommonTones = state.CommonTones |> Map.add arrName updatedTones
-            { state with CommonTones = updatedCommonTones }, Cmd.none
-        | _ ->
-            state, Cmd.none
 
 let private tonesTemplate (state : ProgramState) arrName (tones : string[]) dispatch =
     let labels = [| "Base"; "Tone A"; "Tone B"; "Tone C"; "Tone D" |]
@@ -78,7 +33,10 @@ let private tonesTemplate (state : ProgramState) arrName (tones : string[]) disp
                             Grid.row (i + 1)
                             TextBox.margin 2.0
                             TextBox.text tones.[i]
-                            TextBox.onLostFocus ((fun arg -> UpdateToneName(arrName, i, (arg.Source :?> TextBox).Text) |> dispatch), SubPatchOptions.OnChangeOf arrName)
+                            TextBox.onLostFocus ((fun arg ->
+                                UpdateToneName(arrName, i, (arg.Source :?> TextBox).Text)
+                                |> dispatch),
+                                SubPatchOptions.OnChangeOf arrName)
                         ]
                 ]
             ]
@@ -114,7 +72,9 @@ let private tonesTemplate (state : ProgramState) arrName (tones : string[]) disp
                             ComboBox.margin 2.0
                             ComboBox.dataItems toneList
                             ComboBox.selectedItem (state.SelectedFileTones |> Map.tryFind arrName |> Option.toObj)
-                            ComboBox.onSelectedItemChanged (fun item -> SelectedToneFromFileChanged(arrName, item |> string) |> dispatch)
+                            ComboBox.onSelectedItemChanged (fun item ->
+                                SelectedToneFromFileChanged(arrName, string item)
+                                |> dispatch)
                         ]
                         Button.create [
                             Button.horizontalAlignment HorizontalAlignment.Center

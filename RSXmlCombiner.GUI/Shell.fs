@@ -6,38 +6,71 @@ open Avalonia.Layout
 open Avalonia.FuncUI.DSL
 open Avalonia.FuncUI.Types
 open Avalonia.Media
-
-type Msg =
-    | TrackListMsg of TrackList.Msg
-    | CommonTonesMsg of CommonToneEditor.Msg
-    | TopControlsMsg of TopControls.Msg
-    | BottomControlsMsg of BottomControls.Msg
-    | ToneReplacementClosed
-    | SetReplacementTone of trackIndex : int * arrIndex : int * toneName : string * replacementIndex : int
-    | ProjectViewActiveChanged of bool
-    | CombineAudioProgressChanged of float
-    | CombineArrangementsProgressChanged of int
+open System.IO
+open XmlUtils
+open Rocksmith2014.XML
+open RSXmlCombiner.FuncUI.ArrangementType
+open System
 
 let init () = ProgramState.init, Cmd.none
 
-let update shellMsg state : ProgramState * Cmd<_> =
-    match shellMsg with
-    | TrackListMsg msg ->
-        let trackListState, cmd = TrackList.update msg state
-        trackListState, Cmd.map TrackListMsg cmd
+let private createTrack instArrFile (title : string option) (audioFile : string option) arrangements =
+    let song = InstrumentalArrangement.Load(instArrFile)
+    let songLength =
+        audioFile
+        |> Option.map Audio.getLength
+        |> Option.defaultValue (song.MetaData.SongLength * 1<ms>)
 
-    | CommonTonesMsg msg ->
-        let tonesState, cmd = CommonToneEditor.update msg state
-        tonesState, Cmd.map CommonTonesMsg cmd
+    { Title = title |> Option.defaultValue song.MetaData.Title
+      AudioFile = audioFile
+      SongLength = songLength
+      TrimAmount = song.StartBeat * 1<ms>
+      Arrangements = arrangements |> List.sortBy arrangementSort }
 
-    | TopControlsMsg msg ->
-        let topCtrlState, cmd = TopControls.update msg state
-        topCtrlState, Cmd.map TopControlsMsg cmd
+let private addNewTrack state arrangementFileNames =
+    let instArrFile = arrangementFileNames |> Array.tryFind (fun f -> XmlHelper.ValidateRootElement(f, "song"))
+    match instArrFile with
+    | None -> 
+        { state with StatusMessage = "Please select at least one instrumental Rocksmith arrangement." }
 
-    | BottomControlsMsg msg ->
-        let bcState, cmd = BottomControls.update msg state
-        bcState, Cmd.map BottomControlsMsg cmd
+    | Some instArrFile ->
+        let alreadyHas arrType = List.exists (fun a -> a.ArrangementType = arrType)
 
+        let arrangementFolder (state: Arrangement list) fileName =
+            match XmlHelper.GetRootElementName(fileName) with
+            | "song" ->
+                let arr = createInstrumental fileName None
+                if state |> List.exists (fun a -> a.Name = arr.Name) then
+                    state
+                else
+                    arr::state
+            | "vocals" when state |> alreadyHas ArrangementType.Vocals |> not ->
+                { Name = "Vocals"; FileName = Some fileName; ArrangementType = ArrangementType.Vocals; Data = None  }::state
+            | "showlights" when state |> alreadyHas ArrangementType.ShowLights |> not ->
+                { Name = "Show Lights"; FileName = Some fileName; ArrangementType = ArrangementType.ShowLights; Data = None }::state
+            | _ -> state
+
+        arrangementFileNames
+        |> Array.fold arrangementFolder []
+        // Add any missing arrangements from the project's templates
+        |> ProgramState.addMissingArrangements state.Templates
+        |> createTrack instArrFile None None
+        |> ProgramState.addTrack state
+
+let private changeAudioFile track newFile =
+    let length = Audio.getLength newFile
+    { track with AudioFile = Some newFile; SongLength = length }
+
+let private getInitialDir (fileName : string option) state trackIndex =
+    fileName
+    // If no file is set, use the directory of the first arrangement that has a file
+    |> Option.orElse (state.Tracks.[trackIndex].Arrangements |> List.tryPick (fun a -> a.FileName))
+    |> Option.map Path.GetDirectoryName
+
+let private getArr trackIndex arrIndex state = state.Tracks.[trackIndex].Arrangements.[arrIndex]
+
+let update msg state : ProgramState * Cmd<_> =
+    match msg with
     | ToneReplacementClosed -> { state with ReplacementToneEditor = None }, Cmd.none
 
     | SetReplacementTone (trackIndex, arrIndex, toneName, replacementIndex) ->
@@ -60,6 +93,342 @@ let update shellMsg state : ProgramState * Cmd<_> =
             |> Option.map (fun (curr, max) -> (curr + progress, max))
 
         { state with ArrangementCombinerProgress = combProgress }, Cmd.none
+
+    | SelectAddTrackFiles ->
+        let dialog = Dialogs.openMultiFileDialog "Select Arrangement File(s)" Dialogs.xmlFileFilter
+        state, Cmd.OfAsync.perform dialog None AddTrack
+
+    | AddTrack arrangementFiles -> 
+        match arrangementFiles with
+        | None -> state, Cmd.none
+        | Some files -> addNewTrack state files, Cmd.none
+    
+    | ImportToolkitTemplate (Some templateFile) ->
+        let foundArrangements, title, audioFilePath = ToolkitImporter.import templateFile
+
+        let audioFile =
+            let wav = Path.ChangeExtension(audioFilePath, "wav")
+            let ogg = Path.ChangeExtension(audioFilePath, "ogg")
+            let oggFixed = lazy (audioFilePath.Substring(0, audioFilePath.Length - 4) + "_fixed.ogg")
+            Option.create File.Exists wav
+            |> Option.orElse (Option.create File.Exists ogg)
+            // Try to find the _fixed.ogg from an unpacked psarc file
+            |> Option.orElse (Option.create File.Exists oggFixed.Value)
+
+        // Try to find an instrumental arrangement to read metadata from
+        let instArrType = foundArrangements |> Map.tryFindKey (fun arrType _ -> isInstrumental arrType)
+        match instArrType with
+        | None ->
+            { state with StatusMessage = "Could not find any instrumental arrangements in the template." }, Cmd.none
+        | Some instArrType ->
+            let instArrFile = foundArrangements.[instArrType]
+            
+            let foldArrangements (state : Arrangement list) arrType fileName =
+                let arrangement =
+                    match arrType with
+                    | Instrumental _ ->
+                        // Respect the arrangement type from the Toolkit template
+                        createInstrumental fileName (Some arrType)
+                    | _ -> { FileName = Some fileName
+                             ArrangementType = arrType
+                             Name = humanize arrType
+                             Data = None }
+                arrangement :: state
+
+            let newState = 
+                foundArrangements
+                |> Map.fold foldArrangements []
+                // Add any missing arrangements from the project's templates
+                |> ProgramState.addMissingArrangements state.Templates
+                |> createTrack instArrFile (Some title) audioFile
+                |> ProgramState.addTrack state
+
+            { newState with StatusMessage = sprintf "%i arrangements imported." foundArrangements.Count }, Cmd.none
+    
+    | NewProject -> ProgramState.init, Cmd.none
+
+    | OpenProject (Some projectFile) ->
+        let result = Project.load projectFile
+        match result with
+        | Error message -> { state with StatusMessage = message }, Cmd.none
+        | Ok project ->
+            // TODO: Check if the tone names in the files have been changed
+
+            // Create lists of missing audio and arrangement files
+            let missingAudioFiles, missingArrangementFiles =
+                (([], []), project.Tracks)
+                ||> List.fold (fun state track ->
+                    let missingAudioFiles =
+                        match track.AudioFile with
+                        | Some file when not <| File.Exists(file) -> file :: (fst state)
+                        | _ -> fst state
+                    let missingArrangementFiles =
+                        ([], track.Arrangements)
+                        ||> List.fold (fun missing arr -> 
+                                match arr.FileName with
+                                | Some file when not <| File.Exists(file) -> file :: missing
+                                | _ -> missing)
+                    missingAudioFiles, (snd state) @ missingArrangementFiles)
+
+            let statusMessage =
+                match missingAudioFiles, missingArrangementFiles with
+                | [], [] -> "Project loaded."
+                | _, _ -> "WARNING: Some of the files referenced in the project could not be found!"
+
+            // Generate the arrangement templates from the first track
+            let templates = 
+                match project.Tracks with
+                | head::_ -> head.Arrangements |> (List.map createTemplate >> Templates)
+                | [] -> Templates []
+
+            Project.toProgramState templates projectFile statusMessage project, Cmd.none
+
+    | SaveProject (Some fileName) ->
+        state |> Project.save fileName
+        { state with OpenProjectFile = Some fileName; StatusMessage = "Project saved." }, Cmd.none
+
+    | SelectToolkitTemplate ->
+        let dialog = Dialogs.openFileDialog "Select Toolkit Template" Dialogs.toolkitTemplateFilter
+        state, Cmd.OfAsync.perform dialog None ImportToolkitTemplate
+
+    | SelectOpenProjectFile ->
+        let dialog = Dialogs.openFileDialog "Select Project File" Dialogs.projectFileFilter
+        state, Cmd.OfAsync.perform dialog None OpenProject
+
+    | SelectSaveProjectFile ->
+        let initialDir = state.OpenProjectFile |> Option.map Path.GetDirectoryName
+        let initialFile = state.OpenProjectFile |> Option.map Path.GetFileName |> Option.orElse (Some "combo.rscproj")
+        let dialog = Dialogs.saveFileDialog "Save Project As" Dialogs.projectFileFilter initialFile
+        state, Cmd.OfAsync.perform dialog initialDir SaveProject
+
+    | AddTemplate (arrtype, ordering) ->
+        let (Templates templates) = state.Templates
+        let tempArr =
+            let data =
+                ordering
+                |> Option.map (fun o -> { Ordering = o; BaseToneIndex = -1; ToneNames = []; ToneReplacements = Map.empty })
+            { ArrangementType = arrtype
+              Name = "" 
+              FileName = None
+              Data = data }
+
+        let updatedTemplates = Templates ((createTemplate tempArr) :: templates)
+        let updatedTracks = state.Tracks |> ProgramState.updateTracks updatedTemplates
+
+        { state with Tracks = updatedTracks; Templates = updatedTemplates }, Cmd.none
+
+    | SelectTargetAudioFile (defaultFileName, cmd) ->
+        let initialDir = state.OpenProjectFile |> Option.map Path.GetDirectoryName
+        let dialog = Dialogs.saveFileDialog "Select Target File" Dialogs.audioFileFiltersSave defaultFileName
+        state, Cmd.OfAsync.perform dialog initialDir cmd
+
+    | CombineAudioFiles (Some targetFile) ->
+        let task() = async { return AudioCombiner.combineWithResampling state.Tracks targetFile } 
+        { state with AudioCombinerProgress = Some(0.0)
+                     StatusMessage = "Combining audio files..." }, Cmd.OfAsync.perform task () CombineAudioCompleted
+    
+    | CreatePreview (Some targetFile) ->
+        let task file = 
+            async {
+                try
+                    AudioCombiner.createPreview state.Tracks file
+                    return "Preview created."
+                with
+                e -> return sprintf "Error: %s" e.Message
+            }
+
+        { state with AudioCombinerProgress = Some(0.0)
+                     StatusMessage = "Creating preview audio..." }, Cmd.OfAsync.perform task targetFile CombineAudioCompleted
+
+    | CombineAudioCompleted message ->
+        GC.Collect()
+        GC.WaitForPendingFinalizers()
+
+        { state with StatusMessage = message; AudioCombinerProgress = None }, Cmd.none
+
+    | CombineArrangements (Some targetFolder) ->
+        let trackCount = state.Tracks.Length
+        // Calculate the maximum value for the progress bar
+        let max =
+            ((0, 0), state.Tracks.Head.Arrangements)
+            ||> Seq.fold (fun (i, count) arr ->
+                let hasFile track = track.Arrangements.[i].FileName |> Option.isSome
+                let next = i + 1
+                // For instrumental arrangement, the progress is increased by one for each file
+                // Combining vocals and show lights is so fast that individual files are not reported
+                match arr.ArrangementType with
+                | ArrangementType.Instrumental _ ->
+                    if state.Tracks |> List.forall hasFile then next, count + trackCount else next, count
+                | ArrangementType.ShowLights ->
+                    if state.Tracks |> List.forall hasFile then next, count + 1 else next, count
+                | _ ->
+                    if state.Tracks |> List.exists hasFile then next, count + 1 else next, count
+                )
+            |> snd
+
+        let task = ArrangementCombiner.combine state
+        { state with ArrangementCombinerProgress = Some(0, max) }, Cmd.OfAsync.perform task targetFolder CombineArrangementsCompleted
+
+    | CombineArrangementsCompleted _ ->
+        { state with StatusMessage = "Arrangements combined."; ArrangementCombinerProgress = None }, Cmd.none
+
+    | SelectCombinationTargetFolder ->
+        let initialDir = state.OpenProjectFile |> Option.map Path.GetDirectoryName
+        let dialog = Dialogs.openFolderDialog "Select Target Folder"
+        state, Cmd.OfAsync.perform dialog initialDir CombineArrangements
+
+    | UpdateCombinationTitle newTitle -> { state with CombinationTitle = newTitle }, Cmd.none
+    | CoercePhrasesChanged value -> { state with CoercePhrases = value }, Cmd.none
+    | OnePhrasePerTrackChanged value -> { state with OnePhrasePerTrack = value }, Cmd.none
+    | AddTrackNamesChanged value -> { state with AddTrackNamesToLyrics = value }, Cmd.none
+
+    | RemoveTrack trackIndex ->
+        { state with Tracks = state.Tracks |> List.except (seq { state.Tracks.[trackIndex] }) }, Cmd.none
+
+    | ChangeAudioFile trackIndex ->
+        let initialDir = getInitialDir state.Tracks.[trackIndex].AudioFile state trackIndex
+        let dialog = Dialogs.openFileDialog "Select Audio File" Dialogs.audioFileFiltersOpen
+        state, Cmd.OfAsync.perform dialog initialDir (fun file -> ChangeAudioFileResult (trackIndex, file))
+
+    | ChangeAudioFileResult (trackIndex, file) ->
+        match file with
+        | None -> state, Cmd.none
+        | Some fileName ->
+            let oldSongLength = state.Tracks.[trackIndex].SongLength
+            let updatedTracks =
+                state.Tracks
+                |> List.mapi (fun i t -> if i = trackIndex then changeAudioFile t fileName else t)
+            let newSongLength = updatedTracks.[trackIndex].SongLength
+
+            let message =
+                if oldSongLength <> newSongLength then
+                    sprintf "Old song length: %.3f, new: %.3f" (float oldSongLength / 1000.0) (float newSongLength / 1000.0)
+                else
+                    "Audio file changed."
+
+            { state with Tracks = updatedTracks; StatusMessage = message }, Cmd.none
+
+    | SelectArrangementFile (trackIndex, arrIndex) ->
+        let initialDir = getInitialDir (state |> getArr trackIndex arrIndex).FileName state trackIndex
+        let dialog = Dialogs.openFileDialog "Select Arrangement File" Dialogs.xmlFileFilter
+        state, Cmd.OfAsync.perform dialog initialDir (fun file -> ChangeArrangementFile (trackIndex, arrIndex, file))
+
+    | ChangeArrangementFile (trackIndex, arrIndex, file) ->
+        match file with
+        | None -> state, Cmd.none
+        | Some fileName ->
+            let rootName = XmlHelper.GetRootElementName(fileName)
+            let arrangement = state |> getArr trackIndex arrIndex
+
+            let newArr =
+                match rootName, arrangement.ArrangementType with
+                // For instrumental arrangements, create an arrangement from the file, preserving the arrangement type and name
+                | "song", Instrumental t ->
+                    Ok { createInstrumental fileName (Some t) with Name = arrangement.Name }
+
+                // For vocals and show lights, just change the file name
+                | "vocals", Vocals _
+                | "showlights", ArrangementType.ShowLights -> Ok { arrangement with FileName = Some fileName }
+
+                | _ -> Error "Incorrect arrangement type."
+
+            match newArr with
+            | Ok arr ->
+                let updatedTracks = updateSingleArrangement state.Tracks trackIndex arrIndex arr
+                { state with Tracks = updatedTracks }, Cmd.none
+            | Error message->
+                { state with StatusMessage = message }, Cmd.none
+
+    | ArrangementBaseToneChanged (trackIndex, arrIndex, toneIndex) ->
+        match state |> getArr trackIndex arrIndex with
+        | { Data = Some arrData } as arrangement ->
+            let data = { arrData with BaseToneIndex = toneIndex }
+
+            let newArr = { arrangement with Data = Some data }
+            let updatedTracks = updateSingleArrangement state.Tracks trackIndex arrIndex newArr
+
+            { state with Tracks = updatedTracks }, Cmd.none
+
+        | { Data = None } ->
+            // Should not be able to get here
+            { state with StatusMessage = "Critical program error." }, Cmd.none
+
+    | RemoveArrangementFile (trackIndex, arrIndex) ->
+        let newArr = { (state |> getArr trackIndex arrIndex) with FileName = None; Data = None }
+        let updatedTracks = updateSingleArrangement state.Tracks trackIndex arrIndex newArr
+
+        { state with Tracks = updatedTracks }, Cmd.none
+
+    | ShowReplacementToneEditor (trackIndex, arrIndex) ->
+        { state with ReplacementToneEditor = Some(trackIndex, arrIndex) }, Cmd.none
+
+    | TrimAmountChanged (trackIndex, trimAmount) ->
+        let trim = int (Math.Round(trimAmount * 1000.0)) * 1<ms>
+        let newTracks = state.Tracks |> List.mapi (fun i t -> if i = trackIndex then { t with TrimAmount = trim } else t)
+        { state with Tracks = newTracks }, Cmd.none
+
+    | RemoveTemplate name ->
+        let (Templates templates) = state.Templates
+        let updatedTemplates = templates |> List.filter (fun t -> t.Name <> name) |> Templates
+
+        // Remove the arrangement from all the tracks
+        let updatedTracks =
+            state.Tracks
+            |> List.map (fun t ->
+                let arrs = t.Arrangements |> List.filter (fun a -> a.Name <> name)
+                { t with Arrangements = arrs })
+
+        let updatedCommonTones = state.CommonTones |> Map.remove name
+        let updatedSelectedTones = state.SelectedFileTones |> Map.remove name
+
+        { state with
+            Tracks = updatedTracks
+            Templates = updatedTemplates
+            CommonTones = updatedCommonTones
+            SelectedFileTones = updatedSelectedTones }, Cmd.none
+
+    | UpdateToneName (arrName, index, newName) ->
+        let names = state.CommonTones |> Map.find arrName
+        let oldName = names.[index]
+        if oldName = newName then
+            state, Cmd.none
+        else 
+            let newTones = 
+                state.CommonTones
+                |> Map.add arrName (names |> Array.updateAt index newName)
+
+            { state with CommonTones = newTones }, Cmd.none
+
+    | SelectedToneFromFileChanged (arrName, selectedTone) ->
+        let st = state.SelectedFileTones |> Map.add arrName selectedTone
+        { state with SelectedFileTones = st }, Cmd.none
+
+    | AddSelectedToneFromFile (arrName) ->
+        let tones = state.CommonTones.[arrName]
+        // Find an empty index that is not the base tone
+        let availableIndex = tones.[1..] |> Array.tryFindIndex String.IsNullOrEmpty
+        let selectedTone = state.SelectedFileTones |> Map.tryFind arrName
+
+        match availableIndex, selectedTone with
+        | Some i, Some newTone ->
+            let updatedTones =
+                let i = i + 1
+                if i = 1 && tones.[0] |> String.IsNullOrEmpty then
+                    // If the base tone and tone A are empty, use this name for them both
+                    tones |> Array.mapi (fun j t -> if j = 0 || j = i then newTone else t)
+                else
+                    tones |> Array.updateAt i newTone
+
+            let updatedCommonTones = state.CommonTones |> Map.add arrName updatedTones
+            { state with CommonTones = updatedCommonTones }, Cmd.none
+        | _ ->
+            state, Cmd.none
+
+    // User canceled the dialog
+    | CombineAudioFiles None | CreatePreview None | CombineArrangements None -> state, Cmd.none
+
+    // User canceled the dialog
+    | ImportToolkitTemplate None | OpenProject None | SaveProject None -> state, Cmd.none
 
 let private replacementToneView state trackIndex arrIndex dispatch =
     let arrangement = state.Tracks.[trackIndex].Arrangements.[arrIndex]
@@ -148,7 +517,7 @@ let view state dispatch =
                         Grid.children [
                             yield DockPanel.create [
                                 DockPanel.children [
-                                    TopControls.view state (TopControlsMsg >> dispatch)
+                                    TopControls.view state dispatch
 
                                     // Status Bar with Message
                                     Border.create [
@@ -179,9 +548,9 @@ let view state dispatch =
                                           ProgressBar.maximum (state.ArrangementCombinerProgress |> Option.map (snd >> double) |> Option.defaultValue 1.0)
                                     ]
 
-                                    BottomControls.view state (BottomControlsMsg >> dispatch)
+                                    BottomControls.view state dispatch
 
-                                    TrackList.view state (TrackListMsg >> dispatch)
+                                    TrackList.view state dispatch
                                 ]
                             ]
                             match state.ReplacementToneEditor with
@@ -194,7 +563,7 @@ let view state dispatch =
             ]
             TabItem.create [
                 TabItem.header "Common Tones"
-                TabItem.content (CommonToneEditor.view state (CommonTonesMsg >> dispatch))
+                TabItem.content (CommonToneEditor.view state dispatch)
                 TabItem.foreground Brushes.AntiqueWhite
             ]
             TabItem.create [ TabItem.header "Help"; TabItem.foreground Brushes.AntiqueWhite; TabItem.content Help.helpView ]
