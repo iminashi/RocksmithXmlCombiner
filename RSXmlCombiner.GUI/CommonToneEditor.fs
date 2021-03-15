@@ -72,9 +72,11 @@ let private tonesTemplate (state : ProgramState) arrName (tones : string[]) disp
                             ComboBox.margin 2.0
                             ComboBox.dataItems toneList
                             ComboBox.selectedItem (state.SelectedFileTones |> Map.tryFind arrName |> Option.toObj)
-                            ComboBox.onSelectedItemChanged (fun item ->
-                                SelectedToneFromFileChanged(arrName, string item)
-                                |> dispatch)
+                            ComboBox.onSelectedItemChanged (function
+                                | null -> ()
+                                | item ->
+                                    SelectedToneFromFileChanged(arrName, string item)
+                                    |> dispatch)
                         ]
                         Button.create [
                             Button.horizontalAlignment HorizontalAlignment.Center
