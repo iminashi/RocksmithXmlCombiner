@@ -16,4 +16,4 @@ module Brushes =
     let bass = SolidColorBrush.Parse "#0383b5" :> ISolidColorBrush
 
 module Cursors =
-    let hand = Cursor StandardCursorType.Hand
+    let hand = new Cursor(StandardCursorType.Hand)
