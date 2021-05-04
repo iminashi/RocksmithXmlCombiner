@@ -341,7 +341,7 @@ namespace XmlCombiners
                 int piIndex = phraseIterations.FindIndexByTime(song.Sections[i].Time);
                 if (piIndex != -1)
                 {
-                    while (piIndex < phraseIterations.Count - 1 && phraseIterations[piIndex + 1].Time != song.Sections[i + 1].Time)
+                    while (piIndex < phraseIterations.Count - 1 && song.Sections.FindIndexByTime(phraseIterations[piIndex + 1].Time) == -1)
                     {
                         phraseIterations.RemoveAt(piIndex + 1);
                     }
