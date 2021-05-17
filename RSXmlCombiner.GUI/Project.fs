@@ -1,22 +1,25 @@
 ﻿module RSXmlCombiner.FuncUI.Project
 
+open System
 open System.IO
 open System.Text.Json
 open System.Text.Json.Serialization
 
-type Dto =
-   { Tracks : Track list
-     CommonTones : CommonTones
-     CombinationTitle : string
-     CoercePhrases : bool
-     AddTrackNamesToLyrics : bool }
+type Dto() =
+   member val Tracks : Track list = List.empty with get, set
+   member val CommonTones : CommonTones = Map.empty with get, set
+   member val CombinationTitle : string = String.Empty with get, set
+   member val CoercePhrases : bool = true with get, set
+   member val OnePhrasePerTrack : bool = false with get, set
+   member val AddTrackNamesToLyrics : bool = true with get, set
 
 let private fromProgramState (state: ProgramState) =
-   { Tracks = state.Tracks
-     CommonTones = state.CommonTones
-     CombinationTitle = state.CombinationTitle
-     CoercePhrases = state.CoercePhrases
-     AddTrackNamesToLyrics = state.AddTrackNamesToLyrics }
+    Dto(Tracks = state.Tracks,
+        CommonTones = state.CommonTones,
+        CombinationTitle = state.CombinationTitle,
+        CoercePhrases = state.CoercePhrases,
+        OnePhrasePerTrack = state.OnePhrasePerTrack,
+        AddTrackNamesToLyrics = state.AddTrackNamesToLyrics)
 
 /// Saves a project with the given filename.
 let save fileName (state: ProgramState) =
@@ -39,13 +42,13 @@ let load fileName =
     | :? JsonException as e -> Error($"Opening project failed: {e.Message}")
 
 /// Converts a project DTO into a program state record.
-let toProgramState templates fileName statusMessage dto =
+let toProgramState templates fileName statusMessage (dto: Dto) =
     { Tracks = dto.Tracks
       CommonTones = dto.CommonTones
       CombinationTitle = dto.CombinationTitle
       AddTrackNamesToLyrics = dto.AddTrackNamesToLyrics
       CoercePhrases = dto.CoercePhrases
-      OnePhrasePerTrack = true
+      OnePhrasePerTrack = dto.OnePhrasePerTrack
       Templates = templates
       StatusMessage = statusMessage
       ReplacementToneEditor = None
