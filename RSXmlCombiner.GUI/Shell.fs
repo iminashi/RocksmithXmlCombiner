@@ -45,7 +45,7 @@ let private addNewTrack state arrangementFileNames =
                 else
                     arr::state
             | "vocals" when state |> alreadyHas ArrangementType.Vocals |> not ->
-                { Name = "Vocals"; FileName = Some fileName; ArrangementType = ArrangementType.Vocals; Data = None  }::state
+                { Name = "Vocals"; FileName = Some fileName; ArrangementType = ArrangementType.Vocals; Data = None }::state
             | "showlights" when state |> alreadyHas ArrangementType.ShowLights |> not ->
                 { Name = "Show Lights"; FileName = Some fileName; ArrangementType = ArrangementType.ShowLights; Data = None }::state
             | _ -> state
