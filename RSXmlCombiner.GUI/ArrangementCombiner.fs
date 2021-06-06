@@ -12,7 +12,7 @@ let private increaseProgress () = (progress :> IProgress<int>).Report(1)
 
 /// Combines the show light arrangements if all tracks have one set.
 let private combineShowLights tracks arrIndex targetFolder =
-    if tracks |> List.forall (fun t -> t.Arrangements.[arrIndex].FileName |> Option.isSome) then
+    if tracks |> List.forall (fun t -> t.Arrangements.[arrIndex].FileName.IsSome) then
         let combiner = ShowLightsCombiner()
         for track in tracks do
             let next = ShowLights.Load(track.Arrangements.[arrIndex].FileName |> Option.get)
@@ -29,11 +29,15 @@ let private addTitle (vocals : ResizeArray<Vocal>) (title : string) (startBeat :
         let firstVocalsTime =
             if vocals.Count > 0 then
                 Some (vocals.[0].Time |> LanguagePrimitives.Int32WithMeasure<ms>)
-            else None
+            else
+                None
+
         // Make sure that the title does not overlap with existing lyrics
         match firstVocalsTime with
-        | Some time when time < startBeat + defaultDisplayTime -> time - startBeat - 50<ms>
-        | _ -> defaultDisplayTime
+        | Some time when time < startBeat + defaultDisplayTime ->
+            time - startBeat - 50<ms>
+        | _ ->
+            defaultDisplayTime
 
     // Don't add the title if it will be displayed for less than a quarter of a second
     if displayTime >= 250<ms> then
@@ -46,17 +50,19 @@ let private addTitle (vocals : ResizeArray<Vocal>) (title : string) (startBeat :
 let private combineVocals (tracks : Track list) arrIndex targetFolder addTitles =
     if addTitles || tracks |> List.exists (fun t -> t.Arrangements.[arrIndex].FileName |> Option.isSome) then
         let combiner = VocalsCombiner()
-        for (trackIndex, track) in tracks |> Seq.indexed do
+        tracks
+        |> Seq.indexed
+        |> Seq.iter (fun (trackIndex, track) ->
             let next = 
-                match track.Arrangements.[arrIndex].FileName with
-                | Some fn -> Vocals.Load(fn)
-                | None -> ResizeArray<Vocal>()
+                track.Arrangements.[arrIndex].FileName
+                |> Option.map Vocals.Load
+                |> Option.defaultWith (fun () -> ResizeArray())
             
             if addTitles then
                 let title = sprintf "%i. %s+" (trackIndex + 1) track.Title
                 addTitle next title track.TrimAmount
 
-            combiner.AddNext(next, int track.SongLength, int track.TrimAmount)
+            combiner.AddNext(next, int track.SongLength, int track.TrimAmount))
 
         combiner.Save(Path.Combine(targetFolder, sprintf "Combined_%s_RS2.xml" tracks.Head.Arrangements.[arrIndex].Name))
         increaseProgress ()
@@ -66,12 +72,14 @@ let private replaceToneNames (song : InstrumentalArrangement) (toneReplacements 
 
     // Replace the tone names of the defined tones and the tone changes
     for kv in toneReplacements do
-        let newToneName = commonTones.[kv.Value + 1] // First one is the base tone
+        // First one is the base tone
+        let newToneName = commonTones.[kv.Value + 1] 
         if tones.BaseToneName = kv.Key then tones.BaseToneName <- newToneName
+
         for i = 0 to tones.Names.Length - 1 do
             if tones.Names.[i] = kv.Key then tones.Names.[i] <- newToneName
 
-        if not (tones.Changes |> isNull) then
+        if not (isNull tones.Changes) then
             for tone in tones.Changes do
                 if tone.Name = kv.Key then
                     tone.Name <- newToneName
@@ -101,23 +109,31 @@ let private updateArrangementMetadata arr (combined : InstrumentalArrangement) =
     arrProps.BonusArrangement <- false
 
     match arr.ArrangementType with
-    | ArrangementType.Lead -> arrProps.PathLead <- true
-    | ArrangementType.Rhythm | ArrangementType.Combo -> arrProps.PathRhythm <- true
-    | ArrangementType.Bass -> arrProps.PathBass <- true
-    | _ -> ()
+    | ArrangementType.Lead ->
+        arrProps.PathLead <- true
+    | ArrangementType.Rhythm | ArrangementType.Combo ->
+        arrProps.PathRhythm <- true
+    | ArrangementType.Bass ->
+        arrProps.PathBass <- true
+    | _ ->
+        ()
 
-    let data = arr.Data |> Option.get
-    match data.Ordering with
-    | ArrangementOrdering.Main -> arrProps.Represent <- true
-    | ArrangementOrdering.Bonus -> arrProps.BonusArrangement <- true
-    | _ -> ()
+    match arr.Data with
+    | Some { Ordering = ArrangementOrdering.Main } ->
+        arrProps.Represent <- true
+    | Some { Ordering = ArrangementOrdering.Bonus } ->
+        arrProps.BonusArrangement <- true
+    | _ ->
+        ()
 
 /// Combines the instrumental arrangements at the given index if all tracks have one set.
 let private combineInstrumental (project : ProgramState) arrIndex targetFolder =
     let tracks = project.Tracks
-    let commonTones = project.CommonTones |> Map.find tracks.Head.Arrangements.[arrIndex].Name
+    let commonTones =
+        project.CommonTones
+        |> Map.find tracks.Head.Arrangements.[arrIndex].Name
 
-    if tracks |> List.forall (fun t -> t.Arrangements.[arrIndex].FileName |> Option.isSome) then
+    if tracks |> List.forall (fun t -> t.Arrangements.[arrIndex].FileName.IsSome) then
         let combiner = InstrumentalCombiner()
 
         for i = 0 to tracks.Length - 1 do
@@ -128,7 +144,8 @@ let private combineInstrumental (project : ProgramState) arrIndex targetFolder =
             if i = 0 then
                 next.Tones.BaseToneName <- commonTones.[0]
             else if arrData.BaseToneIndex <> -1 then
-                next.Tones.BaseToneName <- commonTones.[arrData.BaseToneIndex + 1] // First one is the base tone
+                // First one is the base tone
+                next.Tones.BaseToneName <- commonTones.[arrData.BaseToneIndex + 1]
 
             if not arrData.ToneNames.IsEmpty then
                 replaceToneNames next arrData.ToneReplacements commonTones
@@ -152,13 +169,18 @@ let private combineInstrumental (project : ProgramState) arrIndex targetFolder =
 
 let private combineArrangement (project : ProgramState) arrIndex targetFolder =
     match project.Tracks.Head.Arrangements.[arrIndex].ArrangementType with
-    | Instrumental _ -> combineInstrumental project arrIndex targetFolder
-    | Vocals _ -> combineVocals project.Tracks arrIndex targetFolder project.AddTrackNamesToLyrics
-    | ArrangementType.ShowLights -> combineShowLights project.Tracks arrIndex targetFolder
-    | _ -> failwith "Unknown arrangement type."
+    | Instrumental _ ->
+        combineInstrumental project arrIndex targetFolder
+    | Vocals _ ->
+        combineVocals project.Tracks arrIndex targetFolder project.AddTrackNamesToLyrics
+    | ArrangementType.ShowLights ->
+        combineShowLights project.Tracks arrIndex targetFolder
+    | _ ->
+        failwith "Unknown arrangement type."
 
 /// Combines all the arrangements in the given project.
 let combine (project : ProgramState) targetFolder  =
     let nArrangements = project.Tracks.Head.Arrangements.Length
-    let tasks = [ for i in 0..nArrangements - 1 -> async { do combineArrangement project i targetFolder } ]
-    Async.Parallel tasks |> Async.Ignore
+    [ for i in 0..nArrangements - 1 -> async { combineArrangement project i targetFolder } ]
+    |> Async.Parallel
+    |> Async.Ignore

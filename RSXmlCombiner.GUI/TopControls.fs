@@ -9,7 +9,10 @@ open ArrangementType
 /// Creates the menu items for adding arrangements.
 let private addArrangementMenuItems state dispatch : IView list =
     let (Templates templates) = state.Templates
-    let notIncluded arrType = templates |> List.exists (fun t -> t.ArrangementType = arrType) |> not
+    let notIncluded arrType =
+        templates
+        |> List.exists (fun t -> t.ArrangementType = arrType)
+        |> not
 
     let createMenuItem arrType =
         MenuItem.create [

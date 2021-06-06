@@ -4,14 +4,14 @@ open System.IO
 open Avalonia.Media
 open Avalonia.Controls
 open Avalonia.Controls.Shapes
+open Avalonia.FuncUI
 open Avalonia.FuncUI.DSL
-open Avalonia.FuncUI.Types
 open Avalonia.Layout
 open Media
 open ArrangementType
 
 /// Creates the view for an arrangement.
-let private arrangementView (arr: Arrangement) trackIndex arrIndex state dispatch =
+let private arrangementView state dispatch trackIndex arrIndex (arr: Arrangement) =
     let fileName = arr.FileName
     let fileNameBrush =
         match fileName with
@@ -129,14 +129,16 @@ let private arrangementView (arr: Arrangement) trackIndex arrIndex state dispatc
                 ]
             ]
         )
-    ]
+    ] |> generalize
   
 /// Creates the view for a track.
-let private trackView (track: Track) index state dispatch =
+let private trackView state dispatch trackIndex (track: Track) =
     let audioFileBrush =
         match track.AudioFile with
-        | Some fn when not <| File.Exists(fn) -> Brushes.Red
-        | _ -> Brushes.DarkGray
+        | Some fn when not <| File.Exists fn ->
+            Brushes.Red
+        | _ ->
+            Brushes.DarkGray
 
     Border.create [
         Border.classes [ "track" ]
@@ -150,7 +152,7 @@ let private trackView (track: Track) index state dispatch =
                         StackPanel.dock Dock.Top
                         StackPanel.children [
                             TextBlock.create [
-                                TextBlock.text (sprintf "%i. %s" (index + 1) track.Title)
+                                TextBlock.text (sprintf "%i. %s" (trackIndex + 1) track.Title)
                                 TextBlock.classes [ "h1" ]
                             ]
                         ]
@@ -164,7 +166,7 @@ let private trackView (track: Track) index state dispatch =
                                 ContentControl.margin (2.0, 0.0, 5.0, 0.0)
                                 ContentControl.renderTransform <| ScaleTransform(1.5, 1.5)
                                 ContentControl.cursor Cursors.hand
-                                ContentControl.onTapped (fun _ -> RemoveTrack index |> dispatch)
+                                ContentControl.onTapped (fun _ -> RemoveTrack trackIndex |> dispatch)
                                 ContentControl.content (
                                     Path.create [
                                         Path.data Icons.close
@@ -189,7 +191,7 @@ let private trackView (track: Track) index state dispatch =
                                         TextBlock.foreground audioFileBrush
                                         TextBlock.maxWidth 100.0
                                         TextBlock.cursor Cursors.hand
-                                        TextBlock.onTapped (fun _ -> ChangeAudioFile index |> dispatch)
+                                        TextBlock.onTapped (fun _ -> ChangeAudioFile trackIndex |> dispatch)
                                         TextBlock.text (track.AudioFile |> Option.map Path.GetFileName |> Option.defaultValue "None selected" )
                                         ToolTip.tip (track.AudioFile |> Option.defaultValue "Click to select a file.")
                                     ]
@@ -201,22 +203,22 @@ let private trackView (track: Track) index state dispatch =
                                         StackPanel.horizontalAlignment HorizontalAlignment.Center
                                         StackPanel.children [
                                             // Hide if this is the first track
-                                            if index <> 0 then
-                                                yield TextBlock.create [ 
+                                            if trackIndex <> 0 then
+                                                TextBlock.create [ 
                                                     TextBlock.classes [ "h2" ]
                                                     TextBlock.text "Trim:"
                                                     TextBlock.verticalAlignment VerticalAlignment.Center
                                                 ]
-                                                yield NumericUpDown.create [
+                                                NumericUpDown.create [
                                                     NumericUpDown.value <| (double track.TrimAmount) / 1000.0
                                                     NumericUpDown.minimum 0.0
                                                     NumericUpDown.verticalAlignment VerticalAlignment.Center
                                                     NumericUpDown.width 75.0
                                                     NumericUpDown.formatString "F3"
-                                                    NumericUpDown.onValueChanged (fun trim -> TrimAmountChanged(index, trim) |> dispatch)
+                                                    NumericUpDown.onValueChanged (fun trim -> TrimAmountChanged(trackIndex, trim) |> dispatch)
                                                     ToolTip.tip "Sets the amount of time in seconds to be trimmed from the start of the audio and each arrangement."
                                                 ]
-                                                yield TextBlock.create [
+                                                TextBlock.create [
                                                     TextBlock.margin (2.0, 0.0, 0.0, 0.0)
                                                     TextBlock.text "s"
                                                     TextBlock.verticalAlignment VerticalAlignment.Center
@@ -230,14 +232,14 @@ let private trackView (track: Track) index state dispatch =
                             StackPanel.create [
                                 StackPanel.orientation Orientation.Horizontal
                                 StackPanel.spacing 10.0
-                                StackPanel.children <| List.mapi (fun i item -> arrangementView item index i state dispatch :> IView) track.Arrangements
+                                StackPanel.children <| List.mapi (arrangementView state dispatch trackIndex) track.Arrangements
                             ]
                         ]
                     ]
                 ]
             ]
         )
-    ]
+    ] |> generalize
 
 /// Creates the track list view.
 let view state dispatch =
@@ -246,7 +248,7 @@ let view state dispatch =
         ScrollViewer.horizontalScrollBarVisibility Primitives.ScrollBarVisibility.Auto
         ScrollViewer.content (
             StackPanel.create [
-                StackPanel.children <| List.mapi (fun i item -> trackView item i state dispatch :> IView) state.Tracks
+                StackPanel.children <| List.mapi (trackView state dispatch) state.Tracks
             ] 
         )
     ]
