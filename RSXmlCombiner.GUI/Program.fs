@@ -24,16 +24,12 @@ type MainWindow() as this =
             | KeyModifiers.Control, Key.N -> dispatch NewProject
             | _ -> ()
 
-        let audioCombinerProgress _initialModel =
+        let progressSub _initialModel =
             let sub dispatch =
                 AudioCombiner.progress.ProgressChanged.Add (CombineAudioProgressChanged >> dispatch)
-            Cmd.ofSub sub
-
-        let arrangementCombinerProgress _initialModel =
-            let sub dispatch =
                 ArrangementCombiner.progress.ProgressChanged.Add (CombineArrangementsProgressChanged >> dispatch)
             Cmd.ofSub sub
-        
+       
         let hotKeysSub _initialModel =
             Cmd.ofSub (handleHotkeys >> this.KeyDown.Add)
 
@@ -42,11 +38,9 @@ type MainWindow() as this =
 
         Elmish.Program.mkProgram Shell.init Shell.update Shell.view
         |> Program.withHost this
-        |> Program.withSubscription audioCombinerProgress
-        |> Program.withSubscription arrangementCombinerProgress
+        |> Program.withSubscription progressSub
         |> Program.withSubscription hotKeysSub
         |> Program.run
-
         
 type App() =
     inherit Application()
@@ -68,6 +62,5 @@ module Program =
         AppBuilder
             .Configure<App>()
             .UsePlatformDetect()
-            //.With(AvaloniaNativePlatformOptions(UseGpu = false))
             .UseSkia()
             .StartWithClassicDesktopLifetime(args)

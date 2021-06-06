@@ -28,27 +28,31 @@ let private createTrack instArrFile (title: string option) (audioFile: string op
       Arrangements = arrangements |> List.sortBy arrangementSort }
 
 let private addNewTrack state arrangementFileNames =
-    let instArrFile = arrangementFileNames |> Array.tryFind (fun f -> XmlHelper.ValidateRootElement(f, "song"))
+    let instArrFile =
+        arrangementFileNames
+        |> Array.tryFind (fun f -> XmlHelper.ValidateRootElement(f, "song"))
+
     match instArrFile with
-    | None -> 
+    | None ->
         { state with StatusMessage = "Please select at least one instrumental Rocksmith arrangement." }
 
     | Some instArrFile ->
-        let alreadyHas arrType = List.exists (fun a -> a.ArrangementType = arrType)
+        let canInclude arrType = List.exists (fun a -> a.ArrangementType = arrType) >> not
 
         let arrangementFolder (state: Arrangement list) fileName =
-            match XmlHelper.GetRootElementName(fileName) with
+            match XmlHelper.GetRootElementName fileName with
             | "song" ->
                 let arr = createInstrumental fileName None
                 if state |> List.exists (fun a -> a.Name = arr.Name) then
                     state
                 else
                     arr::state
-            | "vocals" when state |> alreadyHas ArrangementType.Vocals |> not ->
-                { Name = "Vocals"; FileName = Some fileName; ArrangementType = ArrangementType.Vocals; Data = None }::state
-            | "showlights" when state |> alreadyHas ArrangementType.ShowLights |> not ->
-                { Name = "Show Lights"; FileName = Some fileName; ArrangementType = ArrangementType.ShowLights; Data = None }::state
-            | _ -> state
+            | "vocals" when state |> canInclude ArrangementType.Vocals ->
+                (createOther "Vocals" fileName ArrangementType.Vocals)::state
+            | "showlights" when state |> canInclude ArrangementType.ShowLights ->
+                (createOther "Show Lights" fileName ArrangementType.ShowLights)::state
+            | _ ->
+                state
 
         arrangementFileNames
         |> Array.fold arrangementFolder []
@@ -90,8 +94,8 @@ let update msg state : ProgramState * Cmd<_> =
         { state with AudioCombinerProgress = Some progress }, Cmd.none
 
     | CombineArrangementsProgressChanged progress ->
-        let combProgress = 
-            state.ArrangementCombinerProgress 
+        let combProgress =
+            state.ArrangementCombinerProgress
             |> Option.map (fun (curr, max) -> (curr + progress, max))
 
         { state with ArrangementCombinerProgress = combProgress }, Cmd.none
@@ -100,7 +104,7 @@ let update msg state : ProgramState * Cmd<_> =
         let dialog = Dialogs.openMultiFileDialog "Select Arrangement File(s)" Dialogs.xmlFileFilter
         state, Cmd.OfAsync.perform dialog None AddTrack
 
-    | AddTrack (Some files) -> 
+    | AddTrack (Some files) ->
         addNewTrack state files, Cmd.none
 
     | ImportProjectLoaded (foundArrangements, title, audioFilePath) ->
@@ -128,15 +132,17 @@ let update msg state : ProgramState * Cmd<_> =
                 let arrangement =
                     match arrType with
                     | Instrumental _ ->
-                        // Respect the arrangement type from the Toolkit template
+                        // Respect the arrangement type from the imported project
                         createInstrumental fileName (Some arrType)
-                    | _ -> { FileName = Some fileName
-                             ArrangementType = arrType
-                             Name = humanize arrType
-                             Data = None }
-                arrangement :: state
+                    | _ ->
+                        { FileName = Some fileName
+                          ArrangementType = arrType
+                          Name = humanize arrType
+                          Data = None }
 
-            let newState = 
+                arrangement::state
+
+            let newState =
                 foundArrangements
                 |> Map.fold foldArrangements []
                 // Add any missing arrangements from the project's templates
@@ -147,12 +153,13 @@ let update msg state : ProgramState * Cmd<_> =
             { newState with StatusMessage = sprintf "%i arrangements imported." foundArrangements.Count }, Cmd.none
     
     | ImportProject (Some projectPath) ->
-        let task () = async {
-            if projectPath.EndsWith("rs2dlc", StringComparison.OrdinalIgnoreCase) then
-                return! DLCBuilderProject.import projectPath
+        let task (path: string) = async {
+            if path.EndsWith("rs2dlc", StringComparison.OrdinalIgnoreCase) then
+                return! DLCBuilderProject.import path
             else
-                return ToolkitImporter.import projectPath }
-        state, Cmd.OfAsync.either task () ImportProjectLoaded ErrorOccured
+                return ToolkitImporter.import path }
+
+        state, Cmd.OfAsync.either task projectPath ImportProjectLoaded ErrorOccured
 
     | ErrorOccured ex ->
         { state with StatusMessage = ex.Message }, Cmd.none
@@ -161,9 +168,9 @@ let update msg state : ProgramState * Cmd<_> =
         ProgramState.init, Cmd.none
 
     | OpenProject (Some projectFile) ->
-        let result = Project.load projectFile
-        match result with
-        | Error message -> { state with StatusMessage = message }, Cmd.none
+        match Project.load projectFile with
+        | Error message ->
+            { state with StatusMessage = message }, Cmd.none
         | Ok project ->
             // TODO: Check if the tone names in the files have been changed
 
@@ -173,14 +180,20 @@ let update msg state : ProgramState * Cmd<_> =
                 ||> List.fold (fun state track ->
                     let missingAudioFiles =
                         match track.AudioFile with
-                        | Some file when not <| File.Exists(file) -> file :: (fst state)
-                        | _ -> fst state
+                        | Some file when not <| File.Exists file ->
+                            file::(fst state)
+                        | _ ->
+                            fst state
+
                     let missingArrangementFiles =
                         ([], track.Arrangements)
                         ||> List.fold (fun missing arr -> 
-                                match arr.FileName with
-                                | Some file when not <| File.Exists(file) -> file :: missing
-                                | _ -> missing)
+                            match arr.FileName with
+                            | Some file when not <| File.Exists file ->
+                                file::missing
+                            | _ ->
+                                missing)
+
                     missingAudioFiles, (snd state) @ missingArrangementFiles)
 
             let statusMessage =
@@ -191,8 +204,10 @@ let update msg state : ProgramState * Cmd<_> =
             // Generate the arrangement templates from the first track
             let templates = 
                 match project.Tracks with
-                | head::_ -> head.Arrangements |> (List.map createTemplate >> Templates)
-                | [] -> Templates []
+                | head::_ ->
+                    head.Arrangements |> (List.map createTemplate >> Templates)
+                | [] ->
+                    Templates []
 
             Project.toProgramState templates projectFile statusMessage project, Cmd.none
 
@@ -209,8 +224,15 @@ let update msg state : ProgramState * Cmd<_> =
         state, Cmd.OfAsync.perform dialog None OpenProject
 
     | SelectSaveProjectFile ->
-        let initialDir = state.OpenProjectFile |> Option.map Path.GetDirectoryName
-        let initialFile = state.OpenProjectFile |> Option.map Path.GetFileName |> Option.orElse (Some "combo.rscproj")
+        let initialDir =
+            state.OpenProjectFile
+            |> Option.map Path.GetDirectoryName
+
+        let initialFile =
+            state.OpenProjectFile
+            |> Option.map Path.GetFileName
+            |> Option.orElse (Some "combo.rscproj")
+
         let dialog = Dialogs.saveFileDialog "Save Project As" Dialogs.projectFileFilter initialFile
         state, Cmd.OfAsync.perform dialog initialDir SaveProject
 
@@ -225,7 +247,7 @@ let update msg state : ProgramState * Cmd<_> =
               FileName = None
               Data = data }
 
-        let updatedTemplates = Templates ((createTemplate tempArr) :: templates)
+        let updatedTemplates = Templates ((createTemplate tempArr)::templates)
         let updatedTracks = state.Tracks |> ProgramState.updateTracks updatedTemplates
 
         { state with Tracks = updatedTracks; Templates = updatedTemplates }, Cmd.none
@@ -236,19 +258,24 @@ let update msg state : ProgramState * Cmd<_> =
         state, Cmd.OfAsync.perform dialog initialDir cmd
 
     | CombineAudioFiles (Some targetFile) ->
-        let task() = async { return AudioCombiner.combineWithResampling state.Tracks targetFile } 
+        let task() = async {
+            return AudioCombiner.combineWithResampling state.Tracks targetFile }
+
         { state with AudioCombinerProgress = Some 0.0
-                     StatusMessage = "Combining audio files..." }, Cmd.OfAsync.perform task () CombineAudioCompleted
+                     StatusMessage = "Combining audio files..." },
+        Cmd.OfAsync.perform task () CombineAudioCompleted
     
     | CreatePreview (Some targetFile) ->
         let task file = async {
             try
                 AudioCombiner.createPreview state.Tracks file
                 return "Preview created."
-            with e -> return $"Error: {e.Message}" }
+            with e ->
+                return $"Error: {e.Message}" }
 
         { state with AudioCombinerProgress = Some 0.0
-                     StatusMessage = "Creating preview audio..." }, Cmd.OfAsync.perform task targetFile CombineAudioCompleted
+                     StatusMessage = "Creating preview audio..." },
+        Cmd.OfAsync.perform task targetFile CombineAudioCompleted
 
     | CombineAudioCompleted message ->
         GC.Collect()
@@ -277,7 +304,8 @@ let update msg state : ProgramState * Cmd<_> =
             |> snd
 
         let task = ArrangementCombiner.combine state
-        { state with ArrangementCombinerProgress = Some(0, max) }, Cmd.OfAsync.perform task targetFolder CombineArrangementsCompleted
+        { state with ArrangementCombinerProgress = Some(0, max) },
+        Cmd.OfAsync.perform task targetFolder CombineArrangementsCompleted
 
     | CombineArrangementsCompleted _ ->
         { state with StatusMessage = "Arrangements combined."; ArrangementCombinerProgress = None }, Cmd.none
@@ -287,10 +315,17 @@ let update msg state : ProgramState * Cmd<_> =
         let dialog = Dialogs.openFolderDialog "Select Target Folder"
         state, Cmd.OfAsync.perform dialog initialDir CombineArrangements
 
-    | UpdateCombinationTitle newTitle -> { state with CombinationTitle = newTitle }, Cmd.none
-    | CoercePhrasesChanged value -> { state with CoercePhrases = value }, Cmd.none
-    | OnePhrasePerTrackChanged value -> { state with OnePhrasePerTrack = value }, Cmd.none
-    | AddTrackNamesChanged value -> { state with AddTrackNamesToLyrics = value }, Cmd.none
+    | UpdateCombinationTitle newTitle ->
+        { state with CombinationTitle = newTitle }, Cmd.none
+
+    | CoercePhrasesChanged value ->
+        { state with CoercePhrases = value }, Cmd.none
+
+    | OnePhrasePerTrackChanged value ->
+        { state with OnePhrasePerTrack = value }, Cmd.none
+
+    | AddTrackNamesChanged value ->
+        { state with AddTrackNamesToLyrics = value }, Cmd.none
 
     | RemoveTrack trackIndex ->
         { state with Tracks = state.Tracks |> List.except (seq { state.Tracks.[trackIndex] }) }, Cmd.none
@@ -372,7 +407,12 @@ let update msg state : ProgramState * Cmd<_> =
 
     | TrimAmountChanged (trackIndex, trimAmount) ->
         let trim = int (Math.Round(trimAmount * 1000.0)) * 1<ms>
-        let newTracks = state.Tracks |> List.mapi (fun i t -> if i = trackIndex then { t with TrimAmount = trim } else t)
+        let newTracks =
+            state.Tracks
+            |> List.mapi (fun i t ->
+                if i = trackIndex
+                then { t with TrimAmount = trim }
+                else t)
         { state with Tracks = newTracks }, Cmd.none
 
     | RemoveTemplate name ->
@@ -408,8 +448,10 @@ let update msg state : ProgramState * Cmd<_> =
             { state with CommonTones = newTones }, Cmd.none
 
     | SelectedToneFromFileChanged (arrName, selectedTone) ->
-        let st = state.SelectedFileTones |> Map.add arrName selectedTone
-        { state with SelectedFileTones = st }, Cmd.none
+        let selectedTones =
+            state.SelectedFileTones
+            |> Map.add arrName selectedTone
+        { state with SelectedFileTones = selectedTones }, Cmd.none
 
     | AddSelectedToneFromFile arrName ->
         let tones = state.CommonTones.[arrName]
@@ -464,13 +506,13 @@ let private replacementToneView state trackIndex arrIndex dispatch =
                             ]
                             yield TextBlock.create [
                                 Grid.row 1
-                                TextBlock.text "Tone Name"    
+                                TextBlock.text "Tone Name"
                                 TextBlock.fontSize 16.0
                             ]
                             yield TextBlock.create [
                                 Grid.row 1
                                 Grid.column 1
-                                TextBlock.text "Replace With"    
+                                TextBlock.text "Replace With"
                                 TextBlock.fontSize 16.0
                             ]
                             for (i, tone) in data.ToneNames |> List.indexed do
@@ -487,10 +529,12 @@ let private replacementToneView state trackIndex arrIndex dispatch =
                                         ComboBox.height 30.0
                                         ComboBox.dataItems replacementToneNames
                                         ComboBox.selectedIndex (
-                                            match data.ToneReplacements |> Map.tryFind tone with
-                                            | Some index -> index
-                                            | None -> -1)
-                                        ComboBox.onSelectedIndexChanged (fun item -> SetReplacementTone(trackIndex, arrIndex, tone, item) |> dispatch)
+                                            data.ToneReplacements
+                                            |> Map.tryFind tone
+                                            |> Option.defaultValue -1)
+                                        ComboBox.onSelectedIndexChanged (fun item ->
+                                            SetReplacementTone(trackIndex, arrIndex, tone, item)
+                                            |> dispatch)
                                       ]
                             yield Button.create [
                                 Grid.row (data.ToneNames.Length + 2)
@@ -521,7 +565,7 @@ let view state dispatch =
                 TabItem.content (
                     Grid.create [
                         Grid.children [
-                            yield DockPanel.create [
+                            DockPanel.create [
                                 DockPanel.children [
                                     TopControls.view state dispatch
 
@@ -540,7 +584,7 @@ let view state dispatch =
                                           ProgressBar.minHeight 1.0
                                           ProgressBar.value (state.AudioCombinerProgress |> Option.defaultValue 0.0)
                                           ProgressBar.maximum 1.0
-                                          ProgressBar.isIndeterminate (state.AudioCombinerProgress |> Option.isSome)
+                                          ProgressBar.isIndeterminate state.AudioCombinerProgress.IsSome
                                     ]
 
                                     // Progress Bar for Arrangement Combining
@@ -550,8 +594,14 @@ let view state dispatch =
                                           ProgressBar.foreground Brushes.Red
                                           ProgressBar.height 1.0
                                           ProgressBar.minHeight 1.0
-                                          ProgressBar.value (state.ArrangementCombinerProgress |> Option.map (fst >> double) |> Option.defaultValue 0.0)
-                                          ProgressBar.maximum (state.ArrangementCombinerProgress |> Option.map (snd >> double) |> Option.defaultValue 1.0)
+                                          ProgressBar.value (
+                                            state.ArrangementCombinerProgress
+                                            |> Option.map (fst >> double)
+                                            |> Option.defaultValue 0.0)
+                                          ProgressBar.maximum (
+                                            state.ArrangementCombinerProgress
+                                            |> Option.map (snd >> double)
+                                            |> Option.defaultValue 1.0)
                                     ]
 
                                     BottomControls.view state dispatch
@@ -559,19 +609,23 @@ let view state dispatch =
                                     TrackList.view state dispatch
                                 ]
                             ]
+
                             match state.ReplacementToneEditor with
                             | Some (trackIndex, arrIndex) ->
-                                yield replacementToneView state trackIndex arrIndex dispatch :> IView
-                            | None -> ()
+                                replacementToneView state trackIndex arrIndex dispatch :> IView
+                            | None ->
+                                ()
                         ]
                     ]
                 )
             ]
+
             TabItem.create [
                 TabItem.header "Common Tones"
                 TabItem.content (CommonToneEditor.view state dispatch)
                 TabItem.foreground Brushes.AntiqueWhite
             ]
+
             TabItem.create [ TabItem.header "Help"; TabItem.foreground Brushes.AntiqueWhite; TabItem.content Help.helpView ]
         ]
     ]

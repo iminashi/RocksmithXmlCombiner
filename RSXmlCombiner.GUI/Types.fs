@@ -77,9 +77,12 @@ type Msg =
 
 /// Creates a name prefix based on the given arrangement ordering.
 let createNamePrefix = function
-    | ArrangementOrdering.Alternative -> "Alt. "
-    | ArrangementOrdering.Bonus -> "Bonus "
-    | _ -> ""
+    | ArrangementOrdering.Alternative ->
+        "Alt. "
+    | ArrangementOrdering.Bonus ->
+        "Bonus "
+    | _ ->
+        ""
 
 /// Creates an instrumental arrangement from the given file.
 let createInstrumental fileName (arrType: ArrangementType option) =
@@ -89,9 +92,11 @@ let createInstrumental fileName (arrType: ArrangementType option) =
 
     let toneNames =
         if isNull song.Tones.Changes then
-            []
+            List.empty
         else
-            song.Tones.Names |> Seq.filter String.notEmpty |> Seq.toList
+            song.Tones.Names
+            |> Seq.filter String.notEmpty
+            |> Seq.toList
 
     let ordering =
         if song.MetaData.ArrangementProperties.BonusArrangement then ArrangementOrdering.Bonus
@@ -104,12 +109,18 @@ let createInstrumental fileName (arrType: ArrangementType option) =
         ToneNames = toneNames
         ToneReplacements = Map.empty }
 
-    let name = (createNamePrefix ordering) + arrangementType.ToString()
+    let name = $"{createNamePrefix ordering}{arrangementType}"
 
     { FileName = Some fileName
       ArrangementType = arrangementType
       Name = name
       Data = Some arrData }
+
+let createOther name fileName arrType =
+    { Name = name
+      FileName = Some fileName
+      ArrangementType = arrType
+      Data = None }
 
 type Track = 
   { Title : string
@@ -119,14 +130,14 @@ type Track =
     Arrangements : Arrangement list }
 
 /// Returns true if the track has an audio file set.
-let hasAudioFile track = track.AudioFile |> Option.isSome
+let hasAudioFile track = track.AudioFile.IsSome
 
 /// Reads the tone information from the given file.
 let getTones fileName =
     let tones = InstrumentalArrangement.ReadToneNames(fileName)
 
     let baseTone = tones.BaseToneName |> Option.ofObj
-    let toneNamesList = 
+    let toneNamesList =
         tones.Names
         |> Seq.filter String.notEmpty
         |> Seq.toList
@@ -135,12 +146,17 @@ let getTones fileName =
 
 let private createArrName arr =
     match arr.Data with
-    | Some data -> createNamePrefix data.Ordering + arr.ArrangementType.ToString()
-    | None -> ArrangementType.humanize arr.ArrangementType
+    | Some data ->
+        createNamePrefix data.Ordering + arr.ArrangementType.ToString()
+    | None ->
+        ArrangementType.humanize arr.ArrangementType
 
 /// Creates a template (no file name or arrangement data) from the given arrangement.
 let createTemplate arr =
-    { Name = createArrName arr; ArrangementType = arr.ArrangementType; FileName = None; Data = None }
+    { Name = createArrName arr
+      ArrangementType = arr.ArrangementType
+      FileName = None
+      Data = None }
 
 let updateSingleArrangement tracks trackIndex arrIndex newArr =
     let changeArrangement arrList =
@@ -148,7 +164,11 @@ let updateSingleArrangement tracks trackIndex arrIndex newArr =
         |> List.mapi (fun i arr -> if i = arrIndex then newArr else arr)
 
     tracks
-    |> List.mapi (fun i t -> if i = trackIndex then { t with Arrangements = changeArrangement t.Arrangements } else t)
+    |> List.mapi (fun i t ->
+        if i = trackIndex then
+            { t with Arrangements = changeArrangement t.Arrangements }
+        else
+            t)
 
 let arrangementSort (arr: Arrangement) =
     let ordering =
