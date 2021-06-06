@@ -32,6 +32,7 @@
     <Compile Include="Audio.fs" />
     <Compile Include="AudioCombiner.fs" />
     <Compile Include="ToolkitImporter.fs" />
+    <Compile Include="DLCBuilderProject.fs" />
     <Compile Include="CommonToneEditor.fs" />
     <Compile Include="TrackList.fs" />
     <Compile Include="BottomControls.fs" />

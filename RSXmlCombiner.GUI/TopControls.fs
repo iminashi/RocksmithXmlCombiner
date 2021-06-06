@@ -41,8 +41,8 @@ let view state dispatch =
                     ]
                     Button.create [
                         Button.content "Import..."
-                        Button.onClick (fun _ -> dispatch SelectToolkitTemplate)
-                        ToolTip.tip "Imports a track from a Toolkit template file."
+                        Button.onClick (fun _ -> dispatch SelectImportProject)
+                        ToolTip.tip "Imports a track from a Toolkit template or a DLC Builder project."
                      ]
                 ]
             ]

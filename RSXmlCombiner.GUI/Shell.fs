@@ -83,9 +83,11 @@ let update msg state : ProgramState * Cmd<_> =
 
         { state with Tracks = updatedTracks }, Cmd.none
 
-    | ProjectViewActiveChanged isActive -> { state with ProjectViewActive = isActive }, Cmd.none
+    | ProjectViewActiveChanged isActive ->
+        { state with ProjectViewActive = isActive }, Cmd.none
 
-    | CombineAudioProgressChanged progress -> { state with AudioCombinerProgress = Some progress }, Cmd.none
+    | CombineAudioProgressChanged progress ->
+        { state with AudioCombinerProgress = Some progress }, Cmd.none
 
     | CombineArrangementsProgressChanged progress ->
         let combProgress = 
@@ -98,14 +100,10 @@ let update msg state : ProgramState * Cmd<_> =
         let dialog = Dialogs.openMultiFileDialog "Select Arrangement File(s)" Dialogs.xmlFileFilter
         state, Cmd.OfAsync.perform dialog None AddTrack
 
-    | AddTrack arrangementFiles -> 
-        match arrangementFiles with
-        | None -> state, Cmd.none
-        | Some files -> addNewTrack state files, Cmd.none
-    
-    | ImportToolkitTemplate (Some templateFile) ->
-        let foundArrangements, title, audioFilePath = ToolkitImporter.import templateFile
+    | AddTrack (Some files) -> 
+        addNewTrack state files, Cmd.none
 
+    | ImportProjectLoaded (foundArrangements, title, audioFilePath) ->
         let audioFile =
             let wav = Path.ChangeExtension(audioFilePath, "wav")
             let ogg = Path.ChangeExtension(audioFilePath, "ogg")
@@ -116,7 +114,10 @@ let update msg state : ProgramState * Cmd<_> =
             |> Option.orElse (Option.create File.Exists oggFixed)
 
         // Try to find an instrumental arrangement to read metadata from
-        let instArrType = foundArrangements |> Map.tryFindKey (fun arrType _ -> isInstrumental arrType)
+        let instArrType =
+            foundArrangements
+            |> Map.tryFindKey (fun arrType _ -> isInstrumental arrType)
+
         match instArrType with
         | None ->
             { state with StatusMessage = "Could not find any instrumental arrangements in the template." }, Cmd.none
@@ -145,7 +146,19 @@ let update msg state : ProgramState * Cmd<_> =
 
             { newState with StatusMessage = sprintf "%i arrangements imported." foundArrangements.Count }, Cmd.none
     
-    | NewProject -> ProgramState.init, Cmd.none
+    | ImportProject (Some projectPath) ->
+        let task () = async {
+            if projectPath.EndsWith("rs2dlc", StringComparison.OrdinalIgnoreCase) then
+                return! DLCBuilderProject.import projectPath
+            else
+                return ToolkitImporter.import projectPath }
+        state, Cmd.OfAsync.either task () ImportProjectLoaded ErrorOccured
+
+    | ErrorOccured ex ->
+        { state with StatusMessage = ex.Message }, Cmd.none
+    
+    | NewProject ->
+        ProgramState.init, Cmd.none
 
     | OpenProject (Some projectFile) ->
         let result = Project.load projectFile
@@ -187,9 +200,9 @@ let update msg state : ProgramState * Cmd<_> =
         state |> Project.save fileName
         { state with OpenProjectFile = Some fileName; StatusMessage = "Project saved." }, Cmd.none
 
-    | SelectToolkitTemplate ->
-        let dialog = Dialogs.openFileDialog "Select Toolkit Template" Dialogs.toolkitTemplateFilter
-        state, Cmd.OfAsync.perform dialog None ImportToolkitTemplate
+    | SelectImportProject ->
+        let dialog = Dialogs.openFileDialog "Select Project to Import" Dialogs.projectImportFilter
+        state, Cmd.OfAsync.perform dialog None ImportProject
 
     | SelectOpenProjectFile ->
         let dialog = Dialogs.openFileDialog "Select Project File" Dialogs.projectFileFilter
@@ -224,7 +237,7 @@ let update msg state : ProgramState * Cmd<_> =
 
     | CombineAudioFiles (Some targetFile) ->
         let task() = async { return AudioCombiner.combineWithResampling state.Tracks targetFile } 
-        { state with AudioCombinerProgress = Some(0.0)
+        { state with AudioCombinerProgress = Some 0.0
                      StatusMessage = "Combining audio files..." }, Cmd.OfAsync.perform task () CombineAudioCompleted
     
     | CreatePreview (Some targetFile) ->
@@ -234,7 +247,7 @@ let update msg state : ProgramState * Cmd<_> =
                 return "Preview created."
             with e -> return $"Error: {e.Message}" }
 
-        { state with AudioCombinerProgress = Some(0.0)
+        { state with AudioCombinerProgress = Some 0.0
                      StatusMessage = "Creating preview audio..." }, Cmd.OfAsync.perform task targetFile CombineAudioCompleted
 
     | CombineAudioCompleted message ->
@@ -421,7 +434,7 @@ let update msg state : ProgramState * Cmd<_> =
 
     // User canceled the dialog
     | CombineAudioFiles None | CreatePreview None | CombineArrangements None
-    | ImportToolkitTemplate None | OpenProject None | SaveProject None -> state, Cmd.none
+    | ImportProject None | OpenProject None | SaveProject None | AddTrack None -> state, Cmd.none
 
 let private replacementToneView state trackIndex arrIndex dispatch =
     let arrangement = state.Tracks.[trackIndex].Arrangements.[arrIndex]

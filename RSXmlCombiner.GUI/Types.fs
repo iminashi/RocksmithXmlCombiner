@@ -30,14 +30,16 @@ type Msg =
     | ProjectViewActiveChanged of bool
     | CombineAudioProgressChanged of float
     | CombineArrangementsProgressChanged of int
+    | ErrorOccured of exn
 
     // Top controls
     | SelectAddTrackFiles
     | AddTrack of arrangementFiles : string[] option
     | SelectOpenProjectFile
     | OpenProject of projectFile : string option
-    | SelectToolkitTemplate
-    | ImportToolkitTemplate of templateFile : string option
+    | SelectImportProject
+    | ImportProject of projectPath : string option
+    | ImportProjectLoaded of arrangements : Map<ArrangementType, string> * string * string
     | NewProject
     | SaveProject of fileName : string option
     | SelectSaveProjectFile

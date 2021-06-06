@@ -15,7 +15,7 @@ let audioFileFiltersOpen = createFilters "Audio Files" (seq { "wav"; "ogg" })
 let audioFileFiltersSave = createFilters "Wave Files" (seq { "wav" })
 let xmlFileFilter = createFilters "Rocksmith Arrangement Files" (seq { "xml" })
 let projectFileFilter = createFilters "Project Files" (seq { "rscproj" })
-let toolkitTemplateFilter = createFilters "Toolkit Templates" (seq { "dlc.xml" })
+let projectImportFilter = createFilters "Project Import Files" (seq { "dlc.xml"; "rs2dlc" })
 
 /// Shows an open folder dialog.
 let openFolderDialog title directory = async {
