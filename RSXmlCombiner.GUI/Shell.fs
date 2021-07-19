@@ -8,6 +8,7 @@ open Avalonia.Layout
 open Avalonia.Media
 open Rocksmith2014.XML
 open RSXmlCombiner.FuncUI.ArrangementType
+open RSXmlCombiner.FuncUI.AudioCombiner
 open System
 open System.IO
 open XmlUtils
@@ -259,7 +260,15 @@ let update msg state : ProgramState * Cmd<_> =
 
     | CombineAudioFiles (Some targetFile) ->
         let task() = async {
-            return AudioCombiner.combineWithResampling state.Tracks targetFile }
+            try
+                state.Tracks
+                |> List.map (fun track ->
+                    { AudioReader = Audio.AudioReader.Create track.AudioFile.Value
+                      TrimAmount = track.TrimAmount })
+                |> combineWithResampling targetFile
+                return $"Audio files combined as {targetFile}"
+            with e ->
+                return $"Error: {e.Message}" }
 
         { state with AudioCombinerProgress = Some 0.0
                      StatusMessage = "Combining audio files..." },
@@ -268,7 +277,11 @@ let update msg state : ProgramState * Cmd<_> =
     | CreatePreview (Some targetFile) ->
         let task file = async {
             try
-                AudioCombiner.createPreview state.Tracks file
+                state.Tracks
+                |> List.map (fun track ->
+                    { AudioReader = Audio.AudioReader.Create track.AudioFile.Value
+                      SongLength = track.SongLength })
+                |> createPreview file
                 return "Preview created."
             with e ->
                 return $"Error: {e.Message}" }
@@ -278,9 +291,6 @@ let update msg state : ProgramState * Cmd<_> =
         Cmd.OfAsync.perform task targetFile CombineAudioCompleted
 
     | CombineAudioCompleted message ->
-        GC.Collect()
-        GC.WaitForPendingFinalizers()
-
         { state with StatusMessage = message; AudioCombinerProgress = None }, Cmd.none
 
     | CombineArrangements (Some targetFolder) ->

@@ -3,10 +3,11 @@
 open Elmish
 open Avalonia
 open Avalonia.Controls.ApplicationLifetimes
-open Avalonia.Input
 open Avalonia.FuncUI
-open Avalonia.FuncUI.Elmish
 open Avalonia.FuncUI.Components.Hosts
+open Avalonia.FuncUI.Elmish
+open Avalonia.Input
+open System.Diagnostics
 
 type MainWindow() as this =
     inherit HostWindow()
@@ -40,6 +41,9 @@ type MainWindow() as this =
         |> Program.withHost this
         |> Program.withSubscription progressSub
         |> Program.withSubscription hotKeysSub
+        #if DEBUG
+        |> Program.withTrace (fun msg _state -> Debug.WriteLine msg)
+        #endif
         |> Program.run
         
 type App() =
