@@ -2,15 +2,15 @@
 
 open Elmish
 open Avalonia.Controls
-open Avalonia.Layout
+open Avalonia.FuncUI
 open Avalonia.FuncUI.DSL
-open Avalonia.FuncUI.Types
+open Avalonia.Layout
 open Avalonia.Media
+open Rocksmith2014.XML
+open RSXmlCombiner.FuncUI.ArrangementType
 open System
 open System.IO
 open XmlUtils
-open Rocksmith2014.XML
-open RSXmlCombiner.FuncUI.ArrangementType
 
 let init () = ProgramState.init, Cmd.none
 
@@ -612,7 +612,7 @@ let view state dispatch =
 
                             match state.ReplacementToneEditor with
                             | Some (trackIndex, arrIndex) ->
-                                replacementToneView state trackIndex arrIndex dispatch :> IView
+                                replacementToneView state trackIndex arrIndex dispatch |> generalize
                             | None ->
                                 ()
                         ]

@@ -6,6 +6,8 @@ let progress = Progress<float>()
 
 let [<Literal>] private TargetSampleRate = 48000
 
+let private rand = Random()
+
 /// Combines the audio files of the given tracks into the target file.
 let combineWithResampling (tracks: Track list) (targetFile: string) =
     try
@@ -23,19 +25,22 @@ let combineWithResampling (tracks: Track list) (targetFile: string) =
         $"Error: {e.Message}"
 
 let private createSampleProviderWithRandomOffset take (fileName, audioLength) =
-    let randomOffset =
-        let rand = Random()
-        let startOffset =
-            if audioLength <= 50_000<ms> then rand.Next(0, int(audioLength - 15_000<ms>))
-            else rand.Next(10_000, int (audioLength - 30_000<ms>))
-        startOffset |> float |> TimeSpan.FromMilliseconds
+    let randomStartOffset =
+        let startTime, endTime =
+            if audioLength <= 50_000<ms> then
+                0, int (audioLength - 15_000<ms>)
+            else
+                10_000, int (audioLength - 30_000<ms>)
+
+        rand.Next(startTime, endTime)
+        |> float
+        |> TimeSpan.FromMilliseconds
 
     Audio.getSampleProviderWithRate TargetSampleRate fileName
-    |> Audio.offset randomOffset (TimeSpan.FromMilliseconds(float take))
+    |> Audio.offset randomStartOffset (TimeSpan.FromMilliseconds(float take))
 
 /// Creates a preview audio file from up to four randomly selected files.
 let createPreview (tracks: Track list) (targetFile: string) =
-    let rand = Random()
     let fadeBetweenSections = 400<ms>
     let numFiles = min 4 tracks.Length
     let sectionLength = LanguagePrimitives.Int64WithMeasure<ms> (int64 (28.0 / float numFiles * 1000.0))
