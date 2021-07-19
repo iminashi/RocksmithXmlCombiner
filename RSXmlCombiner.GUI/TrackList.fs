@@ -273,6 +273,6 @@ let view state dispatch =
         ScrollViewer.content (
             StackPanel.create [
                 StackPanel.children <| List.mapi (trackView state dispatch) state.Tracks
-            ] 
+            ]
         )
     ]

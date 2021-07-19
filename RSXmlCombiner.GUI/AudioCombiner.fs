@@ -10,17 +10,17 @@ let [<Literal>] private TargetSampleRate = 48000
 let combineWithResampling (tracks: Track list) (targetFile: string) =
     try
         tracks
-        |> Seq.mapi (fun i track -> 
+        |> Seq.mapi (fun i track ->
             let sampler =
                 track.AudioFile
                 |> Option.get
                 |> Audio.getSampleProviderWithRate TargetSampleRate
             if i = 0 then sampler else sampler |> Audio.trimStart track.TrimAmount)
-        |> Audio.concatenate targetFile 
+        |> Audio.concatenate targetFile
   
-        $"Audio files combined as {targetFile}" 
-    with
-    e -> $"Error: {e.Message}" 
+        $"Audio files combined as {targetFile}"
+    with e ->
+        $"Error: {e.Message}"
 
 let private createSampleProviderWithRandomOffset take (fileName, audioLength) =
     let randomOffset =

@@ -53,7 +53,7 @@ let private combineVocals (tracks : Track list) arrIndex targetFolder addTitles 
         tracks
         |> Seq.indexed
         |> Seq.iter (fun (trackIndex, track) ->
-            let next = 
+            let next =
                 track.Arrangements.[arrIndex].FileName
                 |> Option.map Vocals.Load
                 |> Option.defaultWith (fun () -> ResizeArray())
@@ -179,7 +179,7 @@ let private combineArrangement (project : ProgramState) arrIndex targetFolder =
         failwith "Unknown arrangement type."
 
 /// Combines all the arrangements in the given project.
-let combine (project : ProgramState) targetFolder  =
+let combine (project : ProgramState) targetFolder =
     let nArrangements = project.Tracks.Head.Arrangements.Length
     [ for i in 0..nArrangements - 1 -> async { combineArrangement project i targetFolder } ]
     |> Async.Parallel

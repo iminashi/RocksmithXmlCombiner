@@ -16,7 +16,7 @@ let private importOld (arrangements: XElement seq) templatePath =
         match ArrangementType.TryParse(itemNode.Element(ad + "Name").Value) with
         | true, arrType when not (isBonusArr || map.ContainsKey arrType) ->
             let arrFn = Path.Combine(templatePath, itemNode.Element(ad + "SongXml").Element(d4p1 + "File").Value)
-            
+
             map.Add(arrType, arrFn)
         | _ ->
             map)
@@ -29,7 +29,7 @@ let import (fileName: string) =
     let arrangements = xdoc.Element(ad + "Arrangements").Elements()
     let title = xdoc.Element(ad + "SongInfo").Element(ad + "SongDisplayName").Value
     let audioFile = Path.Combine(templateDirectory, xdoc.Element(ad + "OggPath").Value)
-    
+
     let arrangementMap =
         // If there is no ArrangementName tag, assume that it is an old template file
         if isNull <| arrangements.First().Element(ad + "ArrangementName") then
@@ -42,11 +42,11 @@ let import (fileName: string) =
                 let arrXmlPath = Path.Combine(templateDirectory, songXml)
                 let arrType = ArrangementType.Parse(itemNode.Element(ad + "ArrangementName").Value)
                 let isMainArr = itemNode.Element(ad + "Represent").Value = "true"
-            
+
                 // Only include primary arrangements (represent = true), any vocals and show lights
                 if isMainArr || ArrangementType.isOther arrType then
                     map.Add(arrType, arrXmlPath)
                 else
                     map)
-        
+
     arrangementMap, title, audioFile
