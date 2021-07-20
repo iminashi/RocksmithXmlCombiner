@@ -22,7 +22,7 @@ let private combineShowLights tracks arrIndex targetFolder =
         increaseProgress ()
 
 /// Inserts the given title at the beginning of the given vocals arrangement.
-let private addTitle (vocals : ResizeArray<Vocal>) (title : string) (startBeat : int<ms>) =
+let private addTitle (vocals: ResizeArray<Vocal>) (title: string) (startBeat: int<ms>) =
     let defaultDisplayTime = 3000<ms>
 
     let displayTime =
@@ -47,7 +47,7 @@ let private addTitle (vocals : ResizeArray<Vocal>) (title : string) (startBeat :
             vocals.Insert(0, Vocal(int (startBeat + (length * i)), int length, words.[i]))
 
 /// Combines the vocals arrangements if at least one track has one, or addTitles is true.
-let private combineVocals (tracks : Track list) arrIndex targetFolder addTitles =
+let private combineVocals (tracks: Track list) arrIndex targetFolder addTitles =
     if addTitles || tracks |> List.exists (fun t -> t.Arrangements.[arrIndex].FileName |> Option.isSome) then
         let combiner = VocalsCombiner()
         tracks
@@ -64,10 +64,13 @@ let private combineVocals (tracks : Track list) arrIndex targetFolder addTitles 
 
             combiner.AddNext(next, int track.SongLength, int track.TrimAmount))
 
-        combiner.Save(Path.Combine(targetFolder, sprintf "Combined_%s_RS2.xml" tracks.Head.Arrangements.[arrIndex].Name))
+        let targetFile = sprintf "Combined_%s_RS2.xml" tracks.Head.Arrangements.[arrIndex].Name
+        combiner.Save(Path.Combine(targetFolder, targetFile))
         increaseProgress ()
 
-let private replaceToneNames (song : InstrumentalArrangement) (toneReplacements : Map<string, int>) (commonTones : string array) =
+let private replaceToneNames (song: InstrumentalArrangement)
+                             (toneReplacements: Map<string, int>)
+                             (commonTones: string array) =
     let tones = song.Tones
 
     // Replace the tone names of the defined tones and the tone changes
@@ -79,7 +82,7 @@ let private replaceToneNames (song : InstrumentalArrangement) (toneReplacements 
         for i = 0 to tones.Names.Length - 1 do
             if tones.Names.[i] = kv.Key then tones.Names.[i] <- newToneName
 
-        if not (isNull tones.Changes) then
+        if not <| isNull tones.Changes then
             for tone in tones.Changes do
                 if tone.Name = kv.Key then
                     tone.Name <- newToneName
@@ -98,7 +101,7 @@ let private replaceToneNames (song : InstrumentalArrangement) (toneReplacements 
             tones.Names.[i] <- null
 
 /// Updates the metadata of the given instrumental arrangement file to match the given arrangement.
-let private updateArrangementMetadata arr (combined : InstrumentalArrangement) =
+let private updateArrangementMetadata arr (combined: InstrumentalArrangement) =
     combined.MetaData.Arrangement <- arr.ArrangementType.ToString()
 
     let arrProps = combined.MetaData.ArrangementProperties
@@ -127,7 +130,7 @@ let private updateArrangementMetadata arr (combined : InstrumentalArrangement) =
         ()
 
 /// Combines the instrumental arrangements at the given index if all tracks have one set.
-let private combineInstrumental (project : ProgramState) arrIndex targetFolder =
+let private combineInstrumental (project: ProgramState) arrIndex targetFolder =
     let tracks = project.Tracks
     let commonTones =
         project.CommonTones
@@ -150,7 +153,12 @@ let private combineInstrumental (project : ProgramState) arrIndex targetFolder =
             if not arrData.ToneNames.IsEmpty then
                 replaceToneNames next arrData.ToneReplacements commonTones
 
-            combiner.AddNext(next, int tracks.[i].SongLength, int tracks.[i].TrimAmount, project.OnePhrasePerTrack, (i = tracks.Length - 1))
+            let isLast = (i = tracks.Length - 1)
+            combiner.AddNext(next,
+                             int tracks.[i].SongLength,
+                             int tracks.[i].TrimAmount,
+                             project.OnePhrasePerTrack,
+                             isLast)
             increaseProgress ()
 
         if String.notEmpty project.CombinationTitle then
@@ -162,12 +170,13 @@ let private combineInstrumental (project : ProgramState) arrIndex targetFolder =
             |> String.filter (fun c -> c <> '.')
             |> String.map (fun c -> if c = ' ' then '_' else c)
 
-        // The metadata might be wrong if, for example, a lead file was used as the first file of the combined rhythm arrangement
+        // The metadata might be wrong if, for example,
+        // a lead file was used as the first file of the combined rhythm arrangement
         updateArrangementMetadata tracks.Head.Arrangements.[arrIndex] combiner.CombinedArrangement
 
         combiner.Save(Path.Combine(targetFolder, sprintf "Combined_%s_RS2.xml" name), project.CoercePhrases)
 
-let private combineArrangement (project : ProgramState) arrIndex targetFolder =
+let private combineArrangement (project: ProgramState) arrIndex targetFolder =
     match project.Tracks.Head.Arrangements.[arrIndex].ArrangementType with
     | Instrumental _ ->
         combineInstrumental project arrIndex targetFolder
@@ -179,7 +188,7 @@ let private combineArrangement (project : ProgramState) arrIndex targetFolder =
         failwith "Unknown arrangement type."
 
 /// Combines all the arrangements in the given project.
-let combine (project : ProgramState) targetFolder =
+let combine (project: ProgramState) targetFolder =
     let nArrangements = project.Tracks.Head.Arrangements.Length
     [ for i in 0..nArrangements - 1 -> async { combineArrangement project i targetFolder } ]
     |> Async.Parallel

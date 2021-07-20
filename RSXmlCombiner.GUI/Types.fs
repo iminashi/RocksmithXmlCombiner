@@ -2,6 +2,7 @@
 module RSXmlCombiner.FuncUI.Types
 
 open Rocksmith2014.XML
+open System
 
 [<Measure>] type ms
 
@@ -67,7 +68,7 @@ type Msg =
     | ArrangementBaseToneChanged of trackIndex : int * arrIndex : int * toneIndex : int
     | RemoveArrangementFile of trackIndex : int * arrIndex : int
     | ShowReplacementToneEditor of trackIndex : int * arrIndex : int
-    | TrimAmountChanged of trackIndex : int * trimAmunt : double
+    | TrimAmountChanged of trackIndex : int * trimAmount : double
     | RemoveTemplate of name : string
 
     // Common tone editor
@@ -82,13 +83,14 @@ let createNamePrefix = function
     | ArrangementOrdering.Bonus ->
         "Bonus "
     | _ ->
-        ""
+        String.Empty
 
 /// Creates an instrumental arrangement from the given file.
 let createInstrumental fileName (arrType: ArrangementType option) =
     let song = InstrumentalArrangement.Load(fileName)
     let arrangementType =
-        arrType |> Option.defaultWith (fun () -> ArrangementType.fromArrangement song)
+        arrType
+        |> Option.defaultWith (fun () -> ArrangementType.fromArrangement song)
 
     let toneNames =
         if isNull song.Tones.Changes then

@@ -17,9 +17,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Page Include="Styles.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
+    <AvaloniaResource Include="**\*.xaml" />
     <Compile Include="Extensions.fs" />
     <Compile Include="Media.fs" />
     <Compile Include="ArrangementType.fs" />
@@ -40,7 +38,6 @@
     <Compile Include="Help.fs" />
     <Compile Include="Shell.fs" />
     <Compile Include="Program.fs" />
-    <AvaloniaResource Include="**\*.xaml" />
   </ItemGroup>
 
   <ItemGroup>

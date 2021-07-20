@@ -110,12 +110,14 @@ let private arrangementView state dispatch trackIndex arrIndex (arr: Arrangement
 
                     // Optional Tone Controls
                     match arr.Data with
-                    | None -> () // Do nothing
+                    | None ->
+                        // Do nothing
+                        ()
                     | Some instArr ->
                         let baseToneNames = ProgramState.getReplacementToneNames arr.Name state.CommonTones
 
-                        // The selection on the combo box is lost if the tone name at that index is edited in the common tone editor
-                        // As a workaround, yield the combo box only when the project view is active
+                        // The selection on the combobox is lost if the tone name at that index is edited in the common tone editor
+                        // As a workaround, yield the combobox only when the project view is active
                         if instArr.ToneNames.Length = 0 && trackIndex <> 0 && state.ProjectViewActive then
                             // Base Tone Combo Box
                             yield ComboBox.create [
@@ -140,7 +142,8 @@ let private arrangementView state dispatch trackIndex arrIndex (arr: Arrangement
                                 Button.borderThickness 0.0
                                 Button.background (
                                     if instArr.ToneReplacements.IsEmpty 
-                                       || instArr.ToneReplacements |> Map.exists (fun _ ti -> ti = -1 || ti >= baseToneNames.Length) then
+                                       || instArr.ToneReplacements |> Map.exists (fun _ ti -> ti = -1 || ti >= baseToneNames.Length)
+                                    then
                                         Brushes.DarkRed
                                     else
                                         Brushes.DarkGreen

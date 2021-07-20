@@ -6,7 +6,7 @@ open Avalonia.Layout
 open Avalonia.FuncUI.Types
 open System
 
-let private tonesTemplate (state : ProgramState) arrName (tones : string[]) dispatch =
+let private tonesTemplate (state : ProgramState) arrName (tones : string array) dispatch =
     let labels = [| "Base"; "Tone A"; "Tone B"; "Tone C"; "Tone D" |]
 
     StackPanel.create [

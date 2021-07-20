@@ -237,13 +237,13 @@ let update msg state : ProgramState * Cmd<_> =
         let dialog = Dialogs.saveFileDialog "Save Project As" Dialogs.projectFileFilter initialFile
         state, Cmd.OfAsync.perform dialog initialDir SaveProject
 
-    | AddTemplate (arrtype, ordering) ->
+    | AddTemplate (arrType, ordering) ->
         let (Templates templates) = state.Templates
         let tempArr =
             let data =
                 ordering
                 |> Option.map (fun o -> { Ordering = o; BaseToneIndex = -1; ToneNames = []; ToneReplacements = Map.empty })
-            { ArrangementType = arrtype
+            { ArrangementType = arrType
               Name = String.Empty
               FileName = None
               Data = data }
@@ -304,7 +304,7 @@ let update msg state : ProgramState * Cmd<_> =
                 // For instrumental arrangement, the progress is increased by one for each file
                 // Combining vocals and show lights is so fast that individual files are not reported
                 match arr.ArrangementType with
-                | ArrangementType.Instrumental _ ->
+                | Instrumental _ ->
                     if state.Tracks |> List.forall hasFile then next, count + trackCount else next, count
                 | ArrangementType.ShowLights ->
                     if state.Tracks |> List.forall hasFile then next, count + 1 else next, count
@@ -507,6 +507,7 @@ let private replacementToneView state trackIndex arrIndex dispatch =
                         Grid.columnDefinitions "150, 150"
                         Grid.rowDefinitions (Seq.replicate (data.ToneNames.Length + 3) "*" |> String.concat ",")
                         Grid.children [
+                            // Track name - Arrangement name
                             yield TextBlock.create [
                                 Grid.columnSpan 2
                                 TextBlock.horizontalAlignment HorizontalAlignment.Center
@@ -514,24 +515,28 @@ let private replacementToneView state trackIndex arrIndex dispatch =
                                 TextBlock.margin (0.0, 0.0, 0.0, 8.0)
                                 TextBlock.text (sprintf "%s - %s" state.Tracks.[trackIndex].Title arrangement.Name)
                             ]
+                            // "Tone Name"
                             yield TextBlock.create [
                                 Grid.row 1
                                 TextBlock.text "Tone Name"
                                 TextBlock.fontSize 16.0
                             ]
+                            // "Replace With"
                             yield TextBlock.create [
                                 Grid.row 1
                                 Grid.column 1
                                 TextBlock.text "Replace With"
                                 TextBlock.fontSize 16.0
                             ]
-                            for (i, tone) in data.ToneNames |> List.indexed do
+                            for i, tone in data.ToneNames |> List.indexed do
+                                // Original tone name
                                 yield TextBlock.create [
                                         Grid.row (i + 2)
                                         TextBlock.margin 2.0
                                         TextBlock.text tone
                                         TextBlock.verticalAlignment VerticalAlignment.Center
                                       ]
+                                // Replacement selector
                                 yield ComboBox.create [
                                         Grid.row (i + 2)
                                         Grid.column 1
@@ -546,6 +551,7 @@ let private replacementToneView state trackIndex arrIndex dispatch =
                                             SetReplacementTone(trackIndex, arrIndex, tone, item)
                                             |> dispatch)
                                       ]
+                            // OK Button
                             yield Button.create [
                                 Grid.row (data.ToneNames.Length + 2)
                                 Grid.columnSpan 2

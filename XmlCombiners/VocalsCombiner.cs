@@ -40,11 +40,7 @@ namespace XmlCombiners
 
         private void AddFirst(List<Vocal>? next, int songLength)
         {
-            if (next is List<Vocal>)
-                CombinedVocals = next;
-            else
-                CombinedVocals = new List<Vocal>();
-
+            CombinedVocals = next ?? new List<Vocal>();
             SongLength = songLength;
         }
 

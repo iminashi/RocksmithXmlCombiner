@@ -39,15 +39,21 @@ module ProgramState =
     let private updateTemplates (arrangements: Arrangement list) (Templates currentTemplates) =
         let newTemplates =
             arrangements
-            |> List.filter (fun arr -> currentTemplates |> List.exists (fun temp -> arr.Name = temp.Name) |> not)
+            |> List.filter (fun arr ->
+                currentTemplates
+                |> List.exists (fun temp -> arr.Name = temp.Name)
+                |> not)
             |> List.map createTemplate
         Templates (currentTemplates @ newTemplates)
 
-    let addMissingArrangements (Templates templates) (arrs: Arrangement list) =
+    let addMissingArrangements (Templates templates) (arrangements: Arrangement list) =
         let missing = 
             templates
-            |> List.filter (fun temp -> arrs |> List.exists (fun arr -> arr.Name = temp.Name) |> not)
-        arrs @ missing
+            |> List.filter (fun temp ->
+                arrangements
+                |> List.exists (fun arr -> arr.Name = temp.Name)
+                |> not)
+        arrangements @ missing
 
     let private updateTrack templates track =
         let newArrangements = 
@@ -58,7 +64,7 @@ module ProgramState =
 
     let updateTracks templates = List.map (updateTrack templates)
 
-    let private updateCommonTones (Templates templates) commonTones =
+    let private updateCommonTones (Templates templates) (commonTones: CommonTones): CommonTones =
         let newCommonTones = 
             templates
             |> Seq.filter (fun t -> t.ArrangementType |> ArrangementType.isInstrumental)
@@ -82,11 +88,14 @@ module ProgramState =
         
         { project with Tracks = tracks @ [ newTrack ]; Templates = templates; CommonTones = commonTones }
 
-    let getReplacementToneNames arrName commonTones =
+    let getReplacementToneNames arrName (commonTones: CommonTones) =
         match Map.tryFind arrName commonTones with
         | Some names ->
             match names |> Array.tryFindIndex String.IsNullOrEmpty with
             // Exclude the first one, which is the base tone for the combined arrangement
-            | Some firstEmptyIndex -> names.[1..(firstEmptyIndex - 1)]
-            | None -> names.[1..]
-        | None -> [||]
+            | Some firstEmptyIndex ->
+                names.[1..(firstEmptyIndex - 1)]
+            | None ->
+                names.[1..]
+        | None ->
+            Array.empty
