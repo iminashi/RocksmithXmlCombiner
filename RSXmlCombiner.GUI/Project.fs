@@ -22,13 +22,13 @@ let private fromProgramState (state: ProgramState) =
         AddTrackNamesToLyrics = state.AddTrackNamesToLyrics)
 
 /// Saves a project with the given filename.
-let save fileName (state: ProgramState) =
+let save fileName (state: ProgramState) = async {
     let options = JsonSerializerOptions(WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase)
     options.Converters.Add(JsonFSharpConverter())
 
     let project = fromProgramState state
-    let json = JsonSerializer.Serialize(project, options)
-    File.WriteAllText(fileName, json)
+    use file = File.Create fileName
+    do! JsonSerializer.SerializeAsync(file, project, options) |> Async.AwaitTask }
 
 /// Loads a project from a file.
 let load fileName =

@@ -43,6 +43,7 @@ type Msg =
     | ImportProjectLoaded of arrangements : Map<ArrangementType, string> * string * string
     | NewProject
     | SaveProject of fileName : string option
+    | ProjectSaved of fileName : string
     | SelectSaveProjectFile
     | AddTemplate of arrType : ArrangementType * ordering : ArrangementOrdering option
 

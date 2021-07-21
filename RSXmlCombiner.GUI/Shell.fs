@@ -76,14 +76,18 @@ let private getArr trackIndex arrIndex state = state.Tracks.[trackIndex].Arrange
 
 let update msg state : ProgramState * Cmd<_> =
     match msg with
-    | ToneReplacementClosed -> { state with ReplacementToneEditor = None }, Cmd.none
+    | ToneReplacementClosed ->
+        { state with ReplacementToneEditor = None }, Cmd.none
 
     | SetReplacementTone (trackIndex, arrIndex, toneName, replacementIndex) ->
-        let arr = state.Tracks.[trackIndex].Arrangements.[arrIndex]
-        let data = arr.Data |> Option.get
-        let updatedReplacements = data.ToneReplacements |> Map.add toneName replacementIndex
-        let updatedData = { data with ToneReplacements = updatedReplacements }
-        let updatedArr = { arr with Data = Some updatedData }
+        let arr = getArr trackIndex arrIndex state
+        let data =
+            arr.Data
+            |> Option.map (fun data ->
+                let updatedReplacements = data.ToneReplacements |> Map.add toneName replacementIndex
+                { data with ToneReplacements = updatedReplacements })
+        
+        let updatedArr = { arr with Data = data }
         let updatedTracks = updateSingleArrangement state.Tracks trackIndex arrIndex updatedArr
 
         { state with Tracks = updatedTracks }, Cmd.none
@@ -95,11 +99,11 @@ let update msg state : ProgramState * Cmd<_> =
         { state with AudioCombinerProgress = Some progress }, Cmd.none
 
     | CombineArrangementsProgressChanged progress ->
-        let combProgress =
+        let combineProgress =
             state.ArrangementCombinerProgress
             |> Option.map (fun (curr, max) -> (curr + progress, max))
 
-        { state with ArrangementCombinerProgress = combProgress }, Cmd.none
+        { state with ArrangementCombinerProgress = combineProgress }, Cmd.none
 
     | SelectAddTrackFiles ->
         let dialog = Dialogs.openMultiFileDialog "Select Arrangement File(s)" Dialogs.xmlFileFilter
@@ -213,8 +217,15 @@ let update msg state : ProgramState * Cmd<_> =
             Project.toProgramState templates projectFile statusMessage project, Cmd.none
 
     | SaveProject (Some fileName) ->
-        state |> Project.save fileName
-        { state with OpenProjectFile = Some fileName; StatusMessage = "Project saved." }, Cmd.none
+        let task () = async {
+            do! Project.save fileName state
+            return fileName }
+
+        state, Cmd.OfAsync.either task () ProjectSaved ErrorOccured
+
+    | ProjectSaved fileName ->
+        { state with OpenProjectFile = Some fileName
+                     StatusMessage = "Project saved." }, Cmd.none
 
     | SelectImportProject ->
         let dialog = Dialogs.openFileDialog "Select Project to Import" Dialogs.projectImportFilter
