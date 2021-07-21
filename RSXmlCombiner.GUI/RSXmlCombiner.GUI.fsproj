@@ -19,6 +19,7 @@
   <ItemGroup>
     <AvaloniaResource Include="**\*.xaml" />
     <Compile Include="Extensions.fs" />
+    <Compile Include="XmlUtils.fs" />
     <Compile Include="Media.fs" />
     <Compile Include="ArrangementType.fs" />
     <Compile Include="Types.fs" />
@@ -52,17 +53,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Remove=".template.config\**" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\XmlCombiners\XmlCombiners.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="XmlUtils">
-      <HintPath>..\lib\XmlUtils.dll</HintPath>
-    </Reference>
   </ItemGroup>
 
   <ItemGroup>

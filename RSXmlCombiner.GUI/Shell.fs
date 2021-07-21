@@ -11,7 +11,6 @@ open RSXmlCombiner.FuncUI.ArrangementType
 open RSXmlCombiner.FuncUI.AudioCombiner
 open System
 open System.IO
-open XmlUtils
 
 let init () = ProgramState.init, Cmd.none
 
@@ -31,7 +30,7 @@ let private createTrack instArrFile (title: string option) (audioFile: string op
 let private addNewTrack state arrangementFileNames =
     let instArrFile =
         arrangementFileNames
-        |> Array.tryFind (fun f -> XmlHelper.ValidateRootElement(f, "song"))
+        |> Array.tryFind (XmlUtils.validateRootName "song")
 
     match instArrFile with
     | None ->
@@ -41,7 +40,7 @@ let private addNewTrack state arrangementFileNames =
         let canInclude arrType = List.exists (fun a -> a.ArrangementType = arrType) >> not
 
         let arrangementFolder (state: Arrangement list) fileName =
-            match XmlHelper.GetRootElementName fileName with
+            match XmlUtils.getRootElementName fileName with
             | "song" ->
                 let arr = createInstrumental fileName None
                 if state |> List.exists (fun a -> a.Name = arr.Name) then
@@ -358,7 +357,8 @@ let update msg state : ProgramState * Cmd<_> =
 
     | ChangeAudioFileResult (trackIndex, file) ->
         match file with
-        | None -> state, Cmd.none
+        | None ->
+            state, Cmd.none
         | Some fileName ->
             let oldSongLength = state.Tracks.[trackIndex].SongLength
             let updatedTracks =
@@ -381,9 +381,10 @@ let update msg state : ProgramState * Cmd<_> =
 
     | ChangeArrangementFile (trackIndex, arrIndex, file) ->
         match file with
-        | None -> state, Cmd.none
+        | None ->
+            state, Cmd.none
         | Some fileName ->
-            let rootName = XmlHelper.GetRootElementName(fileName)
+            let rootName = XmlUtils.getRootElementName fileName
             let arrangement = state |> getArr trackIndex arrIndex
 
             match rootName, arrangement.ArrangementType with
