@@ -18,4 +18,11 @@ module String =
 [<RequireQualifiedAccess>]
 module Array =
     /// Returns a new array with the element at the given index changed to the new one.
-    let updateAt index newElem = Array.mapi (fun i old -> if i = index then newElem else old)
+    let updateAt index newElem =
+        Array.mapi (fun i old -> if i = index then newElem else old)
+
+[<RequireQualifiedAccess>]
+module List =
+    /// Returns a new list with the map function applied to the item at the given index.
+    let mapAt index map list =
+        List.mapi (fun i x -> if i = index then map x else x) list

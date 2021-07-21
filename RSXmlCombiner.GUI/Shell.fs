@@ -61,14 +61,16 @@ let private addNewTrack state arrangementFileNames =
         |> createTrack instArrFile None None
         |> ProgramState.addTrack state
 
-let private changeAudioFile track newFile =
+let private changeAudioFile newFile track =
     let length = Audio.getLength newFile
     { track with AudioFile = Some newFile; SongLength = length }
 
 let private getInitialDir (fileName: string option) state trackIndex =
     fileName
-    // If no file is set, use the directory of the first arrangement that has a file
-    |> Option.orElse (state.Tracks.[trackIndex].Arrangements |> List.tryPick (fun a -> a.FileName))
+    |> Option.orElseWith (fun () ->
+        // If no file is set, use the directory of the first arrangement that has a file
+        state.Tracks.[trackIndex].Arrangements
+        |> List.tryPick (fun a -> a.FileName))
     |> Option.map Path.GetDirectoryName
 
 let private getArr trackIndex arrIndex state = state.Tracks.[trackIndex].Arrangements.[arrIndex]
@@ -154,7 +156,8 @@ let update msg state : ProgramState * Cmd<_> =
                 |> createTrack instArrFile (Some title) audioFile
                 |> ProgramState.addTrack state
 
-            { newState with StatusMessage = sprintf "%i arrangements imported." foundArrangements.Count }, Cmd.none
+            let message = sprintf "%i arrangements imported." foundArrangements.Count
+            { newState with StatusMessage = message }, Cmd.none
     
     | ImportProject (Some projectPath) ->
         let task (path: string) = async {
@@ -328,7 +331,8 @@ let update msg state : ProgramState * Cmd<_> =
         Cmd.OfAsync.perform task targetFolder CombineArrangementsCompleted
 
     | CombineArrangementsCompleted _ ->
-        { state with StatusMessage = "Arrangements combined."; ArrangementCombinerProgress = None }, Cmd.none
+        { state with StatusMessage = "Arrangements combined."
+                     ArrangementCombinerProgress = None }, Cmd.none
 
     | SelectCombinationTargetFolder ->
         let initialDir = state.OpenProjectFile |> Option.map Path.GetDirectoryName
@@ -363,7 +367,7 @@ let update msg state : ProgramState * Cmd<_> =
             let oldSongLength = state.Tracks.[trackIndex].SongLength
             let updatedTracks =
                 state.Tracks
-                |> List.mapi (fun i t -> if i = trackIndex then changeAudioFile t fileName else t)
+                |> List.mapAt trackIndex (changeAudioFile fileName)
             let newSongLength = updatedTracks.[trackIndex].SongLength
 
             let message =
@@ -431,22 +435,25 @@ let update msg state : ProgramState * Cmd<_> =
         let trim = int (Math.Round(trimAmount * 1000.0)) * 1<ms>
         let newTracks =
             state.Tracks
-            |> List.mapi (fun i t ->
-                if i = trackIndex
-                then { t with TrimAmount = trim }
-                else t)
+            |> List.mapAt trackIndex (fun track -> { track with TrimAmount = trim })
+
         { state with Tracks = newTracks }, Cmd.none
 
     | RemoveTemplate name ->
         let (Templates templates) = state.Templates
-        let updatedTemplates = templates |> List.filter (fun t -> t.Name <> name) |> Templates
+        let updatedTemplates =
+            templates
+            |> List.filter (fun t -> t.Name <> name)
+            |> Templates
 
         // Remove the arrangement from all the tracks
         let updatedTracks =
             state.Tracks
-            |> List.map (fun t ->
-                let arrs = t.Arrangements |> List.filter (fun a -> a.Name <> name)
-                { t with Arrangements = arrs })
+            |> List.map (fun track ->
+                let arrangements =
+                    track.Arrangements
+                    |> List.filter (fun arr -> arr.Name <> name)
+                { track with Arrangements = arrangements })
 
         let updatedCommonTones = state.CommonTones |> Map.remove name
         let updatedSelectedTones = state.SelectedFileTones |> Map.remove name
@@ -498,7 +505,8 @@ let update msg state : ProgramState * Cmd<_> =
 
     // User canceled the dialog
     | CombineAudioFiles None | CreatePreview None | CombineArrangements None
-    | ImportProject None | OpenProject None | SaveProject None | AddTrack None -> state, Cmd.none
+    | ImportProject None | OpenProject None | SaveProject None | AddTrack None ->
+        state, Cmd.none
 
 let private replacementToneView state trackIndex arrIndex dispatch =
     let arrangement = state.Tracks.[trackIndex].Arrangements.[arrIndex]
