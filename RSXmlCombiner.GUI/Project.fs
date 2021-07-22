@@ -4,6 +4,7 @@ open System
 open System.IO
 open System.Text.Json
 open System.Text.Json.Serialization
+open Rocksmith2014.XML
 
 type Dto() =
    member val Tracks : Track list = List.empty with get, set
@@ -31,15 +32,12 @@ let save fileName (state: ProgramState) = async {
     do! JsonSerializer.SerializeAsync(file, project, options) |> Async.AwaitTask }
 
 /// Loads a project from a file.
-let load fileName =
+let load fileName = async {
     let options = JsonSerializerOptions(PropertyNamingPolicy = JsonNamingPolicy.CamelCase)
     options.Converters.Add(JsonFSharpConverter())
 
-    let json = File.ReadAllText(fileName)
-    try
-        JsonSerializer.Deserialize<Dto>(json, options) |> Ok
-    with
-    | :? JsonException as e -> Error($"Opening project failed: {e.Message}")
+    use file = File.Open(fileName, FileMode.Open)
+    return! JsonSerializer.DeserializeAsync<Dto>(file, options).AsTask() |> Async.AwaitTask }
 
 /// Converts a project DTO into a program state record.
 let toProgramState templates fileName statusMessage (dto: Dto) =
@@ -57,3 +55,62 @@ let toProgramState templates fileName statusMessage (dto: Dto) =
       ArrangementCombinerProgress = None
       OpenProjectFile = Some fileName
       SelectedFileTones = Map.empty }
+
+/// Updates the arrangements in the project with tone names read from the XML files.
+let updateToneNames (project: Dto) =
+    let tracks =
+        project.Tracks
+        |> List.map (fun track ->
+            let arrangements =
+                track.Arrangements
+                |> List.map (fun arr ->
+                    match arr.FileName, arr.Data with
+                    | Some fn, Some data when File.Exists fn ->
+                        let toneInfo = InstrumentalArrangement.ReadToneNames fn
+                        let newData =
+                            let toneNames =
+                                if isNull toneInfo.Changes then
+                                    List.empty
+                                else
+                                    toneInfo.Names
+                                    |> Seq.filter String.notEmpty
+                                    |> Seq.toList
+
+                            let toneReplacements =
+                                (data.ToneReplacements, toneNames)
+                                ||> List.fold (fun map replacement ->
+                                    if map.ContainsKey replacement then
+                                        map
+                                    else
+                                        map.Add(replacement, -1))
+
+                            { data with ToneNames = toneNames; ToneReplacements = toneReplacements }
+
+                        { arr with Data = Some newData }
+                    | _ ->
+                        arr)
+            { track with Arrangements = arrangements })
+
+    project.Tracks <- tracks
+
+/// Returns the names of audio files and arrangement files that do not exist anymore.
+let getMissingFiles (project: Dto) =
+    (([], []), project.Tracks)
+    ||> List.fold (fun state track ->
+        let missingAudioFiles =
+            match track.AudioFile with
+            | Some file when not <| File.Exists file ->
+                file::(fst state)
+            | _ ->
+                fst state
+
+        let missingArrangementFiles =
+            ([], track.Arrangements)
+            ||> List.fold (fun missing arr -> 
+                match arr.FileName with
+                | Some file when not <| File.Exists file ->
+                    file::missing
+                | _ ->
+                    missing)
+
+        missingAudioFiles, (snd state) @ missingArrangementFiles)

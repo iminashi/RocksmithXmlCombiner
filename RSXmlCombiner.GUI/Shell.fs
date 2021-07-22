@@ -134,7 +134,7 @@ let update msg state : ProgramState * Cmd<_> =
         | Some instArrType ->
             let instArrFile = foundArrangements.[instArrType]
             
-            let foldArrangements (state : Arrangement list) arrType fileName =
+            let foldArrangements (state: Arrangement list) arrType fileName =
                 let arrangement =
                     match arrType with
                     | Instrumental _ ->
@@ -174,49 +174,31 @@ let update msg state : ProgramState * Cmd<_> =
     | NewProject ->
         ProgramState.init, Cmd.none
 
-    | OpenProject (Some projectFile) ->
-        match Project.load projectFile with
-        | Error message ->
-            { state with StatusMessage = message }, Cmd.none
-        | Ok project ->
-            // TODO: Check if the tone names in the files have been changed
+    | OpenProject (Some projectPath) ->
+        let task () = async {
+            return! Project.load projectPath }
 
-            // Create lists of missing audio and arrangement files
-            let missingAudioFiles, missingArrangementFiles =
-                (([], []), project.Tracks)
-                ||> List.fold (fun state track ->
-                    let missingAudioFiles =
-                        match track.AudioFile with
-                        | Some file when not <| File.Exists file ->
-                            file::(fst state)
-                        | _ ->
-                            fst state
+        state, Cmd.OfAsync.either task () (fun p -> ProjectOpened(p, projectPath)) ErrorOccured
+        
+    | ProjectOpened (project, projectPath) ->
+        // Make sure that the tone names are up-to-date
+        Project.updateToneNames project
 
-                    let missingArrangementFiles =
-                        ([], track.Arrangements)
-                        ||> List.fold (fun missing arr -> 
-                            match arr.FileName with
-                            | Some file when not <| File.Exists file ->
-                                file::missing
-                            | _ ->
-                                missing)
+        // Check if the files referenced in the project still exist
+        let statusMessage =
+            match Project.getMissingFiles project with
+            | [], [] -> "Project loaded."
+            | _, _ -> "WARNING: Some of the files referenced in the project could not be found!"
 
-                    missingAudioFiles, (snd state) @ missingArrangementFiles)
+        // Generate the arrangement templates from the first track
+        let templates = 
+            match project.Tracks with
+            | head::_ ->
+                head.Arrangements |> (List.map createTemplate >> Templates)
+            | [] ->
+                Templates []
 
-            let statusMessage =
-                match missingAudioFiles, missingArrangementFiles with
-                | [], [] -> "Project loaded."
-                | _, _ -> "WARNING: Some of the files referenced in the project could not be found!"
-
-            // Generate the arrangement templates from the first track
-            let templates = 
-                match project.Tracks with
-                | head::_ ->
-                    head.Arrangements |> (List.map createTemplate >> Templates)
-                | [] ->
-                    Templates []
-
-            Project.toProgramState templates projectFile statusMessage project, Cmd.none
+        Project.toProgramState templates projectPath statusMessage project, Cmd.none
 
     | SaveProject (Some fileName) ->
         let task () = async {
