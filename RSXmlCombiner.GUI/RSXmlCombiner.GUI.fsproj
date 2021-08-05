@@ -7,6 +7,7 @@
     <Authors>iminashi</Authors>
     <Company>iminashi</Company>
     <Product>Rocksmith 2014 XML Combiner</Product>
+    <AssemblyTitle>Rocksmith 2014 XML Combiner</AssemblyTitle>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <RuntimeIdentifiers>win-x64;osx-x64</RuntimeIdentifiers>
   </PropertyGroup>
