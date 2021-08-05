@@ -10,6 +10,8 @@
     <AssemblyTitle>Rocksmith 2014 XML Combiner</AssemblyTitle>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <RuntimeIdentifiers>win-x64;osx-x64</RuntimeIdentifiers>
+    <WarnOn>1182;3390;$(WarnOn)</WarnOn>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
