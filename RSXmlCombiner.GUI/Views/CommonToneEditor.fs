@@ -40,6 +40,7 @@ let private tonesTemplate (state : ProgramState) arrName (tones : string array) 
                         ]
                 ]
             ]
+
             let toneList =
                 state.Tracks
                 |> Seq.choose (fun t ->

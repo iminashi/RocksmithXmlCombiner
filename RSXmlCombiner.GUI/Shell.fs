@@ -16,6 +16,7 @@ let init () = ProgramState.init, Cmd.none
 
 let private createTrack instArrFile (title: string option) (audioFile: string option) arrangements =
     let song = InstrumentalArrangement.Load(instArrFile)
+
     let songLength =
         audioFile
         |> Option.map Audio.getLength
@@ -46,11 +47,11 @@ let private addNewTrack state arrangementFileNames =
                 if state |> List.exists (fun a -> a.Name = arr.Name) then
                     state
                 else
-                    arr::state
+                    arr :: state
             | "vocals" when state |> canInclude ArrangementType.Vocals ->
-                (createOther "Vocals" fileName ArrangementType.Vocals)::state
+                (createOther "Vocals" fileName ArrangementType.Vocals) :: state
             | "showlights" when state |> canInclude ArrangementType.ShowLights ->
-                (createOther "Show Lights" fileName ArrangementType.ShowLights)::state
+                (createOther "Show Lights" fileName ArrangementType.ShowLights) :: state
             | _ ->
                 state
 
@@ -62,8 +63,9 @@ let private addNewTrack state arrangementFileNames =
         |> ProgramState.addTrack state
 
 let private changeAudioFile newFile track =
-    let length = Audio.getLength newFile
-    { track with AudioFile = Some newFile; SongLength = length }
+    { track with
+        AudioFile = Some newFile
+        SongLength = Audio.getLength newFile }
 
 let private getInitialDir (fileName: string option) state trackIndex =
     fileName
@@ -118,6 +120,7 @@ let update msg state : ProgramState * Cmd<_> =
             let wav = Path.ChangeExtension(audioFilePath, "wav")
             let ogg = Path.ChangeExtension(audioFilePath, "ogg")
             let oggFixed = audioFilePath.Substring(0, audioFilePath.Length - 4) + "_fixed.ogg"
+
             Option.create File.Exists wav
             |> Option.orElse (Option.create File.Exists ogg)
             // Try to find the _fixed.ogg from an unpacked PSARC file
@@ -146,7 +149,7 @@ let update msg state : ProgramState * Cmd<_> =
                           Name = humanize arrType
                           Data = None }
 
-                arrangement::state
+                arrangement :: state
 
             let newState =
                 foundArrangements
@@ -160,11 +163,13 @@ let update msg state : ProgramState * Cmd<_> =
             { newState with StatusMessage = message }, Cmd.none
     
     | ImportProject (Some projectPath) ->
-        let task (path: string) = async {
-            if path.EndsWith("rs2dlc", StringComparison.OrdinalIgnoreCase) then
-                return! DLCBuilderProject.import path
-            else
-                return ToolkitImporter.import path }
+        let task (path: string) =
+            async {
+                if path.EndsWith("rs2dlc", StringComparison.OrdinalIgnoreCase) then
+                    return! DLCBuilderProject.import path
+                else
+                    return ToolkitImporter.import path
+            }
 
         state, Cmd.OfAsync.either task projectPath ImportProjectLoaded ErrorOccured
 
@@ -175,10 +180,7 @@ let update msg state : ProgramState * Cmd<_> =
         ProgramState.init, Cmd.none
 
     | OpenProject (Some projectPath) ->
-        let task () = async {
-            return! Project.load projectPath }
-
-        state, Cmd.OfAsync.either task () (fun p -> ProjectOpened(p, projectPath)) ErrorOccured
+        state, Cmd.OfAsync.either Project.load projectPath (fun p -> ProjectOpened(p, projectPath)) ErrorOccured
         
     | ProjectOpened (project, projectPath) ->
         // Make sure that the tone names are up-to-date
@@ -193,7 +195,7 @@ let update msg state : ProgramState * Cmd<_> =
         // Generate the arrangement templates from the first track
         let templates = 
             match project.Tracks with
-            | head::_ ->
+            | head :: _ ->
                 head.Arrangements |> (List.map createTemplate >> Templates)
             | [] ->
                 Templates []
@@ -201,15 +203,18 @@ let update msg state : ProgramState * Cmd<_> =
         Project.toProgramState templates projectPath statusMessage project, Cmd.none
 
     | SaveProject (Some fileName) ->
-        let task () = async {
-            do! Project.save fileName state
-            return fileName }
+        let task () =
+            async {
+                do! Project.save fileName state
+                return fileName
+            }
 
         state, Cmd.OfAsync.either task () ProjectSaved ErrorOccured
 
     | ProjectSaved fileName ->
-        { state with OpenProjectFile = Some fileName
-                     StatusMessage = "Project saved." }, Cmd.none
+        { state with
+            OpenProjectFile = Some fileName
+            StatusMessage = "Project saved." }, Cmd.none
 
     | SelectImportProject ->
         let dialog = Dialogs.openFileDialog "Select Project to Import" Dialogs.projectImportFilter
@@ -234,19 +239,27 @@ let update msg state : ProgramState * Cmd<_> =
 
     | AddTemplate (arrType, ordering) ->
         let (Templates templates) = state.Templates
+
         let tempArr =
             let data =
                 ordering
-                |> Option.map (fun o -> { Ordering = o; BaseToneIndex = -1; ToneNames = []; ToneReplacements = Map.empty })
+                |> Option.map (fun o ->
+                    { Ordering = o
+                      BaseToneIndex = -1
+                      ToneNames = []
+                      ToneReplacements = Map.empty })
+
             { ArrangementType = arrType
               Name = String.Empty
               FileName = None
               Data = data }
 
-        let updatedTemplates = Templates ((createTemplate tempArr)::templates)
+        let updatedTemplates = Templates ((createTemplate tempArr) :: templates)
         let updatedTracks = state.Tracks |> ProgramState.updateTracks updatedTemplates
 
-        { state with Tracks = updatedTracks; Templates = updatedTemplates }, Cmd.none
+        { state with
+            Tracks = updatedTracks
+            Templates = updatedTemplates }, Cmd.none
 
     | SelectTargetAudioFile (defaultFileName, cmd) ->
         let initialDir = state.OpenProjectFile |> Option.map Path.GetDirectoryName
@@ -254,42 +267,53 @@ let update msg state : ProgramState * Cmd<_> =
         state, Cmd.OfAsync.perform dialog initialDir cmd
 
     | CombineAudioFiles (Some targetFile) ->
-        let task() = async {
-            try
-                state.Tracks
-                |> List.map (fun track ->
-                    { AudioReader = Audio.AudioReader.Create track.AudioFile.Value
-                      TrimAmount = track.TrimAmount })
-                |> combineWithResampling targetFile
-                return $"Audio files combined as {targetFile}"
-            with e ->
-                return $"Error: {e.Message}" }
+        let task() =
+            async {
+                try
+                    state.Tracks
+                    |> List.map (fun track ->
+                        { AudioReader = Audio.AudioReader.Create track.AudioFile.Value
+                          TrimAmount = track.TrimAmount })
+                    |> combineWithResampling targetFile
 
-        { state with AudioCombinerProgress = Some 0.0
-                     StatusMessage = "Combining audio files..." },
+                    return $"Audio files combined as {targetFile}"
+                with e ->
+                    return $"Error: {e.Message}"
+            }
+
+        { state with
+            AudioCombinerProgress = Some 0.0
+            StatusMessage = "Combining audio files..." },
         Cmd.OfAsync.perform task () CombineAudioCompleted
     
     | CreatePreview (Some targetFile) ->
-        let task file = async {
-            try
-                state.Tracks
-                |> List.map (fun track ->
-                    { AudioReader = Audio.AudioReader.Create track.AudioFile.Value
-                      SongLength = track.SongLength })
-                |> createPreview file
-                return "Preview created."
-            with e ->
-                return $"Error: {e.Message}" }
+        let task file =
+            async {
+                try
+                    state.Tracks
+                    |> List.map (fun track ->
+                        { AudioReader = Audio.AudioReader.Create track.AudioFile.Value
+                          SongLength = track.SongLength })
+                    |> createPreview file
 
-        { state with AudioCombinerProgress = Some 0.0
-                     StatusMessage = "Creating preview audio..." },
+                    return "Preview created."
+                with e ->
+                    return $"Error: {e.Message}"
+            }
+
+        { state with
+            AudioCombinerProgress = Some 0.0
+            StatusMessage = "Creating preview audio..." },
         Cmd.OfAsync.perform task targetFile CombineAudioCompleted
 
     | CombineAudioCompleted message ->
-        { state with StatusMessage = message; AudioCombinerProgress = None }, Cmd.none
+        { state with
+            StatusMessage = message
+            AudioCombinerProgress = None }, Cmd.none
 
     | CombineArrangements (Some targetFolder) ->
         let trackCount = state.Tracks.Length
+
         // Calculate the maximum value for the progress bar
         let max =
             ((0, 0), state.Tracks.Head.Arrangements)
@@ -309,6 +333,7 @@ let update msg state : ProgramState * Cmd<_> =
             |> snd
 
         let task = ArrangementCombiner.combine state
+
         { state with ArrangementCombinerProgress = Some(0, max) },
         Cmd.OfAsync.perform task targetFolder CombineArrangementsCompleted
 
@@ -319,6 +344,7 @@ let update msg state : ProgramState * Cmd<_> =
     | SelectCombinationTargetFolder ->
         let initialDir = state.OpenProjectFile |> Option.map Path.GetDirectoryName
         let dialog = Dialogs.openFolderDialog "Select Target Folder"
+
         state, Cmd.OfAsync.perform dialog initialDir CombineArrangements
 
     | UpdateCombinationTitle newTitle ->
@@ -334,12 +360,17 @@ let update msg state : ProgramState * Cmd<_> =
         { state with AddTrackNamesToLyrics = value }, Cmd.none
 
     | RemoveTrack trackIndex ->
-        { state with Tracks = state.Tracks |> List.except (seq { state.Tracks.[trackIndex] }) }, Cmd.none
+        let tracks =
+            state.Tracks
+            |> List.except (seq { state.Tracks.[trackIndex] })
+
+        { state with Tracks = tracks }, Cmd.none
 
     | ChangeAudioFile trackIndex ->
         let initialDir = getInitialDir state.Tracks.[trackIndex].AudioFile state trackIndex
         let dialog = Dialogs.openFileDialog "Select Audio File" Dialogs.audioFileFiltersOpen
-        state, Cmd.OfAsync.perform dialog initialDir (fun file -> ChangeAudioFileResult (trackIndex, file))
+
+        state, Cmd.OfAsync.perform dialog initialDir (fun file -> ChangeAudioFileResult(trackIndex, file))
 
     | ChangeAudioFileResult (trackIndex, file) ->
         match file with
@@ -347,9 +378,11 @@ let update msg state : ProgramState * Cmd<_> =
             state, Cmd.none
         | Some fileName ->
             let oldSongLength = state.Tracks.[trackIndex].SongLength
+
             let updatedTracks =
                 state.Tracks
                 |> List.mapAt trackIndex (changeAudioFile fileName)
+
             let newSongLength = updatedTracks.[trackIndex].SongLength
 
             let message =
@@ -358,11 +391,14 @@ let update msg state : ProgramState * Cmd<_> =
                 else
                     "Audio file changed."
 
-            { state with Tracks = updatedTracks; StatusMessage = message }, Cmd.none
+            { state with
+                Tracks = updatedTracks
+                StatusMessage = message }, Cmd.none
 
     | SelectArrangementFile (trackIndex, arrIndex) ->
         let initialDir = getInitialDir (state |> getArr trackIndex arrIndex).FileName state trackIndex
         let dialog = Dialogs.openFileDialog "Select Arrangement File" Dialogs.xmlFileFilter
+
         state, Cmd.OfAsync.perform dialog initialDir (fun file -> ChangeArrangementFile (trackIndex, arrIndex, file))
 
     | ChangeArrangementFile (trackIndex, arrIndex, file) ->
@@ -394,7 +430,6 @@ let update msg state : ProgramState * Cmd<_> =
         match state |> getArr trackIndex arrIndex with
         | { Data = Some arrData } as arrangement ->
             let data = { arrData with BaseToneIndex = toneIndex }
-
             let newArr = { arrangement with Data = Some data }
             let updatedTracks = updateSingleArrangement state.Tracks trackIndex arrIndex newArr
 
@@ -423,6 +458,7 @@ let update msg state : ProgramState * Cmd<_> =
 
     | RemoveTemplate name ->
         let (Templates templates) = state.Templates
+
         let updatedTemplates =
             templates
             |> List.filter (fun t -> t.Name <> name)
@@ -435,6 +471,7 @@ let update msg state : ProgramState * Cmd<_> =
                 let arrangements =
                     track.Arrangements
                     |> List.filter (fun arr -> arr.Name <> name)
+
                 { track with Arrangements = arrangements })
 
         let updatedCommonTones = state.CommonTones |> Map.remove name
@@ -449,6 +486,7 @@ let update msg state : ProgramState * Cmd<_> =
     | UpdateToneName (arrName, index, newName) ->
         let names = state.CommonTones.[arrName]
         let oldName = names.[index]
+
         if oldName = newName then
             state, Cmd.none
         else 
@@ -462,6 +500,7 @@ let update msg state : ProgramState * Cmd<_> =
         let selectedTones =
             state.SelectedFileTones
             |> Map.add arrName selectedTone
+
         { state with SelectedFileTones = selectedTones }, Cmd.none
 
     | AddSelectedToneFromFile arrName ->
@@ -474,13 +513,14 @@ let update msg state : ProgramState * Cmd<_> =
         | Some i, Some newTone ->
             let updatedTones =
                 let i = i + 1
-                if i = 1 && String.IsNullOrEmpty tones.[0] then
+                if i = 1 && String.IsNullOrEmpty(tones.[0]) then
                     // If the base tone and tone A are empty, use this name for them both
                     tones |> Array.mapi (fun j t -> if j = 0 || j = i then newTone else t)
                 else
                     tones |> Array.updateAt i newTone
 
-            let updatedCommonTones = state.CommonTones |> Map.add arrName updatedTones
+            let updatedCommonTones = state.CommonTones.Add(arrName, updatedTones)
+
             { state with CommonTones = updatedCommonTones }, Cmd.none
         | _ ->
             state, Cmd.none

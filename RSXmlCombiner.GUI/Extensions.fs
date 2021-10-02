@@ -8,7 +8,7 @@ module Option =
     let create pred x = if pred x then Some x else None
 
     /// If the string is null or whitespace, returns None.
-    let ofString s = if String.IsNullOrWhiteSpace s then None else Some s
+    let ofString s = if String.IsNullOrWhiteSpace(s) then None else Some s
 
 [<RequireQualifiedAccess>]
 module String =

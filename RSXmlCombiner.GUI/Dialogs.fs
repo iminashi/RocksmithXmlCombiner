@@ -22,7 +22,7 @@ let openFolderDialog title directory = async {
     let! result =
         Dispatcher.UIThread.InvokeAsync<string>(fun () ->
             let dialog = OpenFolderDialog(Title = title, Directory = Option.toObj directory)
-            dialog.ShowAsync window)
+            dialog.ShowAsync(window))
         |> Async.AwaitTask
 
     return Option.ofString result }
@@ -36,8 +36,10 @@ let saveFileDialog title filters initialFileName directory = async {
                     Title = title,
                     Filters = filters,
                     InitialFileName = Option.toObj initialFileName,
-                    Directory = Option.toObj directory)
-            dialog.ShowAsync window)
+                    Directory = Option.toObj directory
+                )
+
+            dialog.ShowAsync(window))
         |> Async.AwaitTask
 
     return Option.ofString result }
@@ -50,19 +52,25 @@ let openFileDialog title filters directory = async {
     let! result =
         Dispatcher.UIThread.InvokeAsync<string[]>(fun () ->
             let dialog = createOpenFileDialog title filters directory false
-            dialog.ShowAsync window)
+            dialog.ShowAsync(window))
         |> Async.AwaitTask
+
     match result with
-    | [| file |] -> return Some file
-    | _ -> return None }
+    | [| file |] ->
+        return Some file
+    | _ ->
+        return None }
 
 /// Shows an open file dialog that allows selecting multiple files.
 let openMultiFileDialog title filters directory = async {
     let! result =
         Dispatcher.UIThread.InvokeAsync<string[]>(fun () ->
             let dialog = createOpenFileDialog title filters directory true
-            dialog.ShowAsync window)
+            dialog.ShowAsync(window))
         |> Async.AwaitTask
+
     match result with
-    | null | [||] -> return None
-    | arr -> return Some arr }
+    | null | [||] ->
+        return None
+    | arr ->
+        return Some arr }

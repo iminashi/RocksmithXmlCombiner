@@ -11,17 +11,17 @@ type CommonTones = Map<string, string[]>
 
 type ArrangementOrdering = Main | Alternative | Bonus
 
-type InstrumentalArrangementData = 
-  { Ordering : ArrangementOrdering
-    BaseToneIndex : int
-    ToneNames : string list
-    ToneReplacements : Map<string, int> }
+type InstrumentalArrangementData =
+    { Ordering: ArrangementOrdering
+      BaseToneIndex: int
+      ToneNames: string list
+      ToneReplacements: Map<string, int> }
 
 type Arrangement =
-  { Name : string
-    FileName : string option
-    ArrangementType : ArrangementType
-    Data : InstrumentalArrangementData option }
+    { Name: string
+      FileName: string option
+      ArrangementType: ArrangementType
+      Data: InstrumentalArrangementData option }
 
 type Templates = Templates of Arrangement list
 
@@ -76,12 +76,12 @@ let createOther name fileName arrType =
       ArrangementType = arrType
       Data = None }
 
-type Track = 
-  { Title : string
-    TrimAmount : int<ms>
-    AudioFile : string option
-    SongLength : int<ms>
-    Arrangements : Arrangement list }
+type Track =
+    { Title: string
+      TrimAmount: int<ms>
+      AudioFile: string option
+      SongLength: int<ms>
+      Arrangements: Arrangement list }
 
 /// Returns true if the track has an audio file set.
 let hasAudioFile track = track.AudioFile.IsSome
@@ -118,22 +118,29 @@ let updateSingleArrangement tracks trackIndex arrIndex newArr =
         |> List.mapi (fun i arr -> if i = arrIndex then newArr else arr)
 
     tracks
-    |> List.mapi (fun i t ->
+    |> List.mapi (fun i track ->
         if i = trackIndex then
-            { t with Arrangements = changeArrangement t.Arrangements }
+            { track with Arrangements = changeArrangement track.Arrangements }
         else
-            t)
+            track)
 
 let arrangementSort (arr: Arrangement) =
     let ordering =
         match arr.Data with
         | Some data ->
             match data.Ordering with
-            | Main -> 0
-            | Alternative -> 1
-            | Bonus -> 2
+            | Main ->
+                0
+            | Alternative ->
+                1
+            | Bonus ->
+                2
         | None ->
-            if arr.Name.StartsWith("Alt.") then 1
-            elif arr.Name.StartsWith("Bonus") then 2
-            else 0
+            if arr.Name.StartsWith("Alt.") then
+                1
+            elif arr.Name.StartsWith("Bonus") then
+                2
+            else
+                0
+
     arr.ArrangementType, ordering

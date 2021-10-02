@@ -3,38 +3,38 @@
 open System
 
 type ProgramState =
-  { Tracks : Track list
-    CommonTones : CommonTones
-    /// Names and types of arrangements that must be found on every track.
-    Templates : Templates
-    CombinationTitle : string
-    CoercePhrases : bool
-    OnePhrasePerTrack : bool
-    AddTrackNamesToLyrics : bool
-    StatusMessage : string
-    ReplacementToneEditor : (int * int) option
-    ProjectViewActive : bool
-    AudioCombinerProgress : float option
-    ArrangementCombinerProgress : (int * int) option
-    OpenProjectFile : string option
-    SelectedFileTones : Map<string, string> }
+    { Tracks: Track list
+      CommonTones: CommonTones
+      /// Names and types of arrangements that must be found on every track.
+      Templates: Templates
+      CombinationTitle: string
+      CoercePhrases: bool
+      OnePhrasePerTrack: bool
+      AddTrackNamesToLyrics: bool
+      StatusMessage: string
+      ReplacementToneEditor: (int * int) option
+      ProjectViewActive: bool
+      AudioCombinerProgress: float option
+      ArrangementCombinerProgress: (int * int) option
+      OpenProjectFile: string option
+      SelectedFileTones: Map<string, string> }
 
 module ProgramState =
     let init =
-      { Tracks = []
-        Templates = Templates []
-        CommonTones = Map.empty
-        CombinationTitle = ""
-        CoercePhrases = true
-        OnePhrasePerTrack = false
-        AddTrackNamesToLyrics = true
-        StatusMessage = ""
-        ReplacementToneEditor = None
-        ProjectViewActive = true
-        AudioCombinerProgress = None
-        ArrangementCombinerProgress = None
-        OpenProjectFile = None
-        SelectedFileTones = Map.empty }
+        { Tracks = []
+          Templates = Templates []
+          CommonTones = Map.empty
+          CombinationTitle = ""
+          CoercePhrases = true
+          OnePhrasePerTrack = false
+          AddTrackNamesToLyrics = true
+          StatusMessage = ""
+          ReplacementToneEditor = None
+          ProjectViewActive = true
+          AudioCombinerProgress = None
+          ArrangementCombinerProgress = None
+          OpenProjectFile = None
+          SelectedFileTones = Map.empty }
 
     let private updateTemplates (arrangements: Arrangement list) (Templates currentTemplates) =
         let newTemplates =
@@ -44,6 +44,7 @@ module ProgramState =
                 |> List.exists (fun temp -> arr.Name = temp.Name)
                 |> not)
             |> List.map createTemplate
+
         Templates (currentTemplates @ newTemplates)
 
     let addMissingArrangements (Templates templates) (arrangements: Arrangement list) =
@@ -53,6 +54,7 @@ module ProgramState =
                 arrangements
                 |> List.exists (fun arr -> arr.Name = temp.Name)
                 |> not)
+
         arrangements @ missing
 
     let private updateTrack templates track =
@@ -86,7 +88,10 @@ module ProgramState =
         // Add any new templates to the existing tracks
         let tracks = project.Tracks |> updateTracks templates
         
-        { project with Tracks = tracks @ [ newTrack ]; Templates = templates; CommonTones = commonTones }
+        { project with
+            Tracks = tracks @ [ newTrack ]
+            Templates = templates
+            CommonTones = commonTones }
 
     let getReplacementToneNames arrName (commonTones: CommonTones) =
         match Map.tryFind arrName commonTones with

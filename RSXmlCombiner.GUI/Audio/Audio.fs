@@ -7,7 +7,7 @@ open System
 
 let private (|Extension|_|) extension (fileName: string) =
     if fileName.EndsWith($".%s{extension}", StringComparison.OrdinalIgnoreCase) then
-        Some ()
+        Some()
     else
         None
 
@@ -21,8 +21,8 @@ type AudioReader(stream: WaveStream, provider: ISampleProvider) =
     member _.Stream = stream
     member _.SampleProvider = provider
 
-    member _.Position with get() = stream.Position
-    member _.Length with get() = stream.Length
+    member _.Position = stream.Position
+    member _.Length = stream.Length
 
     /// Returns an audio reader for the given filename.
     static member Create(fileName: string) =

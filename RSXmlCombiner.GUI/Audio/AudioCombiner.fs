@@ -23,6 +23,7 @@ let combineWithResampling (targetFile: string) (data: AudioCombinerData list)  =
         |> Seq.mapi (fun i data ->
             let sampler =
                 Audio.resampleIfNeeded TargetSampleRate data.AudioReader.SampleProvider
+
             match i with
             | 0 -> sampler
             | _ -> sampler |> Audio.trimStart data.TrimAmount)
@@ -54,7 +55,7 @@ let createPreview (targetFile: string) (data: PreviewCreationData list) =
     try
         let fadeBetweenSections = 400<ms>
         let numFiles = min 4 data.Length
-        let sectionLength = LanguagePrimitives.Int64WithMeasure<ms> (int64 (28.0 / float numFiles * 1000.0))
+        let sectionLength = LanguagePrimitives.Int64WithMeasure<ms>(int64 (28.0 / float numFiles * 1000.0))
 
         data
         |> Seq.sortBy (fun _ -> rand.Next())

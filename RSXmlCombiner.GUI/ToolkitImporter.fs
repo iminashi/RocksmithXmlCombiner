@@ -14,7 +14,7 @@ let private importOld (arrangements: XElement seq) templatePath =
 
         // Try to read the arrangement type from the name element
         match ArrangementType.TryParse(itemNode.Element(ad + "Name").Value) with
-        | true, arrType when not (isBonusArr || map.ContainsKey arrType) ->
+        | true, arrType when not (isBonusArr || map.ContainsKey(arrType)) ->
             let arrFn = Path.Combine(templatePath, itemNode.Element(ad + "SongXml").Element(d4p1 + "File").Value)
 
             map.Add(arrType, arrFn)
@@ -24,8 +24,8 @@ let private importOld (arrangements: XElement seq) templatePath =
 /// Imports the main arrangements from a Toolkit template.
 /// Returns them in a map: arrangement type to filename.
 let import (fileName: string) =
-    let templateDirectory = Path.GetDirectoryName fileName
-    let xdoc = XElement.Load fileName
+    let templateDirectory = Path.GetDirectoryName(fileName)
+    let xdoc = XElement.Load(fileName)
     let arrangements = xdoc.Element(ad + "Arrangements").Elements()
     let title = xdoc.Element(ad + "SongInfo").Element(ad + "SongDisplayName").Value
     let audioFile = Path.Combine(templateDirectory, xdoc.Element(ad + "OggPath").Value)

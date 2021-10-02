@@ -32,13 +32,20 @@ module ArrangementType =
     /// Creates an ArrangementType from an instrumental arrangement.
     let fromArrangement (arr: InstrumentalArrangement) =
         let props = arr.MetaData.ArrangementProperties
-        if props.PathLead then ArrangementType.Lead
-        elif props.PathRhythm then ArrangementType.Rhythm
-        elif props.PathBass then ArrangementType.Bass
-        else ArrangementType.Unknown
+        if props.PathLead then
+            ArrangementType.Lead
+        elif props.PathRhythm then
+            ArrangementType.Rhythm
+        elif props.PathBass then
+            ArrangementType.Bass
+        else
+            ArrangementType.Unknown
 
     /// Returns a humanized string matching the arrangement type.
     let humanize = function
-        | ArrangementType.ShowLights -> "Show Lights"
-        | ArrangementType.JVocals -> "J-Vocals"
-        | arrType -> string arrType
+        | ArrangementType.ShowLights ->
+            "Show Lights"
+        | ArrangementType.JVocals ->
+            "J-Vocals"
+        | arrType ->
+            string arrType

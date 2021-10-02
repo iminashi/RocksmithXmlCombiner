@@ -18,7 +18,7 @@ type MainWindow() as this =
         base.MinWidth <- 900.0
         base.MinHeight <- 450.0
 
-        let handleHotkeys dispatch (event : KeyEventArgs) =
+        let handleHotkeys dispatch (event: KeyEventArgs) =
             match event.KeyModifiers, event.Key with
             | KeyModifiers.Control, Key.O -> dispatch SelectOpenProjectFile
             | KeyModifiers.Control, Key.S -> dispatch SelectSaveProjectFile
@@ -27,8 +27,8 @@ type MainWindow() as this =
 
         let progressSub _initialModel =
             let sub dispatch =
-                AudioCombiner.progress.ProgressChanged.Add (CombineAudioProgressChanged >> dispatch)
-                ArrangementCombiner.progress.ProgressChanged.Add (CombineArrangementsProgressChanged >> dispatch)
+                AudioCombiner.progress.ProgressChanged.Add(CombineAudioProgressChanged >> dispatch)
+                ArrangementCombiner.progress.ProgressChanged.Add(CombineArrangementsProgressChanged >> dispatch)
             Cmd.ofSub sub
        
         let hotKeysSub _initialModel =
@@ -42,7 +42,7 @@ type MainWindow() as this =
         |> Program.withSubscription progressSub
         |> Program.withSubscription hotKeysSub
         #if DEBUG
-        |> Program.withTrace (fun msg _state -> Debug.WriteLine msg)
+        |> Program.withTrace (fun msg _state -> Debug.WriteLine(msg))
         #endif
         |> Program.run
         
@@ -50,15 +50,16 @@ type App() =
     inherit Application()
 
     override this.Initialize() =
-        this.Styles.Load "avares://Avalonia.Themes.Default/DefaultTheme.xaml"
-        this.Styles.Load "avares://Avalonia.Themes.Default/Accents/BaseDark.xaml"
-        this.Styles.Load "avares://RSXmlCombiner/Styles.xaml"
+        this.Styles.Load("avares://Avalonia.Themes.Default/DefaultTheme.xaml")
+        this.Styles.Load("avares://Avalonia.Themes.Default/Accents/BaseDark.xaml")
+        this.Styles.Load("avares://RSXmlCombiner/Styles.xaml")
 
     override this.OnFrameworkInitializationCompleted() =
         match this.ApplicationLifetime with
         | :? IClassicDesktopStyleApplicationLifetime as desktopLifetime ->
             desktopLifetime.MainWindow <- MainWindow()
-        | _ -> ()
+        | _ ->
+            ()
 
 module Program =
     [<EntryPoint>]

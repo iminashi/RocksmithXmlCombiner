@@ -28,7 +28,7 @@ let private addTitle (vocals: ResizeArray<Vocal>) (title: string) (startBeat: in
     let displayTime =
         let firstVocalsTime =
             if vocals.Count > 0 then
-                Some (vocals.[0].Time |> LanguagePrimitives.Int32WithMeasure<ms>)
+                Some(vocals.[0].Time |> LanguagePrimitives.Int32WithMeasure<ms>)
             else
                 None
 
@@ -190,6 +190,7 @@ let private combineArrangement (project: ProgramState) arrIndex targetFolder =
 /// Combines all the arrangements in the given project.
 let combine (project: ProgramState) targetFolder =
     let nArrangements = project.Tracks.Head.Arrangements.Length
-    [ for i in 0..nArrangements - 1 -> async { combineArrangement project i targetFolder } ]
+
+    [ for i in 0 .. nArrangements - 1 -> async { combineArrangement project i targetFolder } ]
     |> Async.Parallel
     |> Async.Ignore

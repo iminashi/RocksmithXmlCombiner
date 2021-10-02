@@ -7,20 +7,22 @@ open System.Text.Json.Serialization
 open Rocksmith2014.XML
 
 type Dto() =
-   member val Tracks : Track list = List.empty with get, set
-   member val CommonTones : CommonTones = Map.empty with get, set
-   member val CombinationTitle : string = String.Empty with get, set
-   member val CoercePhrases : bool = true with get, set
-   member val OnePhrasePerTrack : bool = false with get, set
-   member val AddTrackNamesToLyrics : bool = true with get, set
+    member val Tracks: Track list = List.empty with get, set
+    member val CommonTones: CommonTones = Map.empty with get, set
+    member val CombinationTitle: string = String.Empty with get, set
+    member val CoercePhrases: bool = true with get, set
+    member val OnePhrasePerTrack: bool = false with get, set
+    member val AddTrackNamesToLyrics: bool = true with get, set
 
 let private fromProgramState (state: ProgramState) =
-    Dto(Tracks = state.Tracks,
+    Dto(
+        Tracks = state.Tracks,
         CommonTones = state.CommonTones,
         CombinationTitle = state.CombinationTitle,
         CoercePhrases = state.CoercePhrases,
         OnePhrasePerTrack = state.OnePhrasePerTrack,
-        AddTrackNamesToLyrics = state.AddTrackNamesToLyrics)
+        AddTrackNamesToLyrics = state.AddTrackNamesToLyrics
+    )
 
 /// Saves a project with the given filename.
 let save fileName (state: ProgramState) = async {
@@ -28,7 +30,7 @@ let save fileName (state: ProgramState) = async {
     options.Converters.Add(JsonFSharpConverter())
 
     let project = fromProgramState state
-    use file = File.Create fileName
+    use file = File.Create(fileName)
     do! JsonSerializer.SerializeAsync(file, project, options) |> Async.AwaitTask }
 
 /// Loads a project from a file.
@@ -65,8 +67,9 @@ let updateToneNames (project: Dto) =
                 track.Arrangements
                 |> List.map (fun arr ->
                     match arr.FileName, arr.Data with
-                    | Some fn, Some data when File.Exists fn ->
-                        let toneInfo = InstrumentalArrangement.ReadToneNames fn
+                    | Some fn, Some data when File.Exists(fn) ->
+                        let toneInfo = InstrumentalArrangement.ReadToneNames(fn)
+
                         let newData =
                             let toneNames =
                                 if isNull toneInfo.Changes then
@@ -99,8 +102,8 @@ let getMissingFiles (project: Dto) =
     ||> List.fold (fun state track ->
         let missingAudioFiles =
             match track.AudioFile with
-            | Some file when not <| File.Exists file ->
-                file::(fst state)
+            | Some file when not <| File.Exists(file) ->
+                file :: (fst state)
             | _ ->
                 fst state
 
@@ -108,8 +111,8 @@ let getMissingFiles (project: Dto) =
             ([], track.Arrangements)
             ||> List.fold (fun missing arr -> 
                 match arr.FileName with
-                | Some file when not <| File.Exists file ->
-                    file::missing
+                | Some file when not <| File.Exists(file) ->
+                    file :: missing
                 | _ ->
                     missing)
 

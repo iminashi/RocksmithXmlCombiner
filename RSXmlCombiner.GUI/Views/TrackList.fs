@@ -13,9 +13,10 @@ open ArrangementType
 /// Creates the view for an arrangement.
 let private arrangementView state dispatch trackIndex arrIndex (arr: Arrangement) =
     let fileName = arr.FileName
+
     let fileNameBrush =
         match fileName with
-        | Some fn when not <| File.Exists fn ->
+        | Some fn when not <| File.Exists(fn) ->
             Brushes.Red
         | _ ->
             Brushes.DarkGray
@@ -157,7 +158,7 @@ let private arrangementView state dispatch trackIndex arrIndex (arr: Arrangement
 let private trackContents state dispatch trackIndex track =
     let audioFileBrush =
         match track.AudioFile with
-        | Some fn when not <| File.Exists fn ->
+        | Some fn when not <| File.Exists(fn) ->
             Brushes.Red
         | _ ->
             Brushes.DarkGray
@@ -200,7 +201,7 @@ let private trackContents state dispatch trackIndex track =
                         TextBlock.text (
                             track.AudioFile
                             |> Option.map Path.GetFileName
-                            |> Option.defaultValue "None selected" )
+                            |> Option.defaultValue "None selected")
                         ToolTip.tip (
                             track.AudioFile
                             |> Option.defaultValue "Click to select a file.")
