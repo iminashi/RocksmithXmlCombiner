@@ -446,7 +446,7 @@ let update msg state : ProgramState * Cmd<_> =
         { state with Tracks = updatedTracks }, Cmd.none
 
     | ShowReplacementToneEditor (trackIndex, arrIndex) ->
-        { state with ReplacementToneEditor = Some(trackIndex, arrIndex) }, Cmd.none
+        { state with ReplacementToneEditor = Some { TrackIndex = trackIndex; ArrangementIndex = arrIndex } }, Cmd.none
 
     | TrimAmountChanged (trackIndex, trimAmount) ->
         let trim = int (Math.Round(trimAmount * 1000.0)) * 1<ms>
@@ -669,8 +669,9 @@ let view state dispatch =
                             ]
 
                             match state.ReplacementToneEditor with
-                            | Some (trackIndex, arrIndex) ->
-                                replacementToneView state trackIndex arrIndex dispatch |> generalize
+                            | Some rep ->
+                                replacementToneView state rep.TrackIndex rep.ArrangementIndex dispatch
+                                |> generalize
                             | None ->
                                 ()
                         ]

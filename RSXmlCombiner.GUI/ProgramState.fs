@@ -2,6 +2,10 @@
 
 open System
 
+type ReplacementToneEditor =
+    { TrackIndex: int
+      ArrangementIndex: int }
+
 type ProgramState =
     { Tracks: Track list
       CommonTones: CommonTones
@@ -12,7 +16,7 @@ type ProgramState =
       OnePhrasePerTrack: bool
       AddTrackNamesToLyrics: bool
       StatusMessage: string
-      ReplacementToneEditor: (int * int) option
+      ReplacementToneEditor: ReplacementToneEditor option
       ProjectViewActive: bool
       AudioCombinerProgress: float option
       ArrangementCombinerProgress: (int * int) option
