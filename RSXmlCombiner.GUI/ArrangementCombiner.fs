@@ -154,11 +154,13 @@ let private combineInstrumental (project: ProgramState) arrIndex targetFolder =
                 replaceToneNames next arrData.ToneReplacements commonTones
 
             let isLast = (i = tracks.Length - 1)
-            combiner.AddNext(next,
-                             int tracks.[i].SongLength,
-                             int tracks.[i].TrimAmount,
-                             project.OnePhrasePerTrack,
-                             isLast)
+            combiner.AddNext(
+                next,
+                int tracks.[i].SongLength,
+                int tracks.[i].TrimAmount,
+                project.OnePhrasePerTrack,
+                isLast)
+
             increaseProgress ()
 
         if String.notEmpty project.CombinationTitle then

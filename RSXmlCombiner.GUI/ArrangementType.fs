@@ -39,7 +39,8 @@ module ArrangementType =
         elif props.PathBass then
             ArrangementType.Bass
         else
-            ArrangementType.Unknown
+            // Default to lead
+            ArrangementType.Lead
 
     /// Returns a humanized string matching the arrangement type.
     let humanize = function
