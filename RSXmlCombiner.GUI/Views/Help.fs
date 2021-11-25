@@ -5,7 +5,7 @@ open Avalonia.FuncUI.DSL
 open Avalonia.FuncUI.Types
 
 let helpView =
-    StackPanel.create[
+    StackPanel.create [
         StackPanel.classes [ "help" ]
         StackPanel.spacing 5.0
         StackPanel.margin (20.0, 0.0)

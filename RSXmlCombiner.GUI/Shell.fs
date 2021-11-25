@@ -71,11 +71,11 @@ let private getInitialDir (fileName: string option) state trackIndex =
     fileName
     |> Option.orElseWith (fun () ->
         // If no file is set, use the directory of the first arrangement that has a file
-        state.Tracks.[trackIndex].Arrangements
+        state.Tracks[trackIndex].Arrangements
         |> List.tryPick (fun a -> a.FileName))
     |> Option.map Path.GetDirectoryName
 
-let private getArr trackIndex arrIndex state = state.Tracks.[trackIndex].Arrangements.[arrIndex]
+let private getArr trackIndex arrIndex state = state.Tracks[trackIndex].Arrangements[arrIndex]
 
 let update msg state : ProgramState * Cmd<_> =
     match msg with
@@ -135,7 +135,7 @@ let update msg state : ProgramState * Cmd<_> =
         | None ->
             { state with StatusMessage = "Could not find any instrumental arrangements in the template." }, Cmd.none
         | Some instArrType ->
-            let instArrFile = foundArrangements.[instArrType]
+            let instArrFile = foundArrangements[instArrType]
             
             let foldArrangements (state: Arrangement list) arrType fileName =
                 let arrangement =
@@ -318,7 +318,7 @@ let update msg state : ProgramState * Cmd<_> =
         let max =
             ((0, 0), state.Tracks.Head.Arrangements)
             ||> Seq.fold (fun (i, count) arr ->
-                let hasFile track = track.Arrangements.[i].FileName |> Option.isSome
+                let hasFile track = track.Arrangements[i].FileName |> Option.isSome
                 let next = i + 1
                 // For instrumental arrangement, the progress is increased by one for each file
                 // Combining vocals and show lights is so fast that individual files are not reported
@@ -362,12 +362,12 @@ let update msg state : ProgramState * Cmd<_> =
     | RemoveTrack trackIndex ->
         let tracks =
             state.Tracks
-            |> List.except (seq { state.Tracks.[trackIndex] })
+            |> List.except (seq { state.Tracks[trackIndex] })
 
         { state with Tracks = tracks }, Cmd.none
 
     | ChangeAudioFile trackIndex ->
-        let initialDir = getInitialDir state.Tracks.[trackIndex].AudioFile state trackIndex
+        let initialDir = getInitialDir state.Tracks[trackIndex].AudioFile state trackIndex
         let dialog = Dialogs.openFileDialog "Select Audio File" Dialogs.audioFileFiltersOpen
 
         state, Cmd.OfAsync.perform dialog initialDir (fun file -> ChangeAudioFileResult(trackIndex, file))
@@ -377,13 +377,13 @@ let update msg state : ProgramState * Cmd<_> =
         | None ->
             state, Cmd.none
         | Some fileName ->
-            let oldSongLength = state.Tracks.[trackIndex].SongLength
+            let oldSongLength = state.Tracks[trackIndex].SongLength
 
             let updatedTracks =
                 state.Tracks
                 |> List.mapAt trackIndex (changeAudioFile fileName)
 
-            let newSongLength = updatedTracks.[trackIndex].SongLength
+            let newSongLength = updatedTracks[trackIndex].SongLength
 
             let message =
                 if oldSongLength <> newSongLength then
@@ -484,8 +484,8 @@ let update msg state : ProgramState * Cmd<_> =
             SelectedFileTones = updatedSelectedTones }, Cmd.none
 
     | UpdateToneName (arrName, index, newName) ->
-        let names = state.CommonTones.[arrName]
-        let oldName = names.[index]
+        let names = state.CommonTones[arrName]
+        let oldName = names[index]
 
         if oldName = newName then
             state, Cmd.none
@@ -504,16 +504,16 @@ let update msg state : ProgramState * Cmd<_> =
         { state with SelectedFileTones = selectedTones }, Cmd.none
 
     | AddSelectedToneFromFile arrName ->
-        let tones = state.CommonTones.[arrName]
+        let tones = state.CommonTones[arrName]
         // Find an empty index that is not the base tone
-        let availableIndex = tones.[1..] |> Array.tryFindIndex String.IsNullOrEmpty
+        let availableIndex = tones[1..] |> Array.tryFindIndex String.IsNullOrEmpty
         let selectedTone = state.SelectedFileTones |> Map.tryFind arrName
 
         match availableIndex, selectedTone with
         | Some i, Some newTone ->
             let updatedTones =
                 let i = i + 1
-                if i = 1 && String.IsNullOrEmpty(tones.[0]) then
+                if i = 1 && String.IsNullOrEmpty(tones[0]) then
                     // If the base tone and tone A are empty, use this name for them both
                     tones |> Array.mapi (fun j t -> if j = 0 || j = i then newTone else t)
                 else
@@ -531,7 +531,7 @@ let update msg state : ProgramState * Cmd<_> =
         state, Cmd.none
 
 let private replacementToneView state trackIndex arrIndex dispatch =
-    let arrangement = state.Tracks.[trackIndex].Arrangements.[arrIndex]
+    let arrangement = state.Tracks[trackIndex].Arrangements[arrIndex]
     let data = arrangement.Data |> Option.get
     let replacementToneNames = ProgramState.getReplacementToneNames arrangement.Name state.CommonTones
 
@@ -555,7 +555,7 @@ let private replacementToneView state trackIndex arrIndex dispatch =
                                 TextBlock.horizontalAlignment HorizontalAlignment.Center
                                 TextBlock.fontSize 18.0
                                 TextBlock.margin (0.0, 0.0, 0.0, 8.0)
-                                TextBlock.text (sprintf "%s - %s" state.Tracks.[trackIndex].Title arrangement.Name)
+                                TextBlock.text (sprintf "%s - %s" state.Tracks[trackIndex].Title arrangement.Name)
                             ]
                             // "Tone Name"
                             yield TextBlock.create [

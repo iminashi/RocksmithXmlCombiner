@@ -103,8 +103,8 @@ module ProgramState =
             match names |> Array.tryFindIndex String.IsNullOrEmpty with
             // Exclude the first one, which is the base tone for the combined arrangement
             | Some firstEmptyIndex ->
-                names.[1..(firstEmptyIndex - 1)]
+                names[1..(firstEmptyIndex - 1)]
             | None ->
-                names.[1..]
+                names[1..]
         | None ->
             Array.empty

@@ -25,14 +25,14 @@ let private tonesTemplate (state : ProgramState) arrName (tones : string array) 
                         yield TextBlock.create [
                             Grid.row (i + 1)
                             TextBlock.margin (8.0, 2.0, 0.0, 2.0)
-                            TextBlock.text labels.[i]
+                            TextBlock.text labels[i]
                             TextBlock.verticalAlignment VerticalAlignment.Center
                         ]
                         yield TextBox.create [
                             Grid.column 1
                             Grid.row (i + 1)
                             TextBox.margin 2.0
-                            TextBox.text tones.[i]
+                            TextBox.text tones[i]
                             TextBox.onLostFocus ((fun arg ->
                                 UpdateToneName(arrName, i, (arg.Source :?> TextBox).Text)
                                 |> dispatch),
@@ -54,7 +54,7 @@ let private tonesTemplate (state : ProgramState) arrName (tones : string array) 
             
             if toneList.Length > 0 then
                 let canAdd =
-                    tones.[1..] |> Array.exists String.IsNullOrEmpty
+                    tones[1..] |> Array.exists String.IsNullOrEmpty
                     &&
                     state.SelectedFileTones
                     |> Map.tryFind arrName
