@@ -4,7 +4,7 @@ A tool that can stitch together Rocksmith 2014 XML files and combine audio files
 
 Created mainly for CDLC makers who want to combine customs they have made into a full album CDLC.
 
-![Screenshot](https://i.imgur.com/0SFlfrn.png)
+![Screenshot](./images/screenshot.png)
 
 ## Usage
 
