@@ -22,8 +22,8 @@ let helpView =
                 TextBlock.classes [ "h1" ]
                 TextBlock.text "Note"
             ]
-            TextBlock.create [ TextBlock.text "● For instrumental and show light arrangements, a file must be set on each track for a combined arrangement to be generated." ]
-            TextBlock.create [ TextBlock.text "● A combined lyrics arrangement will be generated even if a file is not set on some of the tracks." ]
+            TextBlock.create [ TextBlock.text "● For show light arrangements, a file must be set on each track for a combined arrangement to be generated." ]
+            TextBlock.create [ TextBlock.text "● A combined instrumental or lyrics arrangement will be generated even if a file is not set on some of the tracks." ]
             TextBlock.create [ TextBlock.text "● The \"Coerce to 100 Phrases\" option only works when combining files that do not have DD levels." ]
 
             TextBlock.create [

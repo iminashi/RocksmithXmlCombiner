@@ -136,47 +136,88 @@ let private combineInstrumental (project: ProgramState) arrIndex targetFolder =
         project.CommonTones
         |> Map.find tracks.Head.Arrangements[arrIndex].Name
 
-    if tracks |> List.forall (fun t -> t.Arrangements[arrIndex].FileName.IsSome) then
-        let combiner = InstrumentalCombiner()
+    let combiner = InstrumentalCombiner()
 
-        for i = 0 to tracks.Length - 1 do
-            let arr = tracks[i].Arrangements[arrIndex]
-            let arrData = arr.Data |> Option.get
-            let next = InstrumentalArrangement.Load(arr.FileName |> Option.get)
+    for i = 0 to tracks.Length - 1 do
+        let arr = tracks[i].Arrangements[arrIndex]
+        let next =
+            match arr.FileName with
+            | Some xmlFile ->
+                InstrumentalArrangement.Load(xmlFile)
+            | None ->
+                // Try to load an existing instrumental arrangement for the track
+                let existing =
+                    tracks[i].Arrangements
+                    |> List.tryFind (fun a -> isInstrumental a.ArrangementType && a.FileName.IsSome)
+                    |> Option.bind (fun x -> x.FileName)
+                    |> Option.map InstrumentalArrangement.Load
+                    |> Option.defaultWith (fun () -> failwith $"Instrumental arrangement missing for track {tracks[i].Title}.")
 
-            if i = 0 then
-                next.Tones.BaseToneName <- commonTones[0]
-            else if arrData.BaseToneIndex <> -1 then
+                let endPhraseTime = existing.PhraseIterations[existing.PhraseIterations.Count - 1].Time
+                // Discard notes, chords, etc.
+                InstrumentalArrangement(
+                    Ebeats = existing.Ebeats,
+                    Phrases =
+                        ResizeArray([
+                            Phrase("COUNT", 0uy, PhraseMask.None)
+                            Phrase("noguitar", 0uy, PhraseMask.None)
+                            Phrase("END", 0uy, PhraseMask.None)
+                        ]),
+                    PhraseIterations =
+                        ResizeArray([
+                            PhraseIteration(existing.PhraseIterations[0].Time, 0)
+                            PhraseIteration(existing.PhraseIterations[1].Time, 1)
+                            PhraseIteration(endPhraseTime, 2)
+                        ]),
+                    Sections =
+                        ResizeArray([
+                            Section("noguitar", existing.PhraseIterations[1].Time, 1s)
+                            Section("noguitar", endPhraseTime, 2s)
+                        ]),
+                    MetaData = existing.MetaData
+                )
+
+        if i = 0 then
+            next.Tones.BaseToneName <- commonTones[0]
+        else
+            match arr.Data with
+            | Some { BaseToneIndex = i } when i <> -1 ->
                 // First one is the base tone
-                next.Tones.BaseToneName <- commonTones[arrData.BaseToneIndex + 1]
+                next.Tones.BaseToneName <- commonTones[i + 1]
+            | _ ->
+                ()
 
-            if not arrData.ToneNames.IsEmpty then
-                replaceToneNames next arrData.ToneReplacements commonTones
+        match arr.Data with
+        | Some ({ ToneNames = t } as arrData) when not t.IsEmpty -> 
+            replaceToneNames next arrData.ToneReplacements commonTones
+        | _ ->
+            ()
 
-            let isLast = (i = tracks.Length - 1)
-            combiner.AddNext(
-                next,
-                int tracks[i].SongLength,
-                int tracks[i].TrimAmount,
-                project.OnePhrasePerTrack,
-                isLast)
+        let isLast = (i = tracks.Length - 1)
+        combiner.AddNext(
+            next,
+            int tracks[i].SongLength,
+            int tracks[i].TrimAmount,
+            project.OnePhrasePerTrack,
+            isLast
+        )
 
-            increaseProgress ()
+        increaseProgress ()
 
-        if String.notEmpty project.CombinationTitle then
-            combiner.SetTitle(project.CombinationTitle)
+    if String.notEmpty project.CombinationTitle then
+        combiner.SetTitle(project.CombinationTitle)
 
-        // Remove periods and replace spaces with underscores in the arrangement name
-        let name = 
-            tracks.Head.Arrangements[arrIndex].Name
-            |> String.filter (fun c -> c <> '.')
-            |> String.map (fun c -> if c = ' ' then '_' else c)
+    // Remove periods and replace spaces with underscores in the arrangement name
+    let name = 
+        tracks.Head.Arrangements[arrIndex].Name
+        |> String.filter (fun c -> c <> '.')
+        |> String.map (fun c -> if c = ' ' then '_' else c)
 
-        // The metadata might be wrong if, for example,
-        // a lead file was used as the first file of the combined rhythm arrangement
-        updateArrangementMetadata tracks.Head.Arrangements[arrIndex] combiner.CombinedArrangement
+    // The metadata might be wrong if, for example,
+    // a lead file was used as the first file of the combined rhythm arrangement
+    updateArrangementMetadata tracks.Head.Arrangements[arrIndex] combiner.CombinedArrangement
 
-        combiner.Save(Path.Combine(targetFolder, sprintf "Combined_%s_RS2.xml" name), project.CoercePhrases)
+    combiner.Save(Path.Combine(targetFolder, sprintf "Combined_%s_RS2.xml" name), project.CoercePhrases)
 
 let private combineArrangement (project: ProgramState) arrIndex targetFolder =
     match project.Tracks.Head.Arrangements[arrIndex].ArrangementType with
