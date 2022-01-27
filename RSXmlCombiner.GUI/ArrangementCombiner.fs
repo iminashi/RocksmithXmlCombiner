@@ -151,31 +151,81 @@ let private combineInstrumental (project: ProgramState) arrIndex targetFolder =
                     |> List.tryFind (fun a -> isInstrumental a.ArrangementType && a.FileName.IsSome)
                     |> Option.bind (fun x -> x.FileName)
                     |> Option.map InstrumentalArrangement.Load
-                    |> Option.defaultWith (fun () -> failwith $"Instrumental arrangement missing for track {tracks[i].Title}.")
 
-                let endPhraseTime = existing.PhraseIterations[existing.PhraseIterations.Count - 1].Time
-                // Discard notes, chords, etc.
-                InstrumentalArrangement(
-                    Ebeats = existing.Ebeats,
-                    Phrases =
-                        ResizeArray([
-                            Phrase("COUNT", 0uy, PhraseMask.None)
-                            Phrase("noguitar", 0uy, PhraseMask.None)
-                            Phrase("END", 0uy, PhraseMask.None)
-                        ]),
-                    PhraseIterations =
-                        ResizeArray([
-                            PhraseIteration(existing.PhraseIterations[0].Time, 0)
-                            PhraseIteration(existing.PhraseIterations[1].Time, 1)
-                            PhraseIteration(endPhraseTime, 2)
-                        ]),
-                    Sections =
-                        ResizeArray([
-                            Section("noguitar", existing.PhraseIterations[1].Time, 1s)
-                            Section("noguitar", endPhraseTime, 2s)
-                        ]),
-                    MetaData = existing.MetaData
-                )
+                match existing with
+                | None ->
+                    // Combining a track that has only vocals
+                    // Calculate dummy values for the "content" phrase and END phrase
+                    let endPhraseTime = int tracks[i].SongLength * 5 / 6
+                    let contentTime = int tracks[i].SongLength / 6
+
+                    InstrumentalArrangement(
+                        Ebeats = ResizeArray([ Ebeat(0, 0s) ]),
+                        Phrases =
+                            ResizeArray([
+                                Phrase("COUNT", 0uy, PhraseMask.None)
+                                Phrase("noguitar", 0uy, PhraseMask.None)
+                                Phrase("END", 0uy, PhraseMask.None)
+                            ]),
+                        PhraseIterations =
+                            ResizeArray([
+                                PhraseIteration(0, 0)
+                                PhraseIteration(contentTime, 1)
+                                PhraseIteration(endPhraseTime, 2)
+                            ]),
+                        Sections =
+                            ResizeArray([
+                                Section("noguitar", contentTime, 1s)
+                                Section("noguitar", endPhraseTime, 2s)
+                            ])
+                    )
+                | Some existing ->
+                    let countPhraseTime =
+                        if existing.PhraseIterations.Count = 0 then
+                            existing.StartBeat
+                        else
+                            existing.PhraseIterations[0].Time
+
+                    let endPhraseTime =
+                        let endPhraseId = 
+                            existing.Phrases.FindIndex(fun p -> p.Name.Equals("END", StringComparison.OrdinalIgnoreCase))
+
+                        match endPhraseId with
+                        | -1 ->
+                            int tracks[i].SongLength * 5 / 6
+                        | id ->
+                            existing.PhraseIterations.Find(fun x -> x.PhraseId = id).Time
+
+                    let contentTime =
+                        if existing.PhraseIterations.Count > 2 then
+                            existing.PhraseIterations[1].Time
+                        elif existing.PhraseIterations.Count = 0 then
+                            1000
+                        else
+                            existing.PhraseIterations[0].Time + 1000
+
+                    // Discard notes, chords, etc.
+                    InstrumentalArrangement(
+                        Ebeats = existing.Ebeats,
+                        Phrases =
+                            ResizeArray([
+                                Phrase("COUNT", 0uy, PhraseMask.None)
+                                Phrase("noguitar", 0uy, PhraseMask.None)
+                                Phrase("END", 0uy, PhraseMask.None)
+                            ]),
+                        PhraseIterations =
+                            ResizeArray([
+                                PhraseIteration(countPhraseTime, 0)
+                                PhraseIteration(contentTime, 1)
+                                PhraseIteration(endPhraseTime, 2)
+                            ]),
+                        Sections =
+                            ResizeArray([
+                                Section("noguitar", contentTime, 1s)
+                                Section("noguitar", endPhraseTime, 2s)
+                            ]),
+                        MetaData = existing.MetaData
+                    )
 
         if i = 0 then
             next.Tones.BaseToneName <- commonTones[0]
