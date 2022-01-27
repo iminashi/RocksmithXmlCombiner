@@ -177,7 +177,8 @@ let private combineInstrumental (project: ProgramState) arrIndex targetFolder =
                             ResizeArray([
                                 Section("noguitar", contentTime, 1s)
                                 Section("noguitar", endPhraseTime, 2s)
-                            ])
+                            ]),
+                        MetaData = MetaData(SongLength = int tracks[i].SongLength)
                     )
                 | Some existing ->
                     let countPhraseTime =
