@@ -108,8 +108,6 @@ let private updateArrangementMetadata arr (combined: InstrumentalArrangement) =
     arrProps.PathBass <- false
     arrProps.PathLead <- false
     arrProps.PathRhythm <- false
-    arrProps.Represent <- false
-    arrProps.BonusArrangement <- false
 
     match arr.ArrangementType with
     | ArrangementType.Lead ->
@@ -122,10 +120,9 @@ let private updateArrangementMetadata arr (combined: InstrumentalArrangement) =
         ()
 
     match arr.Data with
-    | Some { Ordering = ArrangementOrdering.Main } ->
-        arrProps.Represent <- true
-    | Some { Ordering = ArrangementOrdering.Bonus } ->
-        arrProps.BonusArrangement <- true
+    | Some { Ordering = ordering } ->
+        arrProps.Represent <- (ordering = ArrangementOrdering.Main)
+        arrProps.BonusArrangement <- (ordering = ArrangementOrdering.Bonus)
     | _ ->
         ()
 
@@ -160,6 +157,7 @@ let private combineInstrumental (project: ProgramState) arrIndex targetFolder =
                     let contentTime = int tracks[i].SongLength / 6
 
                     InstrumentalArrangement(
+                        Version = 7uy,
                         Ebeats = ResizeArray([ Ebeat(0, 0s) ]),
                         Phrases =
                             ResizeArray([
@@ -207,6 +205,7 @@ let private combineInstrumental (project: ProgramState) arrIndex targetFolder =
 
                     // Discard notes, chords, etc.
                     InstrumentalArrangement(
+                        Version = existing.Version,
                         Ebeats = existing.Ebeats,
                         Phrases =
                             ResizeArray([
@@ -227,6 +226,31 @@ let private combineInstrumental (project: ProgramState) arrIndex targetFolder =
                             ]),
                         MetaData = existing.MetaData
                     )
+
+        // Fix arrangement properties and tuning for the first track with no arrangement file set
+        if i = 0 && arr.Data.IsNone then
+            // Try to find arrangement data from other tracks
+            let arrData =
+                tracks
+                |> List.tryPick (fun t -> t.Arrangements[arrIndex].Data)
+
+            let arrProps = next.MetaData.ArrangementProperties
+
+            match arrData with
+            | Some data ->
+                arrProps.Represent <- data.Ordering = ArrangementOrdering.Main
+                arrProps.BonusArrangement <- data.Ordering = ArrangementOrdering.Bonus
+            | None ->
+                // Unlikely to get here. Make a guess
+                arrProps.Represent <- true
+                arrProps.BonusArrangement <- false
+
+            tracks
+            |> List.tryFind (fun t ->
+                isInstrumental t.Arrangements[arrIndex].ArrangementType && t.Arrangements[arrIndex].FileName.IsSome)
+            |> Option.bind (fun t -> t.Arrangements[arrIndex].FileName)
+            |> Option.map InstrumentalArrangement.Load
+            |> Option.iter (fun xml -> next.MetaData.Tuning <- xml.MetaData.Tuning)
 
         if i = 0 then
             next.Tones.BaseToneName <- commonTones[0]
