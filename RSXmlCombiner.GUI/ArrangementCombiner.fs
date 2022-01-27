@@ -129,7 +129,7 @@ let private updateArrangementMetadata arr (combined: InstrumentalArrangement) =
     | _ ->
         ()
 
-/// Combines the instrumental arrangements at the given index if all tracks have one set.
+/// Combines the instrumental arrangements at the given index.
 let private combineInstrumental (project: ProgramState) arrIndex targetFolder =
     let tracks = project.Tracks
     let commonTones =
