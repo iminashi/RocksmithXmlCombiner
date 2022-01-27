@@ -174,7 +174,9 @@ let update msg state : ProgramState * Cmd<_> =
         state, Cmd.OfAsync.either task projectPath ImportProjectLoaded ErrorOccured
 
     | ErrorOccured ex ->
-        { state with StatusMessage = ex.Message }, Cmd.none
+        { state with
+            ArrangementCombinerProgress = None
+            StatusMessage = $"ERROR: {ex.Message}" }, Cmd.none
     
     | NewProject ->
         ProgramState.init, Cmd.none
@@ -335,7 +337,7 @@ let update msg state : ProgramState * Cmd<_> =
         let task = ArrangementCombiner.combine state
 
         { state with ArrangementCombinerProgress = Some(0, max) },
-        Cmd.OfAsync.perform task targetFolder CombineArrangementsCompleted
+        Cmd.OfAsync.either task targetFolder CombineArrangementsCompleted ErrorOccured
 
     | CombineArrangementsCompleted _ ->
         { state with StatusMessage = "Arrangements combined."
