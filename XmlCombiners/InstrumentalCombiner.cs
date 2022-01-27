@@ -27,6 +27,8 @@ namespace XmlCombiners
 
             CombinePhrases(CombinedArrangement);
 
+            MergeNoguitarSections(CombinedArrangement);
+
             CombineChords(CombinedArrangement);
 
             if (coercePhrases && CombinedArrangement.Levels.Count == 1)
@@ -231,6 +233,37 @@ namespace XmlCombiners
             {
                 if (song.Tones.Changes[i].Name == song.Tones.Changes[i + 1].Name)
                     song.Tones.Changes.RemoveAt(i + 1);
+            }
+        }
+
+        private static void MergeNoguitarSections(InstrumentalArrangement song)
+        {
+            var anyRemoved = false;
+
+            for (int i = 0; i < song.Sections.Count - 1; i++)
+            {
+                if (song.Sections[i].Name == "noguitar" && song.Sections[i + 1].Name == "noguitar")
+                {
+                    var time = song.Sections[i + 1].Time;
+
+                    song.Sections.RemoveAt(i + 1);
+                    song.PhraseIterations.RemoveAll(x => x.Time == time);
+
+                    anyRemoved = true;
+                }
+            }
+
+            // Fix the section numbers
+            if(anyRemoved)
+            {
+                short counter = 1;
+                foreach(var section in song.Sections)
+                {
+                    if (section.Name == "noguitar")
+                    {
+                        section.Number = counter++;
+                    }
+                }
             }
         }
 
