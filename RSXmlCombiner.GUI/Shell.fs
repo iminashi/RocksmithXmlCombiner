@@ -15,17 +15,24 @@ open System.IO
 let init () = ProgramState.init, Cmd.none
 
 let private createTrack instArrFile (title: string option) (audioFile: string option) arrangements =
-    let song = InstrumentalArrangement.Load(instArrFile)
+    let song = instArrFile |> Option.map InstrumentalArrangement.Load
 
     let songLength =
         audioFile
         |> Option.map Audio.getLength
-        |> Option.defaultValue (song.MetaData.SongLength * 1<ms>)
+        |> Option.orElse (song |> Option.map (fun x -> x.MetaData.SongLength * 1<ms>))
+        |> Option.defaultValue 0<ms>
 
-    { Title = title |> Option.defaultValue song.MetaData.Title
+    { Title =
+        title
+        |> Option.orElse (song |> Option.map (fun x -> x.MetaData.Title))
+        |> Option.defaultValue "Unknown Title"
       AudioFile = audioFile
       SongLength = songLength
-      TrimAmount = song.StartBeat * 1<ms>
+      TrimAmount =
+        song
+        |> Option.map (fun x -> x.StartBeat * 1<ms>)
+        |> Option.defaultValue 0<ms>
       Arrangements = arrangements |> List.sortBy arrangementSort }
 
 let private addNewTrack state arrangementFileNames =
@@ -33,34 +40,29 @@ let private addNewTrack state arrangementFileNames =
         arrangementFileNames
         |> Array.tryFind (XmlUtils.validateRootName "song")
 
-    match instArrFile with
-    | None ->
-        { state with StatusMessage = "Please select at least one instrumental Rocksmith arrangement." }
+    let canInclude arrType = List.exists (fun a -> a.ArrangementType = arrType) >> not
 
-    | Some instArrFile ->
-        let canInclude arrType = List.exists (fun a -> a.ArrangementType = arrType) >> not
-
-        let arrangementFolder (state: Arrangement list) fileName =
-            match XmlUtils.getRootElementName fileName with
-            | "song" ->
-                let arr = createInstrumental fileName None
-                if state |> List.exists (fun a -> a.Name = arr.Name) then
-                    state
-                else
-                    arr :: state
-            | "vocals" when state |> canInclude ArrangementType.Vocals ->
-                (createOther "Vocals" fileName ArrangementType.Vocals) :: state
-            | "showlights" when state |> canInclude ArrangementType.ShowLights ->
-                (createOther "Show Lights" fileName ArrangementType.ShowLights) :: state
-            | _ ->
+    let arrangementFolder (state: Arrangement list) fileName =
+        match XmlUtils.getRootElementName fileName with
+        | "song" ->
+            let arr = createInstrumental fileName None
+            if state |> List.exists (fun a -> a.Name = arr.Name) then
                 state
+            else
+                arr :: state
+        | "vocals" when state |> canInclude ArrangementType.Vocals ->
+            (createOther "Vocals" fileName ArrangementType.Vocals) :: state
+        | "showlights" when state |> canInclude ArrangementType.ShowLights ->
+            (createOther "Show Lights" fileName ArrangementType.ShowLights) :: state
+        | _ ->
+            state
 
-        arrangementFileNames
-        |> Array.fold arrangementFolder []
-        // Add any missing arrangements from the project's templates
-        |> ProgramState.addMissingArrangements state.Templates
-        |> createTrack instArrFile None None
-        |> ProgramState.addTrack state
+    arrangementFileNames
+    |> Array.fold arrangementFolder []
+    // Add any missing arrangements from the project's templates
+    |> ProgramState.addMissingArrangements state.Templates
+    |> createTrack instArrFile None None
+    |> ProgramState.addTrack state
 
 let private changeAudioFile newFile track =
     { track with
@@ -170,7 +172,7 @@ let update msg state : ProgramState * Cmd<_> =
                 |> Map.fold foldArrangements []
                 // Add any missing arrangements from the project's templates
                 |> ProgramState.addMissingArrangements state.Templates
-                |> createTrack instArrFile (Some title) audioFile
+                |> createTrack (Some instArrFile) (Some title) audioFile
                 |> ProgramState.addTrack state
 
             let message = sprintf "%i arrangements imported." foundArrangements.Count
