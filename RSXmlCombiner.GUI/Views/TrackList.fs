@@ -6,6 +6,7 @@ open Avalonia.Controls
 open Avalonia.Controls.Shapes
 open Avalonia.FuncUI
 open Avalonia.FuncUI.DSL
+open Avalonia.Input
 open Avalonia.Layout
 open Media
 open ArrangementType
@@ -257,11 +258,47 @@ let private trackView state dispatch trackIndex (track: Track) =
                 DockPanel.margin (5.0, 0.0, 0.0, 0.0)
                 DockPanel.children [
                     // Track Number and Title
-                    TextBlock.create [
-                        DockPanel.dock Dock.Top
-                        TextBlock.text (sprintf "%i. %s" (trackIndex + 1) track.Title)
-                        TextBlock.classes [ "h1" ]
-                    ]
+                    if state.EditingTitleTrackIndex = trackIndex then
+                        StackPanel.create [
+                            DockPanel.dock Dock.Top
+                            StackPanel.orientation Orientation.Horizontal
+                            StackPanel.children [
+                                TextBlock.create [
+                                    TextBlock.text (sprintf "%i. " (trackIndex + 1))
+                                    TextBlock.classes [ "h1" ]
+                                   ]
+
+                                TextBox.create [
+                                    TextBox.text track.Title
+                                    TextBox.fontSize 20.
+                                    TextBox.onLostFocus (fun _ ->
+                                        -1
+                                        |> SetEditingTitleTrackIndex
+                                        |> dispatch)
+                                    TextBox.onTextChanged (fun title ->
+                                        title
+                                        |> SetTrackTitle
+                                        |> dispatch)
+                                    TextBox.onKeyDown (fun e ->
+                                        if e.Key = Key.Enter then
+                                            e.Handled <- true
+                                            -1
+                                            |> SetEditingTitleTrackIndex
+                                            |> dispatch)
+                                ]
+                            ]
+                        ]
+                    else
+                        TextBlock.create [
+                            DockPanel.dock Dock.Top
+                            TextBlock.text (sprintf "%i. %s" (trackIndex + 1) track.Title)
+                            TextBlock.classes [ "h1" ]
+                            TextBlock.cursor Media.Cursors.hand
+                            TextBlock.onPointerPressed (fun _ ->
+                                trackIndex
+                                |> SetEditingTitleTrackIndex
+                                |> dispatch)
+                        ]
 
                     trackContents state dispatch trackIndex track
                 ]

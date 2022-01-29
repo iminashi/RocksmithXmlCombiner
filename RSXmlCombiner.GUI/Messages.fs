@@ -48,6 +48,8 @@ type Msg =
     | ShowReplacementToneEditor of trackIndex: int * arrIndex: int
     | TrimAmountChanged of trackIndex: int * trimAmount: double
     | RemoveTemplate of name: string
+    | SetEditingTitleTrackIndex of index: int
+    | SetTrackTitle of title: string
 
     // Common tone editor
     | UpdateToneName of arrName: string * index: int * newName: string

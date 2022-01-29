@@ -21,6 +21,7 @@ type ProgramState =
       AudioCombinerProgress: float option
       ArrangementCombinerProgress: (int * int) option
       OpenProjectFile: string option
+      EditingTitleTrackIndex: int
       SelectedFileTones: Map<string, string> }
 
 module ProgramState =
@@ -38,6 +39,7 @@ module ProgramState =
           AudioCombinerProgress = None
           ArrangementCombinerProgress = None
           OpenProjectFile = None
+          EditingTitleTrackIndex = -1
           SelectedFileTones = Map.empty }
 
     let private updateTemplates (arrangements: Arrangement list) (Templates currentTemplates) =

@@ -79,6 +79,20 @@ let private getArr trackIndex arrIndex state = state.Tracks[trackIndex].Arrangem
 
 let update msg state : ProgramState * Cmd<_> =
     match msg with
+    | SetEditingTitleTrackIndex index ->
+        { state with EditingTitleTrackIndex = index }, Cmd.none
+
+    | SetTrackTitle title ->
+        let tracks =
+            state.Tracks
+            |> List.mapi (fun i t ->
+                if i = state.EditingTitleTrackIndex then
+                    { t with Title = title }
+                else
+                    t)
+
+        { state with Tracks = tracks }, Cmd.none
+
     | ToneReplacementClosed ->
         { state with ReplacementToneEditor = None }, Cmd.none
 

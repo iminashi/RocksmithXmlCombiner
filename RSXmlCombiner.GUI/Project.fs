@@ -56,6 +56,7 @@ let toProgramState templates fileName statusMessage (dto: Dto) =
       AudioCombinerProgress = None
       ArrangementCombinerProgress = None
       OpenProjectFile = Some fileName
+      EditingTitleTrackIndex = -1
       SelectedFileTones = Map.empty }
 
 /// Updates the arrangements in the project with tone names read from the XML files.
