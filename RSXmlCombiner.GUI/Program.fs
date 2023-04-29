@@ -12,7 +12,7 @@ open System.Diagnostics
 type MainWindow() as this =
     inherit HostWindow()
     do
-        base.Title <- "Rocksmith 2014 XML Combiner"
+        base.Title <- $"Rocksmith 2014 XML Combiner {Types.Version.ToString(3)}"
         base.Width <- 1160.0
         base.Height <- 800.0
         base.MinWidth <- 900.0
