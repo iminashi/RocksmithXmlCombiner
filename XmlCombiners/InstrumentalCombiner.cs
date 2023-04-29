@@ -34,7 +34,7 @@ namespace XmlCombiners
             if (coercePhrases && CombinedArrangement.Levels.Count == 1)
                 CoercePhrasesAndSections(CombinedArrangement);
 
-            if(generateDummyDD && CombinedArrangement.Levels.Count == 1)
+            if (generateDummyDD && CombinedArrangement.Levels.Count == 1)
                 GenerateDummyDD(CombinedArrangement);
 
             CombinedArrangement.Save(fileName);
@@ -57,7 +57,8 @@ namespace XmlCombiners
                 if (i == 0 || i == arr.PhraseIterations.Count - 1 || arr.Phrases[phraseId].Name.Equals("noguitar", StringComparison.OrdinalIgnoreCase))
                 {
                     noGuitarPhraseIds.Add(phraseId);
-                } else
+                }
+                else
                 {
                     // Check if the phrase has no notes and chords
 
@@ -67,11 +68,11 @@ namespace XmlCombiners
 
                     var level = arr.Levels[0];
                     bool chordExists = level.Chords.Exists(c => c.Time >= startTime && c.Time < endTime);
-                    if(!chordExists)
+                    if (!chordExists)
                     {
                         bool noteExists = level.Notes.Exists(n => n.Time >= startTime && n.Time < endTime);
                         // No chords or notes inside phrase -> add to noguitar phrases
-                        if(!noteExists)
+                        if (!noteExists)
                         {
                             noGuitarPhraseIds.Add(phraseId);
                         }
@@ -98,15 +99,25 @@ namespace XmlCombiners
             }
 
             // Add one empty level
+            var newlevelZero = new Level(0) { Anchors = arr.Levels[0].Anchors };
             var newLevelOne = arr.Levels[0];
             newLevelOne.Difficulty = 1;
-            arr.Levels = new List<Level> { new Level(0), newLevelOne };
+            arr.Levels = new List<Level> { newlevelZero, newLevelOne };
         }
 
         public void AddNext(InstrumentalArrangement next, int songLength, int trimAmount, bool condenseIntoOnePhrase, bool isLast = false)
         {
             bool isFirstArrangement = CombinedArrangement is null;
             ArrangementNumber++;
+
+            // Insert an anchor at the start of the arrangement being added
+            if (!isFirstArrangement && next.Levels.Count == 1 && next.Levels[0].Anchors.Count > 1 && next.Levels[0].Anchors[0].Time != next.PhraseIterations[0].Time)
+            {
+                next.Levels[0].Anchors.Insert(0, new Anchor(next.Levels[0].Anchors[0])
+                {
+                    Time = next.PhraseIterations[0].Time
+                });
+            }
 
             if (condenseIntoOnePhrase)
                 CondenseIntoOnePhase(next, songLength, isFirstArrangement, isLast);
@@ -323,10 +334,10 @@ namespace XmlCombiners
             }
 
             // Fix the section numbers
-            if(anyRemoved)
+            if (anyRemoved)
             {
                 short counter = 1;
-                foreach(var section in song.Sections)
+                foreach (var section in song.Sections)
                 {
                     if (section.Name == "noguitar")
                     {
