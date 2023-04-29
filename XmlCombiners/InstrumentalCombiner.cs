@@ -16,7 +16,7 @@ namespace XmlCombiners
 
         private float TempoSum { get; set; }
 
-        public void Save(string fileName, bool coercePhrases = false)
+        public void Save(string fileName, bool coercePhrases = false, bool generateDummyDD = false)
         {
             if (CombinedArrangement is null)
                 throw new InvalidOperationException("Cannot save an empty arrangement.");
@@ -34,8 +34,71 @@ namespace XmlCombiners
             if (coercePhrases && CombinedArrangement.Levels.Count == 1)
                 CoercePhrasesAndSections(CombinedArrangement);
 
+            if(generateDummyDD && CombinedArrangement.Levels.Count == 1)
+                GenerateDummyDD(CombinedArrangement);
+
             CombinedArrangement.Save(fileName);
             Console.WriteLine($"Saved combined file as {fileName}");
+        }
+
+        private static void GenerateDummyDD(InstrumentalArrangement arr)
+        {
+            var noGuitarPhraseIds = new HashSet<int>();
+
+            // Find noguitar phrases
+            for (int i = 0; i < arr.PhraseIterations.Count; i++)
+            {
+                var pi = arr.PhraseIterations[i];
+                var phraseId = pi.PhraseId;
+
+                if (noGuitarPhraseIds.Contains(phraseId)) continue;
+
+                // Add ID of the first empty phrase and the END phrase
+                if (i == 0 || i == arr.PhraseIterations.Count - 1)
+                {
+                    noGuitarPhraseIds.Add(phraseId);
+                } else
+                {
+                    var startTime = pi.Time;
+                    // Index is always in range due to if branch condition above
+                    var endTime = arr.PhraseIterations[i + 1].Time;
+
+                    var level = arr.Levels[0];
+                    bool chordExists = level.Chords.Exists(c => c.Time >= startTime && c.Time < endTime);
+                    if(!chordExists)
+                    {
+                        bool noteExists = level.Notes.Exists(n => n.Time >= startTime && n.Time < endTime);
+                        // No chords or notes inside phrase -> add to noguitar phrases
+                        if(!noteExists)
+                        {
+                            noGuitarPhraseIds.Add(phraseId);
+                        }
+                    }
+                }
+            }
+
+            // Set max difficulty to phrases
+            for (int i = 0; i < arr.Phrases.Count; i++)
+            {
+                if (!noGuitarPhraseIds.Contains(i))
+                {
+                    arr.Phrases[i].MaxDifficulty = 1;
+                }
+            }
+
+            // Create hero levels
+            foreach (var pi in arr.PhraseIterations)
+            {
+                if (!noGuitarPhraseIds.Contains(pi.PhraseId))
+                {
+                    pi.HeroLevels = new HeroLevels(1, 1, 1);
+                }
+            }
+
+            // Add one empty level
+            var newLevelOne = arr.Levels[0];
+            newLevelOne.Difficulty = 1;
+            arr.Levels = new List<Level> { new Level(0), newLevelOne };
         }
 
         public void AddNext(InstrumentalArrangement next, int songLength, int trimAmount, bool condenseIntoOnePhrase, bool isLast = false)
