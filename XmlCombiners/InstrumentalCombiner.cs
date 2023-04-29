@@ -53,12 +53,14 @@ namespace XmlCombiners
 
                 if (noGuitarPhraseIds.Contains(phraseId)) continue;
 
-                // Add ID of the first empty phrase and the END phrase
-                if (i == 0 || i == arr.PhraseIterations.Count - 1)
+                // Add ID of the first empty phrase, the END phrase and phrases with name "noguitar"
+                if (i == 0 || i == arr.PhraseIterations.Count - 1 || arr.Phrases[phraseId].Name.Equals("noguitar", StringComparison.OrdinalIgnoreCase))
                 {
                     noGuitarPhraseIds.Add(phraseId);
                 } else
                 {
+                    // Check if the phrase has no notes and chords
+
                     var startTime = pi.Time;
                     // Index is always in range due to if branch condition above
                     var endTime = arr.PhraseIterations[i + 1].Time;
@@ -693,12 +695,13 @@ namespace XmlCombiners
 
         private static void UpdateSectionNumbers(InstrumentalArrangement combined)
         {
-            Dictionary<string, short> numbers = new Dictionary<string, short>();
+            var numbers = new Dictionary<string, short>();
             foreach (var section in combined.Sections)
             {
-                if (numbers.ContainsKey(section.Name))
+                if (numbers.TryGetValue(section.Name, out short value))
                 {
-                    section.Number = ++numbers[section.Name];
+                    section.Number = (short)(value + 1);
+                    numbers[section.Name] = section.Number;
                 }
                 else
                 {

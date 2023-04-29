@@ -74,11 +74,13 @@ type DLCProject =
       PitchShift: int16 option
       Tones: Tone list*) }
 
-let private loadProject (fileName: string) = async {
-    let options = JsonSerializerOptions(IgnoreNullValues = true)
-    options.Converters.Add(JsonFSharpConverter())
-    use file = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.SequentialScan ||| FileOptions.Asynchronous)
-    return! JsonSerializer.DeserializeAsync<DLCProject>(file, options).AsTask() |> Async.AwaitTask }
+let private loadProject (fileName: string) =
+    task {
+        let options = JsonSerializerOptions(IgnoreNullValues = true)
+        options.Converters.Add(JsonFSharpConverter())
+        use file = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.SequentialScan ||| FileOptions.Asynchronous)
+        return! JsonSerializer.DeserializeAsync<DLCProject>(file, options)
+    }
 
 let private toAbsolutePath (directory: string) (path: string) =
     if Path.IsPathFullyQualified(path) then
@@ -109,17 +111,19 @@ let private tryGetTypeAndXmlFile = function
         None
 
 /// Imports arrangements from a DLC Builder project.
-let import (fileName: string) = async {
-    let projectDirectory = Path.GetDirectoryName(fileName)
-    let! project = loadProject fileName
-    let audioFile = toAbsolutePath projectDirectory project.AudioFile.Path
-    let title = project.Title.Value
+let import (fileName: string) =
+    task {
+        let projectDirectory = Path.GetDirectoryName(fileName)
+        let! project = loadProject fileName
+        let audioFile = toAbsolutePath projectDirectory project.AudioFile.Path
+        let title = project.Title.Value
 
-    let arrangementMap =
-        (Map.empty, project.Arrangements)
-        ||> List.fold (fun map arr ->
-            (map, tryGetTypeAndXmlFile arr)
-            ||> Option.fold (fun map (arrType, xml) ->
-                map.Add(arrType, toAbsolutePath projectDirectory xml)))
+        let arrangementMap =
+            (Map.empty, project.Arrangements)
+            ||> List.fold (fun map arr ->
+                (map, tryGetTypeAndXmlFile arr)
+                ||> Option.fold (fun map (arrType, xml) ->
+                    map.Add(arrType, toAbsolutePath projectDirectory xml)))
 
-    return arrangementMap, title, audioFile }
+        return arrangementMap, title, audioFile
+    }

@@ -28,23 +28,23 @@ let private fromProgramState (state: ProgramState) =
 
 /// Saves a project with the given filename.
 let save fileName (state: ProgramState) =
-    async {
+    task {
         let options = JsonSerializerOptions(WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase)
         options.Converters.Add(JsonFSharpConverter())
 
         let project = fromProgramState state
         use file = File.Create(fileName)
-        do! JsonSerializer.SerializeAsync(file, project, options) |> Async.AwaitTask
+        do! JsonSerializer.SerializeAsync(file, project, options)
     }
 
 /// Loads a project from a file.
 let load fileName =
-    async {
+    task {
         let options = JsonSerializerOptions(PropertyNamingPolicy = JsonNamingPolicy.CamelCase)
         options.Converters.Add(JsonFSharpConverter())
 
         use file = File.Open(fileName, FileMode.Open)
-        return! JsonSerializer.DeserializeAsync<Dto>(file, options).AsTask() |> Async.AwaitTask
+        return! JsonSerializer.DeserializeAsync<Dto>(file, options)
     }
 
 /// Converts a project DTO into a program state record.

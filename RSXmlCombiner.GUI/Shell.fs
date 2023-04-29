@@ -180,14 +180,14 @@ let update msg state : ProgramState * Cmd<_> =
     
     | ImportProject (Some projectPath) ->
         let task (path: string) =
-            async {
+            task {
                 if path.EndsWith("rs2dlc", StringComparison.OrdinalIgnoreCase) then
                     return! DLCBuilderProject.import path
                 else
                     return ToolkitImporter.import path
             }
 
-        state, Cmd.OfAsync.either task projectPath ImportProjectLoaded ErrorOccured
+        state, Cmd.OfTask.either task projectPath ImportProjectLoaded ErrorOccured
 
     | ErrorOccured ex ->
         { state with
@@ -198,7 +198,7 @@ let update msg state : ProgramState * Cmd<_> =
         ProgramState.init, Cmd.none
 
     | OpenProject (Some projectPath) ->
-        state, Cmd.OfAsync.either Project.load projectPath (fun p -> ProjectOpened(p, projectPath)) ErrorOccured
+        state, Cmd.OfTask.either Project.load projectPath (fun p -> ProjectOpened(p, projectPath)) ErrorOccured
         
     | ProjectOpened (project, projectPath) ->
         // Make sure that the tone names are up-to-date
@@ -222,12 +222,12 @@ let update msg state : ProgramState * Cmd<_> =
 
     | SaveProject (Some fileName) ->
         let task () =
-            async {
+            task {
                 do! Project.save fileName state
                 return fileName
             }
 
-        state, Cmd.OfAsync.either task () ProjectSaved ErrorOccured
+        state, Cmd.OfTask.either task () ProjectSaved ErrorOccured
 
     | ProjectSaved fileName ->
         { state with

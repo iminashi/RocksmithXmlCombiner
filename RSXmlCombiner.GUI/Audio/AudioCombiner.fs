@@ -17,7 +17,7 @@ type PreviewCreationData =
       SongLength: int<ms> }
 
 /// Combines the audio files of the given tracks into the target file.
-let combineWithResampling (targetFile: string) (data: AudioCombinerData list)  =
+let combineWithResampling (targetFile: string) (data: AudioCombinerData list) =
     try
         data
         |> Seq.mapi (fun i data ->
