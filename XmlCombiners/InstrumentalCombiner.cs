@@ -35,12 +35,40 @@ namespace XmlCombiners
                 CoercePhrasesAndSections(CombinedArrangement);
 
             if (generateDummyDD && CombinedArrangement.Levels.Count == 1)
+            {
+                FixPhraseStartAnchors(CombinedArrangement);
                 GenerateDummyDD(CombinedArrangement);
+            }
 
             var ver = string.IsNullOrWhiteSpace(versionString) ? "" : $" v{versionString}";
             CombinedArrangement.XmlComments.Add(new RSXmlComment($"XML Combiner{ver}"));
             CombinedArrangement.Save(fileName);
             Console.WriteLine($"Saved combined file as {fileName}");
+        }
+
+        private static void FixPhraseStartAnchors(InstrumentalArrangement arr)
+        {
+            var anchors = arr.Levels[0].Anchors;
+
+            // Skip the COUNT and END phrases
+            for (int i = 1; i < arr.PhraseIterations.Count - 1; i++)
+            {
+                var piTime = arr.PhraseIterations[i].Time;
+                var activeAnchor = anchors.FindLast(a => a.Time <= piTime);
+
+                if (activeAnchor is not null && activeAnchor.Time != piTime)
+                {
+                    anchors.InsertByTime(new Anchor(activeAnchor.Fret, piTime, activeAnchor.Width));
+                }
+                else if (activeAnchor is null)
+                {
+                    var nextAnchor = anchors.Find(a => a.Time > piTime);
+                    if (nextAnchor is not null)
+                    {
+                        nextAnchor.Time = piTime;
+                    }
+                }
+            }
         }
 
         private static void GenerateDummyDD(InstrumentalArrangement arr)
@@ -101,7 +129,8 @@ namespace XmlCombiners
             }
 
             // Add one empty level
-            var newlevelZero = new Level(0) { Anchors = arr.Levels[0].Anchors };
+            var necessaryAnchors = arr.Levels[0].Anchors.Where(a => arr.PhraseIterations.Exists(pi => pi.Time == a.Time)).ToList();
+            var newlevelZero = new Level(0) { Anchors = necessaryAnchors };
             var newLevelOne = arr.Levels[0];
             newLevelOne.Difficulty = 1;
             arr.Levels = new List<Level> { newlevelZero, newLevelOne };
