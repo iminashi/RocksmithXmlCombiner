@@ -175,6 +175,10 @@ namespace XmlCombiners
             CombinedArrangement.MetaData.SongLength += songLength - trimAmount;
             TempoSum += next.MetaData.AverageTempo;
             CombineArrangementProperties(CombinedArrangement, next);
+
+            // Use the smallest version
+            // (DLC Builder fixes "high density" usage only if version < 8)
+            CombinedArrangement.Version = Math.Min(CombinedArrangement.Version, next.Version);
         }
 
         private void CondenseIntoOnePhase(InstrumentalArrangement arr, int songLength, bool isFirst, bool isLast)
