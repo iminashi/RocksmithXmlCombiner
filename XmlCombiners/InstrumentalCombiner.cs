@@ -16,7 +16,7 @@ namespace XmlCombiners
 
         private float TempoSum { get; set; }
 
-        public void Save(string fileName, bool coercePhrases = false, bool generateDummyDD = false)
+        public void Save(string fileName, bool coercePhrases = false, bool generateDummyDD = false, string versionString = "")
         {
             if (CombinedArrangement is null)
                 throw new InvalidOperationException("Cannot save an empty arrangement.");
@@ -37,6 +37,8 @@ namespace XmlCombiners
             if (generateDummyDD && CombinedArrangement.Levels.Count == 1)
                 GenerateDummyDD(CombinedArrangement);
 
+            var ver = string.IsNullOrWhiteSpace(versionString) ? "" : $" v{versionString}";
+            CombinedArrangement.XmlComments.Add(new RSXmlComment($"XML Combiner{ver}"));
             CombinedArrangement.Save(fileName);
             Console.WriteLine($"Saved combined file as {fileName}");
         }

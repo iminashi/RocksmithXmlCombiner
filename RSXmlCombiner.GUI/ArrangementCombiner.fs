@@ -292,7 +292,7 @@ let private combineInstrumental (project: ProgramState) arrIndex targetFolder =
     // a lead file was used as the first file of the combined rhythm arrangement
     updateArrangementMetadata tracks.Head.Arrangements[arrIndex] combiner.CombinedArrangement
 
-    combiner.Save(Path.Combine(targetFolder, sprintf "Combined_%s_RS2.xml" name), project.CoercePhrases, project.GenerateDummyDD)
+    combiner.Save(Path.Combine(targetFolder, sprintf "Combined_%s_RS2.xml" name), project.CoercePhrases, project.GenerateDummyDD, Types.Version.ToString(3))
 
 let private combineArrangement (project: ProgramState) arrIndex targetFolder =
     match project.Tracks.Head.Arrangements[arrIndex].ArrangementType with

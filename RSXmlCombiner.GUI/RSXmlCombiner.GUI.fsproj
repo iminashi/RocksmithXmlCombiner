@@ -8,6 +8,7 @@
     <Company>iminashi</Company>
     <Product>Rocksmith 2014 XML Combiner</Product>
     <AssemblyTitle>Rocksmith 2014 XML Combiner</AssemblyTitle>
+    <Version>1.0.0</Version>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <RuntimeIdentifiers>win-x64;osx-x64</RuntimeIdentifiers>
     <WarnOn>1182;3390;$(WarnOn)</WarnOn>

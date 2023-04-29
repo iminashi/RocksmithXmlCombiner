@@ -3,6 +3,9 @@ module RSXmlCombiner.FuncUI.Types
 
 open Rocksmith2014.XML
 open System
+open System.Reflection
+
+let Version = Assembly.GetExecutingAssembly().GetName().Version
 
 [<Measure>] type ms
 
