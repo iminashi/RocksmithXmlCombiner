@@ -374,6 +374,9 @@ let update msg state : ProgramState * Cmd<_> =
     | OnePhrasePerTrackChanged value ->
         { state with OnePhrasePerTrack = value }, Cmd.none
 
+    | GenerateDummyDDChanged value ->
+        { state with GenerateDummyDD = value }, Cmd.none
+
     | AddTrackNamesChanged value ->
         { state with AddTrackNamesToLyrics = value }, Cmd.none
 

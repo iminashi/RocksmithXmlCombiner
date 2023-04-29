@@ -11,6 +11,7 @@ type Dto() =
     member val CommonTones: CommonTones = Map.empty with get, set
     member val CombinationTitle: string = String.Empty with get, set
     member val CoercePhrases: bool = true with get, set
+    member val GenerateDummyDD: bool = false with get, set
     member val OnePhrasePerTrack: bool = false with get, set
     member val AddTrackNamesToLyrics: bool = true with get, set
 
@@ -20,26 +21,31 @@ let private fromProgramState (state: ProgramState) =
         CommonTones = state.CommonTones,
         CombinationTitle = state.CombinationTitle,
         CoercePhrases = state.CoercePhrases,
+        GenerateDummyDD = state.GenerateDummyDD,
         OnePhrasePerTrack = state.OnePhrasePerTrack,
         AddTrackNamesToLyrics = state.AddTrackNamesToLyrics
     )
 
 /// Saves a project with the given filename.
-let save fileName (state: ProgramState) = async {
-    let options = JsonSerializerOptions(WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase)
-    options.Converters.Add(JsonFSharpConverter())
+let save fileName (state: ProgramState) =
+    async {
+        let options = JsonSerializerOptions(WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase)
+        options.Converters.Add(JsonFSharpConverter())
 
-    let project = fromProgramState state
-    use file = File.Create(fileName)
-    do! JsonSerializer.SerializeAsync(file, project, options) |> Async.AwaitTask }
+        let project = fromProgramState state
+        use file = File.Create(fileName)
+        do! JsonSerializer.SerializeAsync(file, project, options) |> Async.AwaitTask
+    }
 
 /// Loads a project from a file.
-let load fileName = async {
-    let options = JsonSerializerOptions(PropertyNamingPolicy = JsonNamingPolicy.CamelCase)
-    options.Converters.Add(JsonFSharpConverter())
+let load fileName =
+    async {
+        let options = JsonSerializerOptions(PropertyNamingPolicy = JsonNamingPolicy.CamelCase)
+        options.Converters.Add(JsonFSharpConverter())
 
-    use file = File.Open(fileName, FileMode.Open)
-    return! JsonSerializer.DeserializeAsync<Dto>(file, options).AsTask() |> Async.AwaitTask }
+        use file = File.Open(fileName, FileMode.Open)
+        return! JsonSerializer.DeserializeAsync<Dto>(file, options).AsTask() |> Async.AwaitTask
+    }
 
 /// Converts a project DTO into a program state record.
 let toProgramState templates fileName statusMessage (dto: Dto) =
@@ -48,6 +54,7 @@ let toProgramState templates fileName statusMessage (dto: Dto) =
       CombinationTitle = dto.CombinationTitle
       AddTrackNamesToLyrics = dto.AddTrackNamesToLyrics
       CoercePhrases = dto.CoercePhrases
+      GenerateDummyDD = dto.GenerateDummyDD
       OnePhrasePerTrack = dto.OnePhrasePerTrack
       Templates = templates
       StatusMessage = statusMessage

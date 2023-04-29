@@ -283,7 +283,7 @@ let private combineInstrumental (project: ProgramState) arrIndex targetFolder =
         combiner.SetTitle(project.CombinationTitle)
 
     // Remove periods and replace spaces with underscores in the arrangement name
-    let name = 
+    let name =
         tracks.Head.Arrangements[arrIndex].Name
         |> String.filter (fun c -> c <> '.')
         |> String.map (fun c -> if c = ' ' then '_' else c)
@@ -292,7 +292,7 @@ let private combineInstrumental (project: ProgramState) arrIndex targetFolder =
     // a lead file was used as the first file of the combined rhythm arrangement
     updateArrangementMetadata tracks.Head.Arrangements[arrIndex] combiner.CombinedArrangement
 
-    combiner.Save(Path.Combine(targetFolder, sprintf "Combined_%s_RS2.xml" name), project.CoercePhrases)
+    combiner.Save(Path.Combine(targetFolder, sprintf "Combined_%s_RS2.xml" name), project.CoercePhrases, project.GenerateDummyDD)
 
 let private combineArrangement (project: ProgramState) arrIndex targetFolder =
     match project.Tracks.Head.Arrangements[arrIndex].ArrangementType with

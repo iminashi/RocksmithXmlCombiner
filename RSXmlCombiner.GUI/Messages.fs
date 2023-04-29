@@ -31,6 +31,7 @@ type Msg =
     | UpdateCombinationTitle of newTitle: string
     | CoercePhrasesChanged of bool
     | OnePhrasePerTrackChanged of bool
+    | GenerateDummyDDChanged of bool
     | AddTrackNamesChanged of bool
     | CombineAudioCompleted of message: string
     | CombineArrangementsCompleted of unit

@@ -70,7 +70,8 @@ let view state dispatch =
                                 CheckBox.isChecked state.CoercePhrases
                                 CheckBox.onChecked (fun _ -> CoercePhrasesChanged true |> dispatch)
                                 CheckBox.onUnchecked (fun _ -> CoercePhrasesChanged false |> dispatch)
-                                ToolTip.tip "Combines phrases and sections so that the resulting arrangements have a max of 100 phrases and sections.\n\nWorks only when combining arrangements without DD levels."
+                                ToolTip.tip "Combines phrases and sections so that the resulting arrangements have a max of 100 phrases and sections. \
+                                             \n\nWorks only when combining arrangements without DD levels."
                             ]
                             // One Phrase Per Track Checkbox
                             CheckBox.create [
@@ -78,8 +79,19 @@ let view state dispatch =
                                 CheckBox.isChecked state.OnePhrasePerTrack
                                 CheckBox.onChecked (fun _ -> OnePhrasePerTrackChanged true |> dispatch)
                                 CheckBox.onUnchecked (fun _ -> OnePhrasePerTrackChanged false |> dispatch)
+                                ToolTip.tip "Condenses each instrumental arrangement on a track into one phrase/section. \
+                                            \nMay cause issues with the camera zoom in the game."
                                 CheckBox.margin (0.0, 5.0, 0.0, 5.0)
-                                ToolTip.tip "Condenses each instrumental arrangement on a track into one phrase/section."
+                            ]
+                            // Generate minimal DD levels
+                            CheckBox.create [
+                                CheckBox.content "Generate Dummy DD"
+                                CheckBox.isChecked state.GenerateDummyDD
+                                CheckBox.onChecked (fun _ -> GenerateDummyDDChanged true |> dispatch)
+                                CheckBox.onUnchecked (fun _ -> GenerateDummyDDChanged false |> dispatch)
+                                ToolTip.tip "Generates two difficulty levels for all phrases: one empty and one with all the notes. \
+                                             \nWorks only when combining arrangements without DD levels."
+                                CheckBox.margin (0.0, 0.0, 0.0, 5.0)
                             ]
                             // Add Track Names to Lyrics Checkbox
                             CheckBox.create [

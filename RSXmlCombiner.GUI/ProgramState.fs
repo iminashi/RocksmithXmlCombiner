@@ -14,6 +14,7 @@ type ProgramState =
       CombinationTitle: string
       CoercePhrases: bool
       OnePhrasePerTrack: bool
+      GenerateDummyDD: bool
       AddTrackNamesToLyrics: bool
       StatusMessage: string
       ReplacementToneEditor: ReplacementToneEditor option
@@ -32,6 +33,7 @@ module ProgramState =
           CombinationTitle = ""
           CoercePhrases = true
           OnePhrasePerTrack = false
+          GenerateDummyDD = false
           AddTrackNamesToLyrics = true
           StatusMessage = ""
           ReplacementToneEditor = None
